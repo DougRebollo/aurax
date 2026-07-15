@@ -16,6 +16,21 @@
     align-items: center;
     min-height: 100vh;
     padding: 16px;
+    position: relative;
+  }
+  /* Grade sutil tipo HUD atrás do conteúdo, só pra dar um ar mais "tecnológico". */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(79, 140, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79, 140, 255, 0.05) 1px, transparent 1px);
+    background-size: 42px 42px;
+    -webkit-mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
+    mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
+    pointer-events: none;
+    z-index: 0;
   }
   h1 {
     font-size: 1.8rem;
@@ -37,6 +52,7 @@
     --aura-color: #4f8cff;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 0 50px -10px var(--aura-color);
     transition: box-shadow 0.7s ease;
+    overflow: hidden;
   }
   video, canvas {
     width: 100%;
@@ -44,6 +60,64 @@
     border-radius: 18px;
   }
   canvas { position: absolute; top: 0; left: 0; }
+
+  .scan-sweep {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 45%;
+    background: linear-gradient(to bottom, transparent, rgba(126, 231, 135, 0.14) 50%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  #container.is-live .scan-sweep { opacity: 1; animation: scanSweep 5s ease-in-out infinite; }
+  @keyframes scanSweep {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(220%); }
+  }
+
+  .reticle { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
+  #container.is-live .reticle { opacity: 0.6; }
+  .corner {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--aura-color, #4f8cff);
+    transition: border-color 0.6s ease;
+  }
+  .corner-tl { top: 10px; left: 10px; border-right: none; border-bottom: none; border-radius: 4px 0 0 0; }
+  .corner-tr { top: 10px; right: 10px; border-left: none; border-bottom: none; border-radius: 0 4px 0 0; }
+  .corner-bl { bottom: 10px; left: 10px; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
+  .corner-br { bottom: 10px; right: 10px; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
+
+  .live-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #eaf2ff;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  #container.is-live .live-badge { opacity: 1; }
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff5c5c;
+    animation: micPulse 1.4s infinite;
+  }
 
   #stage {
     display: flex;
@@ -366,8 +440,23 @@
       <div id="container">
         <video id="video" autoplay muted playsinline></video>
         <canvas id="overlay"></canvas>
+        <div class="scan-sweep"></div>
+        <div class="reticle">
+          <span class="corner corner-tl"></span>
+          <span class="corner corner-tr"></span>
+          <span class="corner corner-bl"></span>
+          <span class="corner corner-br"></span>
+        </div>
+        <div class="live-badge"><span class="live-dot"></span>AO VIVO</div>
       </div>
       <button id="switchCam" style="display:none">Trocar câmera</button>
+
+      <div id="session-controls">
+        <button id="startSessionBtn">Iniciar sessão</button>
+        <button id="endSessionBtn" class="danger" style="display:none">Finalizar sessão</button>
+        <div id="sessionTimer"></div>
+      </div>
+
       <div id="dominant"></div>
       <div id="emotions"></div>
     </div>
@@ -391,12 +480,6 @@
     <div id="estimated-title">Estimativas experimentais (beta) — aproximações, não reconhecidas diretamente pela IA</div>
     <div id="estimated"></div>
     <div id="estimated-note">Calculadas a partir de sinais indiretos (abertura dos olhos, estabilidade da cabeça, expressão sustentada). Podem não ser precisas.</div>
-  </div>
-
-  <div id="session-controls" class="card">
-    <button id="startSessionBtn">Iniciar sessão</button>
-    <button id="endSessionBtn" class="danger" style="display:none">Finalizar sessão</button>
-    <div id="sessionTimer"></div>
   </div>
 
   <div id="summary-section" class="card" style="display:none">
@@ -915,20 +998,59 @@
         </div>`;
     }
 
+    function csvEscape(value) {
+      const str = String(value ?? "");
+      if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+      return str;
+    }
+
     downloadCsvBtn.addEventListener("click", () => {
-      const headers = ["tempo_segundos", ...Object.keys(EMOTION_LABELS_PT), "cansado", "focado", "motivado"];
-      const rows = sessionData.map((d) =>
-        headers
-          .map((h) => {
-            if (h === "tempo_segundos") return d.t.toFixed(1);
-            if (h === "cansado") return d.tired.toFixed(3);
-            if (h === "focado") return d.focused.toFixed(3);
-            if (h === "motivado") return d.motivated.toFixed(3);
-            return (d[h] || 0).toFixed(3);
-          })
-          .join(",")
-      );
-      const csv = [headers.join(","), ...rows].join("\n");
+      const lines = [];
+
+      lines.push("Leituras da sessão (expressões e estimativas)");
+      const dataHeaders = ["tempo_minutos", ...Object.keys(EMOTION_LABELS_PT), "cansado", "focado", "motivado"];
+      lines.push(dataHeaders.join(","));
+      sessionData.forEach((d) => {
+        lines.push(
+          dataHeaders
+            .map((h) => {
+              if (h === "tempo_minutos") return (d.t / 60).toFixed(2);
+              if (h === "cansado") return d.tired.toFixed(3);
+              if (h === "focado") return d.focused.toFixed(3);
+              if (h === "motivado") return d.motivated.toFixed(3);
+              return (d[h] || 0).toFixed(3);
+            })
+            .join(",")
+        );
+      });
+
+      lines.push("");
+      lines.push("Transcrição da sessão");
+      lines.push(["tempo_minutos", "texto", "expressao", "palavras_chave"].join(","));
+      sessionTranscript.forEach((line) => {
+        lines.push(
+          [
+            (line.t / 60).toFixed(2),
+            csvEscape(line.text),
+            csvEscape(line.expression),
+            csvEscape((line.keywords || []).join("; ")),
+          ].join(",")
+        );
+      });
+
+      lines.push("");
+      lines.push("Insights de negociação");
+      const duration = sessionData.length ? sessionData[sessionData.length - 1].t : 0;
+      const wpmSession = duration > 0 ? Math.round(sessionWordCount / (duration / 60)) : 0;
+      lines.push(["ritmo_medio_palavras_por_min", wpmSession].join(","));
+      lines.push(["pausas_longas", sessionPauseCount].join(","));
+      lines.push("");
+      lines.push(["palavra_chave", "ocorrencias"].join(","));
+      Object.entries(sessionKeywordCounts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([kw, count]) => lines.push([csvEscape(kw), count].join(",")));
+
+      const csv = lines.join("\n");
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -1277,6 +1399,7 @@
         statusEl.textContent = "";
         switchBtn.style.display = "inline-block";
         document.getElementById("loadingOverlay").classList.add("hidden");
+        document.getElementById("container").classList.add("is-live");
         renderHistory();
         detectLoop();
       } catch (err) {
