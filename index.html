@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AuraX — Leitura de Expressão Facial</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse 1200px 800px at 50% -10%, #1a2338 0%, #0b0c10 55%, #08080a 100%);
+    color: #eee;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  h1 {
+    font-size: 1.8rem;
+    margin: 8px 0 2px;
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, #eaf2ff, #7ee787 55%, #4f8cff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  #status { margin-bottom: 12px; font-size: 0.9rem; color: #aaa; text-align: center; }
+  #container {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    border-radius: 18px;
+    --aura-color: #4f8cff;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 0 50px -10px var(--aura-color);
+    transition: box-shadow 0.7s ease;
+  }
+  video, canvas {
+    width: 100%;
+    max-width: 640px;
+    border-radius: 18px;
+  }
+  canvas { position: absolute; top: 0; left: 0; }
+
+  #stage {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    width: 100%;
+    max-width: 1040px;
+  }
+  #videoColumn {
+    flex: 1 1 640px;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #emotions {
+    margin-top: 16px;
+    width: 100%;
+    max-width: 640px;
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    margin: 6px 0;
+    font-size: 0.9rem;
+  }
+  .bar-label { width: 90px; text-transform: capitalize; }
+  .bar-track {
+    flex: 1;
+    background: #333;
+    border-radius: 6px;
+    height: 14px;
+    overflow: hidden;
+    margin: 0 8px;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4f8cff, #7ee787);
+    width: 0%;
+    transition: width 0.15s ease-out;
+  }
+  .bar-pct { width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+  #dominant {
+    margin-top: 14px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-align: center;
+    transition: color 0.4s ease;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 640px;
+    margin-top: 20px;
+    padding: 16px 18px;
+    background: linear-gradient(160deg, rgba(79, 140, 255, 0.08), rgba(126, 231, 135, 0.03));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  #estimated-section {
+    width: 100%;
+    max-width: 640px;
+    margin-top: 20px;
+    border: 1px dashed rgba(255, 182, 72, 0.4);
+    border-radius: 16px;
+    padding: 16px 18px;
+    background: linear-gradient(160deg, rgba(255, 182, 72, 0.07), rgba(255, 182, 72, 0.02));
+  }
+  #estimated-title {
+    font-size: 0.85rem;
+    color: #ffb648;
+    margin-bottom: 8px;
+  }
+  #estimated-note {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 8px;
+  }
+  button {
+    margin-top: 16px;
+    padding: 11px 22px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, #4f8cff, #3d6fd6);
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(79, 140, 255, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79, 140, 255, 0.45); }
+  button:active { transform: translateY(0); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
+  button.danger { background: linear-gradient(135deg, #ff6b5b, #e5533d); box-shadow: 0 4px 14px rgba(229, 83, 61, 0.35); }
+  button.ghost { background: rgba(255, 255, 255, 0.06); box-shadow: none; }
+  button.ghost:hover { background: rgba(255, 255, 255, 0.1); box-shadow: none; }
+  #session-controls { text-align: center; }
+  #sessionTimer { margin-top: 8px; font-size: 1rem; color: #7ee787; }
+  #summary-section h2 { font-size: 1.1rem; margin-bottom: 4px; }
+  #summaryDuration { font-size: 0.85rem; color: #aaa; margin-bottom: 12px; }
+  #summary-section h3 { font-size: 0.9rem; margin: 16px 0 4px; color: #ccc; }
+
+  :root {
+    --series-tired: #3987e5;
+    --series-focused: #199e70;
+    --series-motivated: #c98500;
+    --grid: #2c2c2a;
+    --muted: #898781;
+    --surface: #111111;
+    --text-secondary: #c3c2b7;
+  }
+  #trend-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  #trendChart { width: 100%; height: auto; touch-action: none; }
+  #trendTooltip {
+    position: fixed;
+    display: none;
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    color: #eee;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .tooltip-time { font-weight: 600; margin-bottom: 4px; color: #fff; }
+  .tooltip-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  #peakInsights { font-size: 0.85rem; color: #ddd; margin: 10px 0 4px; }
+  .insight-line { margin: 4px 0; padding-left: 10px; border-left: 2px solid #4f8cff; }
+
+  .subtitle { font-size: 0.8rem; color: #777; text-align: center; margin-top: -12px; margin-bottom: 16px; letter-spacing: 0.5px; }
+
+  #loadingOverlay {
+    position: fixed;
+    inset: 0;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    z-index: 100;
+    transition: opacity 0.6s ease;
+  }
+  #loadingOverlay.hidden { opacity: 0; pointer-events: none; }
+  .scan-ring { animation: auraxRotate 2.4s linear infinite; transform-origin: 60px 60px; }
+  .scan-line { animation: auraxScan 1.8s ease-in-out infinite; }
+  @keyframes auraxRotate { to { transform: rotate(360deg); } }
+  @keyframes auraxScan {
+    0% { transform: translateY(0); opacity: 0; }
+    12% { opacity: 1; }
+    88% { opacity: 1; }
+    100% { transform: translateY(108px); opacity: 0; }
+  }
+  #loadingTitle {
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: 8px;
+    color: #eaf2ff;
+    text-transform: uppercase;
+  }
+  #loadingOverlay #status { font-size: 0.8rem; color: #7a8aa8; letter-spacing: 1px; margin: 0; }
+
+  #history-section h2 { font-size: 1.1rem; margin-bottom: 8px; }
+  .history-row {
+    padding: 8px 0;
+    border-bottom: 1px solid #222;
+    font-size: 0.85rem;
+  }
+  .history-date { color: #aaa; margin-bottom: 2px; }
+  .history-stats { color: #ddd; }
+
+  #transcript-section {
+    flex: 1 1 320px;
+    max-width: 380px;
+    min-width: 260px;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(160deg, rgba(79, 140, 255, 0.10), rgba(126, 231, 135, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 14px 16px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  }
+  #transcript-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  #transcript-section h2 { font-size: 1rem; margin: 0; }
+  #transcript-header button { margin-top: 0; padding: 8px 14px; font-size: 0.85rem; }
+  #transcriptMeta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #888;
+    margin: 8px 0;
+    min-height: 16px;
+  }
+  .mic-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff5c5c;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 0 rgba(255, 92, 92, 0.6);
+    animation: micPulse 1.4s infinite;
+  }
+  .mic-pulse.hidden { display: none; }
+  @keyframes micPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 92, 92, 0.55); }
+    70% { box-shadow: 0 0 0 8px rgba(255, 92, 92, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 92, 92, 0); }
+  }
+  #transcriptCount { margin-left: auto; color: #666; }
+  #transcriptLog {
+    flex: 1;
+    max-height: 420px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .transcript-line {
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    animation: transcriptFadeIn 0.25s ease;
+  }
+  @keyframes transcriptFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .transcript-time { color: #7ee787; margin-right: 8px; font-variant-numeric: tabular-nums; }
+  .transcript-interim { color: #888; font-style: italic; }
+  .transcript-expression { color: #aaa; font-size: 0.78rem; margin-left: 6px; }
+  .expr-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  .history-transcript { margin-top: 8px; }
+  .history-transcript summary {
+    cursor: pointer;
+    color: #4f8cff;
+    font-size: 0.8rem;
+  }
+  .history-transcript .transcript-line { font-size: 0.8rem; animation: none; }
+</style>
+</head>
+<body>
+  <div id="loadingOverlay">
+    <svg viewBox="0 0 120 120" width="120" height="120">
+      <defs>
+        <linearGradient id="scanGradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#4f8cff" stop-opacity="0" />
+          <stop offset="50%" stop-color="#7ee787" stop-opacity="0.9" />
+          <stop offset="100%" stop-color="#4f8cff" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <circle cx="60" cy="60" r="52" fill="none" stroke="#20293a" stroke-width="2" />
+      <circle cx="60" cy="60" r="52" fill="none" stroke="#4f8cff" stroke-width="2" stroke-dasharray="40 286" class="scan-ring" />
+      <circle cx="42" cy="52" r="4" fill="#4f8cff" opacity="0.85" />
+      <circle cx="78" cy="52" r="4" fill="#4f8cff" opacity="0.85" />
+      <path d="M40 76 Q60 90 80 76" stroke="#4f8cff" stroke-width="2" fill="none" opacity="0.6" />
+      <rect x="8" y="0" width="104" height="4" fill="url(#scanGradient)" class="scan-line" />
+    </svg>
+    <div id="loadingTitle">AuraX</div>
+    <div id="status">Carregando modelos...</div>
+  </div>
+
+  <h1>AuraX</h1>
+  <div class="subtitle">Leitura de expressão facial em tempo real</div>
+  <div id="stage">
+    <div id="videoColumn">
+      <div id="container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <button id="switchCam" style="display:none">Trocar câmera</button>
+      <div id="dominant"></div>
+      <div id="emotions"></div>
+    </div>
+
+    <div id="transcript-section">
+      <div id="transcript-header">
+        <h2>Transcrição ao vivo</h2>
+        <button id="micToggleBtn">Ativar microfone</button>
+      </div>
+      <div id="transcriptMeta">
+        <span id="micPulse" class="mic-pulse hidden"></span>
+        <span id="transcriptStatus"></span>
+        <span id="transcriptCount"></span>
+      </div>
+      <div id="transcriptLog"></div>
+    </div>
+  </div>
+
+  <div id="estimated-section">
+    <div id="estimated-title">Estimativas experimentais (beta) — aproximações, não reconhecidas diretamente pela IA</div>
+    <div id="estimated"></div>
+    <div id="estimated-note">Calculadas a partir de sinais indiretos (abertura dos olhos, estabilidade da cabeça, expressão sustentada). Podem não ser precisas.</div>
+  </div>
+
+  <div id="session-controls" class="card">
+    <button id="startSessionBtn">Iniciar sessão</button>
+    <button id="endSessionBtn" class="danger" style="display:none">Finalizar sessão</button>
+    <div id="sessionTimer"></div>
+  </div>
+
+  <div id="summary-section" class="card" style="display:none">
+    <h2>Resumo da sessão</h2>
+    <div id="summaryDuration"></div>
+
+    <h3>Como evoluiu ao longo da sessão</h3>
+    <div id="trend-legend">
+      <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Focado</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
+    </div>
+    <svg id="trendChart" viewBox="0 0 640 240"></svg>
+    <div id="peakInsights"></div>
+
+    <h3>Emoções (média da sessão)</h3>
+    <div id="summaryEmotions"></div>
+    <h3>Estimativas (média da sessão)</h3>
+    <div id="summaryEstimated"></div>
+    <h3>Transcrição da sessão</h3>
+    <div id="summaryTranscript"></div>
+    <button id="downloadCsvBtn" class="ghost">Baixar dados (CSV)</button>
+  </div>
+
+  <div id="history-section" class="card">
+    <h2>Histórico de sessões</h2>
+    <div id="historyList"></div>
+    <button id="clearHistoryBtn" class="ghost">Limpar histórico</button>
+  </div>
+
+  <div id="trendTooltip"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script>
+    const EMOTION_LABELS_PT = {
+      neutral: "Neutro",
+      happy: "Feliz",
+      sad: "Triste",
+      angry: "Bravo",
+      fearful: "Nervoso/Medo",
+      disgusted: "Enjoado",
+      surprised: "Surpreso",
+    };
+
+    // Mesma paleta usada nas barras/gráficos, para o "ponto" de expressão na transcrição.
+    const EXPRESSION_COLORS = {
+      Feliz: "#7ee787",
+      Triste: "#4f8cff",
+      Bravo: "#e5533d",
+      "Nervoso/Medo": "#ffb648",
+      Enjoado: "#b388ff",
+      Surpreso: "#ffe066",
+      Neutro: "#999999",
+      Focado: "#4f8cff",
+    };
+
+    function expressionColor(tag) {
+      const label = tag.split("—")[0].trim();
+      return EXPRESSION_COLORS[label] || "#777";
+    }
+
+    const video = document.getElementById("video");
+    const overlay = document.getElementById("overlay");
+    const statusEl = document.getElementById("status");
+    const dominantEl = document.getElementById("dominant");
+    const emotionsEl = document.getElementById("emotions");
+    const estimatedEl = document.getElementById("estimated");
+    const switchBtn = document.getElementById("switchCam");
+    const ctx = overlay.getContext("2d");
+
+    let currentFacingMode = "user";
+    let stream = null;
+
+    // Quantos frames seguidos sem rosto até avisar "nenhum rosto detectado".
+    // Isso evita o "piscar" quando uma única leitura falha por instante.
+    const MISS_GRACE_FRAMES = 12;
+    let missedFrames = 0;
+
+    // Histórico recente para calcular as estimativas (cansaço/foco/motivação).
+    const HISTORY_SIZE = 60; // ~poucos segundos de janela
+    const history = {
+      ear: [],       // abertura dos olhos (Eye Aspect Ratio)
+      neutral: [],   // score de expressão neutra
+      happy: [],     // score de expressão feliz
+      surprised: [], // score de expressão surpresa
+      headX: [],     // posição horizontal da cabeça
+      headY: [],     // posição vertical da cabeça
+    };
+    let runningMaxEAR = 0;
+
+    const MODEL_URL = "https://cdn.jsdelivr.net/gh/vladmandic/face-api/model";
+
+    async function loadModels() {
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+    }
+
+    function pushHistory(key, value) {
+      const arr = history[key];
+      arr.push(value);
+      if (arr.length > HISTORY_SIZE) arr.shift();
+    }
+
+    function average(arr) {
+      if (!arr.length) return 0;
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    function variance(arr) {
+      if (arr.length < 2) return 0;
+      const avg = average(arr);
+      return average(arr.map((v) => (v - avg) ** 2));
+    }
+
+    function distance(p1, p2) {
+      return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    }
+
+    // Eye Aspect Ratio: quanto menor, mais fechado o olho está.
+    function eyeAspectRatio(points) {
+      const vertical1 = distance(points[1], points[5]);
+      const vertical2 = distance(points[2], points[4]);
+      const horizontal = distance(points[0], points[3]);
+      if (horizontal === 0) return 0;
+      return (vertical1 + vertical2) / (2 * horizontal);
+    }
+
+    function updateEstimates(landmarks, expressions, box) {
+      const leftEye = landmarks.getLeftEye();
+      const rightEye = landmarks.getRightEye();
+      const ear = (eyeAspectRatio(leftEye) + eyeAspectRatio(rightEye)) / 2;
+
+      pushHistory("ear", ear);
+      pushHistory("neutral", expressions.neutral);
+      pushHistory("happy", expressions.happy);
+      pushHistory("surprised", expressions.surprised);
+      // Normalizado pelo tamanho do rosto na tela (não em pixels absolutos),
+      // pra funcionar igual em qualquer resolução/distância de câmera.
+      pushHistory("headX", (box.x + box.width / 2) / box.width);
+      pushHistory("headY", (box.y + box.height / 2) / box.height);
+
+      runningMaxEAR = Math.max(runningMaxEAR * 0.995, ear); // decai bem devagar, se adapta com o tempo
+
+      const avgEAR = average(history.ear);
+      const avgNeutral = average(history.neutral);
+      const avgHappy = average(history.happy);
+      const avgSurprised = average(history.surprised);
+      const headVariance = variance(history.headX) + variance(history.headY);
+
+      // Cansado: olhos consistentemente bem mais fechados que o "normal" observado.
+      const earRatio = runningMaxEAR > 0 ? avgEAR / runningMaxEAR : 1;
+      const tired = clamp01((0.85 - earRatio) / 0.35);
+
+      // Focado: cabeça parada + expressão neutra sustentada.
+      // Peso maior pra expressão neutra do que pra estabilidade sozinha —
+      // antes, ficar parado já bastava pra "Focado" ganhar de qualquer outra
+      // expressão (mesmo sorrindo/falando), porque a estabilidade quase
+      // sempre satura perto do máximo.
+      const stability = clamp01(1 - headVariance / 0.05);
+      const focused = clamp01(stability * 0.35 + avgNeutral * 0.65);
+
+      // Motivado: felicidade/energia positiva sustentada.
+      const motivated = clamp01(avgHappy * 0.8 + avgSurprised * 0.3);
+
+      return { tired, focused, motivated };
+    }
+
+    function clamp01(v) {
+      return Math.max(0, Math.min(1, v));
+    }
+
+    // O modelo pronto costuma confundir "triste" com rosto neutro/parado.
+    // Correção aproximada: reduz o peso do "triste" antes de exibir/gravar.
+    const EXPRESSION_CALIBRATION = { sad: 0.5 };
+
+    function calibrateExpressions(expressions) {
+      const calibrated = { ...expressions };
+      for (const key in EXPRESSION_CALIBRATION) {
+        calibrated[key] = clamp01(calibrated[key] * EXPRESSION_CALIBRATION[key]);
+      }
+      return calibrated;
+    }
+
+    // --- Sessão: coleta dados ao longo do tempo e monta um resumo no final ---
+    const startSessionBtn = document.getElementById("startSessionBtn");
+    const endSessionBtn = document.getElementById("endSessionBtn");
+    const sessionTimerEl = document.getElementById("sessionTimer");
+    const summarySection = document.getElementById("summary-section");
+    const summaryDurationEl = document.getElementById("summaryDuration");
+    const summaryEmotionsEl = document.getElementById("summaryEmotions");
+    const summaryEstimatedEl = document.getElementById("summaryEstimated");
+    const summaryTranscriptEl = document.getElementById("summaryTranscript");
+    const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+    const trendChartEl = document.getElementById("trendChart");
+    const trendTooltipEl = document.getElementById("trendTooltip");
+    const peakInsightsEl = document.getElementById("peakInsights");
+
+    const TREND_SERIES = [
+      { key: "tired", label: "Cansado", color: "var(--series-tired)" },
+      { key: "focused", label: "Focado", color: "var(--series-focused)" },
+      { key: "motivated", label: "Motivado", color: "var(--series-motivated)" },
+    ];
+
+    function formatTimeMMSS(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = Math.floor(totalSeconds % 60);
+      return `${m}m${String(s).padStart(2, "0")}s`;
+    }
+
+    function renderTrendChart(data) {
+      const W = 640;
+      const H = 240;
+      const margin = { top: 16, right: 16, bottom: 24, left: 34 };
+      const plotW = W - margin.left - margin.right;
+      const plotH = H - margin.top - margin.bottom;
+      const duration = data[data.length - 1].t || 1;
+
+      const x = (t) => margin.left + (t / duration) * plotW;
+      const y = (v) => margin.top + (1 - v) * plotH;
+
+      let svg = "";
+
+      [0, 0.5, 1].forEach((v) => {
+        const yy = y(v);
+        svg += `<line x1="${margin.left}" y1="${yy}" x2="${W - margin.right}" y2="${yy}" stroke="var(--grid)" stroke-width="1" />`;
+        svg += `<text x="${margin.left - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${Math.round(v * 100)}%</text>`;
+      });
+
+      TREND_SERIES.forEach((series) => {
+        const points = data.map((d) => `${x(d.t)},${y(d[series.key] || 0)}`).join(" ");
+        const last = data[data.length - 1];
+        svg += `<polyline points="${points}" fill="none" stroke="${series.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
+        svg += `<circle cx="${x(last.t)}" cy="${y(last[series.key] || 0)}" r="4" fill="${series.color}" stroke="var(--surface)" stroke-width="2" />`;
+        svg += `<text x="${x(last.t) + 6}" y="${y(last[series.key] || 0) + 3}" font-size="10" fill="var(--text-secondary)">${series.label}</text>`;
+      });
+
+      svg += `<line id="trendCrosshair" x1="0" y1="${margin.top}" x2="0" y2="${margin.top + plotH}" stroke="var(--muted)" stroke-width="1" style="display:none" />`;
+      svg += `<rect id="trendHoverArea" x="${margin.left}" y="${margin.top}" width="${plotW}" height="${plotH}" fill="transparent" />`;
+
+      trendChartEl.innerHTML = svg;
+
+      const hoverArea = trendChartEl.querySelector("#trendHoverArea");
+      const crosshair = trendChartEl.querySelector("#trendCrosshair");
+
+      hoverArea.addEventListener("mousemove", (evt) => {
+        const rect = trendChartEl.getBoundingClientRect();
+        const scaleX = W / rect.width;
+        const mouseX = (evt.clientX - rect.left) * scaleX;
+        const t = clamp01((mouseX - margin.left) / plotW) * duration;
+
+        let nearest = data[0];
+        let minDiff = Infinity;
+        for (const d of data) {
+          const diff = Math.abs(d.t - t);
+          if (diff < minDiff) {
+            minDiff = diff;
+            nearest = d;
+          }
+        }
+
+        crosshair.style.display = "block";
+        crosshair.setAttribute("x1", x(nearest.t));
+        crosshair.setAttribute("x2", x(nearest.t));
+
+        trendTooltipEl.style.display = "block";
+        trendTooltipEl.style.left = evt.clientX + 12 + "px";
+        trendTooltipEl.style.top = evt.clientY - 12 + "px";
+        trendTooltipEl.innerHTML =
+          `<div class="tooltip-time">${formatTimeMMSS(nearest.t)}</div>` +
+          TREND_SERIES.map(
+            (s) =>
+              `<div><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}: ${((nearest[s.key] || 0) * 100).toFixed(0)}%</div>`
+          ).join("");
+      });
+
+      hoverArea.addEventListener("mouseleave", () => {
+        crosshair.style.display = "none";
+        trendTooltipEl.style.display = "none";
+      });
+    }
+
+    function renderInsights(data) {
+      const peakFocus = data.reduce((a, b) => (b.focused > a.focused ? b : a));
+      const peakTired = data.reduce((a, b) => (b.tired > a.tired ? b : a));
+      const mid = data[data.length - 1].t / 2;
+      const firstHalf = data.filter((d) => d.t < mid);
+      const secondHalf = data.filter((d) => d.t >= mid);
+
+      const lines = [];
+      lines.push(`Pico de foco: ${(peakFocus.focused * 100).toFixed(0)}% aos ${formatTimeMMSS(peakFocus.t)}`);
+      lines.push(`Pico de cansaço: ${(peakTired.tired * 100).toFixed(0)}% aos ${formatTimeMMSS(peakTired.t)}`);
+
+      if (firstHalf.length && secondHalf.length) {
+        const tiredDelta = average(secondHalf.map((d) => d.tired)) - average(firstHalf.map((d) => d.tired));
+        if (tiredDelta > 0.05) {
+          lines.push(`Você ficou mais cansado na segunda metade da sessão (+${Math.round(tiredDelta * 100)} pontos)`);
+        } else if (tiredDelta < -0.05) {
+          lines.push(`Você ficou menos cansado na segunda metade da sessão (${Math.round(tiredDelta * 100)} pontos)`);
+        }
+      }
+
+      peakInsightsEl.innerHTML = lines.map((l) => `<div class="insight-line">${l}</div>`).join("");
+    }
+
+    // --- Histórico: guarda um resumo de cada sessão no navegador (localStorage) ---
+    const HISTORY_KEY = "emotionAppSessionHistory";
+    const HISTORY_MAX_ENTRIES = 30;
+    const historyListEl = document.getElementById("historyList");
+    const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+
+    function loadHistory() {
+      try {
+        return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveHistoryEntry(entry) {
+      const entries = loadHistory();
+      entries.unshift(entry);
+      entries.length = Math.min(entries.length, HISTORY_MAX_ENTRIES);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+    }
+
+    function formatDateBR(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function renderHistory() {
+      const entries = loadHistory();
+      if (!entries.length) {
+        historyListEl.innerHTML = '<div class="insight-line">Nenhuma sessão salva ainda.</div>';
+        return;
+      }
+      historyListEl.innerHTML = entries
+        .map((h) => {
+          const transcriptHtml = h.transcript && h.transcript.length
+            ? `<details class="history-transcript">
+                 <summary>Ver transcrição (${h.transcript.length} falas)</summary>
+                 ${h.transcript.map(renderTranscriptLineHtml).join("")}
+               </details>`
+            : "";
+          return `
+            <div class="history-row">
+              <div class="history-date">${formatDateBR(h.date)} — ${formatDuration(h.duration)}</div>
+              <div class="history-stats">Focado ${Math.round(h.focused * 100)}% · Motivado ${Math.round(h.motivated * 100)}% · Cansado ${Math.round(h.tired * 100)}%</div>
+              ${transcriptHtml}
+            </div>`;
+        })
+        .join("");
+    }
+
+    clearHistoryBtn.addEventListener("click", () => {
+      localStorage.removeItem(HISTORY_KEY);
+      renderHistory();
+    });
+
+    const SAMPLE_INTERVAL_MS = 3000; // guarda uma leitura a cada 3 segundos
+    let sessionActive = false;
+    let sessionStartTime = 0;
+    let lastSampleTime = 0;
+    let sessionData = [];
+    let sessionTranscript = [];
+
+    function formatDuration(totalSeconds) {
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = Math.floor(totalSeconds % 60);
+      const hh = h > 0 ? `${h}h ` : "";
+      return `${hh}${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+    }
+
+    setInterval(() => {
+      if (!sessionActive) return;
+      sessionTimerEl.textContent = "Sessão em andamento: " + formatDuration((Date.now() - sessionStartTime) / 1000);
+    }, 1000);
+
+    startSessionBtn.addEventListener("click", () => {
+      sessionActive = true;
+      sessionStartTime = Date.now();
+      lastSampleTime = 0;
+      sessionData = [];
+      sessionTranscript = [];
+      startSessionBtn.style.display = "none";
+      endSessionBtn.style.display = "inline-block";
+      summarySection.style.display = "none";
+      sessionTimerEl.textContent = "Sessão em andamento: 00m 00s";
+    });
+
+    endSessionBtn.addEventListener("click", () => {
+      sessionActive = false;
+      startSessionBtn.style.display = "inline-block";
+      endSessionBtn.style.display = "none";
+      sessionTimerEl.textContent = "";
+      renderSummary();
+    });
+
+    function maybeSampleSession(expressions, estimates) {
+      if (!sessionActive) return;
+      const now = Date.now();
+      if (now - lastSampleTime < SAMPLE_INTERVAL_MS) return;
+      lastSampleTime = now;
+      sessionData.push({
+        t: (now - sessionStartTime) / 1000,
+        ...expressions,
+        tired: estimates.tired,
+        focused: estimates.focused,
+        motivated: estimates.motivated,
+      });
+    }
+
+    function renderSummary() {
+      summarySection.style.display = "block";
+      if (!sessionData.length) {
+        summaryDurationEl.textContent = "Nenhum dado coletado (rosto não foi detectado durante a sessão).";
+        summaryEmotionsEl.innerHTML = "";
+        summaryEstimatedEl.innerHTML = "";
+        summaryTranscriptEl.innerHTML = "";
+        return;
+      }
+
+      const duration = sessionData[sessionData.length - 1].t;
+      summaryDurationEl.textContent = `Duração: ${formatDuration(duration)} — ${sessionData.length} leituras coletadas`;
+
+      if (sessionData.length >= 2) {
+        renderTrendChart(sessionData);
+        renderInsights(sessionData);
+      } else {
+        trendChartEl.innerHTML = "";
+        peakInsightsEl.innerHTML = "<div class=\"insight-line\">Sessão curta demais para mostrar a evolução ao longo do tempo.</div>";
+      }
+
+      const emotionAverages = Object.keys(EMOTION_LABELS_PT)
+        .filter((key) => key !== "neutral")
+        .map((key) => [key, average(sessionData.map((d) => d[key] || 0))]);
+      emotionAverages.push(["focused", average(sessionData.map((d) => d.focused || 0))]);
+      emotionAverages.sort((a, b) => b[1] - a[1]);
+      renderBarsInto(summaryEmotionsEl, emotionAverages, DISPLAY_LABELS_PT);
+
+      const estimatedAverages = ["tired", "motivated"]
+        .map((key) => [key, average(sessionData.map((d) => d[key] || 0))])
+        .sort((a, b) => b[1] - a[1]);
+      renderBarsInto(summaryEstimatedEl, estimatedAverages, ESTIMATED_LABELS_PT);
+
+      summaryTranscriptEl.innerHTML = sessionTranscript.length
+        ? sessionTranscript.map(renderTranscriptLineHtml).join("")
+        : '<div class="insight-line">Nenhuma fala registrada nesta sessão.</div>';
+
+      saveHistoryEntry({
+        date: new Date().toISOString(),
+        duration,
+        focused: average(sessionData.map((d) => d.focused || 0)),
+        tired: average(sessionData.map((d) => d.tired || 0)),
+        motivated: average(sessionData.map((d) => d.motivated || 0)),
+        transcript: sessionTranscript,
+      });
+      renderHistory();
+    }
+
+    function renderTranscriptLineHtml(line) {
+      const color = expressionColor(line.expression);
+      return `
+        <div class="transcript-line">
+          <span class="transcript-time">${formatClock(line.t)}</span>${line.text}
+          <span class="transcript-expression"><span class="expr-dot" style="background:${color}"></span>${line.expression}</span>
+        </div>`;
+    }
+
+    downloadCsvBtn.addEventListener("click", () => {
+      const headers = ["tempo_segundos", ...Object.keys(EMOTION_LABELS_PT), "cansado", "focado", "motivado"];
+      const rows = sessionData.map((d) =>
+        headers
+          .map((h) => {
+            if (h === "tempo_segundos") return d.t.toFixed(1);
+            if (h === "cansado") return d.tired.toFixed(3);
+            if (h === "focado") return d.focused.toFixed(3);
+            if (h === "motivado") return d.motivated.toFixed(3);
+            return (d[h] || 0).toFixed(3);
+          })
+          .join(",")
+      );
+      const csv = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `aurax-sessao-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // --- Transcrição ao vivo (Web Speech API) ---
+    const micToggleBtn = document.getElementById("micToggleBtn");
+    const transcriptStatusEl = document.getElementById("transcriptStatus");
+    const transcriptLogEl = document.getElementById("transcriptLog");
+    const micPulseEl = document.getElementById("micPulse");
+    const transcriptCountEl = document.getElementById("transcriptCount");
+
+    const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let transcribing = false;
+    let stoppedManually = false;
+    let transcriptStartTime = 0;
+    let transcriptFinalCount = 0;
+
+    function updateTranscriptCount() {
+      transcriptCountEl.textContent = transcriptFinalCount ? `${transcriptFinalCount} falas` : "";
+    }
+
+    function formatClock(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = Math.floor(totalSeconds % 60);
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function clearInterimLine() {
+      const interimEl = transcriptLogEl.querySelector("#interimLine");
+      if (interimEl) interimEl.remove();
+    }
+
+    function appendTranscriptLine(text) {
+      clearInterimLine();
+      if (!text) return;
+
+      // Expressão dominante exibida no momento em que a fala terminou de ser
+      // reconhecida — uma aproximação de "com que expressão isso foi dito".
+      const expressionTag = dominantEl.textContent || "Sem leitura de expressão";
+      const elapsed = (Date.now() - transcriptStartTime) / 1000;
+
+      transcriptLogEl.insertAdjacentHTML(
+        "beforeend",
+        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag })
+      );
+      transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
+      transcriptFinalCount++;
+      updateTranscriptCount();
+
+      if (sessionActive) {
+        sessionTranscript.push({
+          t: (Date.now() - sessionStartTime) / 1000,
+          text,
+          expression: expressionTag,
+        });
+      }
+    }
+
+    function renderInterimLine(text) {
+      let interimEl = transcriptLogEl.querySelector("#interimLine");
+      if (!interimEl) {
+        interimEl = document.createElement("div");
+        interimEl.id = "interimLine";
+        interimEl.className = "transcript-line transcript-interim";
+        transcriptLogEl.appendChild(interimEl);
+      }
+      interimEl.textContent = text;
+      transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
+    }
+
+    function setupRecognition() {
+      const r = new SpeechRecognitionImpl();
+      r.lang = "pt-BR";
+      r.continuous = true;
+      r.interimResults = true;
+
+      r.onresult = (event) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            appendTranscriptLine(result[0].transcript.trim());
+          } else {
+            interim += result[0].transcript;
+          }
+        }
+        if (interim) renderInterimLine(interim);
+      };
+
+      const FATAL_MIC_ERRORS = ["not-allowed", "service-not-allowed", "audio-capture"];
+
+      r.onerror = (event) => {
+        transcriptStatusEl.textContent = "Erro no microfone: " + event.error;
+        if (FATAL_MIC_ERRORS.includes(event.error)) {
+          // Sem isso, o onend abaixo ficaria tentando reiniciar pra sempre
+          // mesmo sem chance de sucesso (ex: permissão negada).
+          transcribing = false;
+          stoppedManually = true;
+          micPulseEl.classList.add("hidden");
+          micToggleBtn.textContent = "Ativar microfone";
+        }
+      };
+
+      r.onend = () => {
+        // O navegador encerra o reconhecimento periodicamente mesmo em modo "continuous";
+        // reinicia sozinho a menos que o usuário tenha pedido pra parar.
+        if (transcribing && !stoppedManually) {
+          r.start();
+        }
+      };
+
+      return r;
+    }
+
+    if (!SpeechRecognitionImpl) {
+      transcriptStatusEl.textContent = "Seu navegador não suporta transcrição de voz (use Chrome ou Edge).";
+      micToggleBtn.disabled = true;
+    }
+
+    micToggleBtn.addEventListener("click", () => {
+      if (!SpeechRecognitionImpl) return;
+
+      if (!transcribing) {
+        recognition = recognition || setupRecognition();
+        stoppedManually = false;
+        transcribing = true;
+        transcriptStartTime = Date.now();
+        transcriptLogEl.innerHTML = "";
+        transcriptFinalCount = 0;
+        updateTranscriptCount();
+        transcriptStatusEl.textContent = "Ouvindo...";
+        micPulseEl.classList.remove("hidden");
+        micToggleBtn.textContent = "Parar transcrição";
+        recognition.start();
+      } else {
+        stoppedManually = true;
+        transcribing = false;
+        recognition.stop();
+        clearInterimLine();
+        transcriptStatusEl.textContent = "Transcrição parada.";
+        micPulseEl.classList.add("hidden");
+        micToggleBtn.textContent = "Ativar microfone";
+      }
+    });
+
+    async function startCamera(facingMode = "user") {
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+      }
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode },
+        audio: false,
+      });
+      video.srcObject = stream;
+      currentFacingMode = facingMode;
+      return new Promise((resolve) => {
+        video.onloadedmetadata = () => {
+          overlay.width = video.videoWidth;
+          overlay.height = video.videoHeight;
+          resolve();
+        };
+      });
+    }
+
+    function renderBarsInto(container, entries, labelMap) {
+      container.innerHTML = entries
+        .map(([label, score]) => {
+          const pct = (score * 100).toFixed(0);
+          const ptLabel = labelMap[label] || label;
+          return `
+            <div class="bar-row">
+              <div class="bar-label">${ptLabel}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+              <div class="bar-pct">${pct}%</div>
+            </div>`;
+        })
+        .join("");
+    }
+
+    const DISPLAY_LABELS_PT = { ...EMOTION_LABELS_PT, focused: "Focado" };
+
+    function renderBars(expressions, estimates) {
+      const entries = Object.entries(expressions)
+        .filter(([label]) => label !== "neutral")
+        .concat([["focused", estimates.focused]])
+        .sort((a, b) => b[1] - a[1]);
+      const [topLabel, topScore] = entries[0];
+      const label = `${DISPLAY_LABELS_PT[topLabel] || topLabel} — ${(topScore * 100).toFixed(0)}%`;
+      dominantEl.textContent = label;
+
+      // A "auréola" ao redor do vídeo e a cor do texto acompanham a expressão dominante.
+      const color = expressionColor(label);
+      dominantEl.style.color = color;
+      document.getElementById("container").style.setProperty("--aura-color", color);
+
+      renderBarsInto(emotionsEl, entries, DISPLAY_LABELS_PT);
+    }
+
+    const ESTIMATED_LABELS_PT = {
+      tired: "Cansado",
+      focused: "Focado",
+      motivated: "Motivado",
+    };
+
+    function renderEstimated(estimates) {
+      const entries = [
+        ["tired", estimates.tired],
+        ["motivated", estimates.motivated],
+      ].sort((a, b) => b[1] - a[1]);
+      renderBarsInto(estimatedEl, entries, ESTIMATED_LABELS_PT);
+    }
+
+    async function detectLoop() {
+      const options = new faceapi.TinyFaceDetectorOptions();
+      const result = await faceapi
+        .detectSingleFace(video, options)
+        .withFaceLandmarks(true)
+        .withFaceExpressions();
+
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+      if (result) {
+        missedFrames = 0;
+
+        const resized = faceapi.resizeResults(result, {
+          width: overlay.width,
+          height: overlay.height,
+        });
+        faceapi.draw.drawDetections(overlay, resized);
+
+        const expressions = calibrateExpressions(result.expressions);
+        const estimates = updateEstimates(result.landmarks, expressions, result.detection.box);
+        renderBars(expressions, estimates);
+        renderEstimated(estimates);
+        maybeSampleSession(expressions, estimates);
+      } else {
+        missedFrames++;
+        // Só declara "nenhum rosto" depois de várias falhas seguidas,
+        // pra não piscar por causa de uma única leitura ruim.
+        if (missedFrames > MISS_GRACE_FRAMES) {
+          dominantEl.textContent = "Nenhum rosto detectado";
+          emotionsEl.innerHTML = "";
+          estimatedEl.innerHTML = "";
+        }
+      }
+
+      requestAnimationFrame(detectLoop);
+    }
+
+    async function init() {
+      try {
+        await loadModels();
+        statusEl.textContent = "Solicitando acesso à câmera...";
+        await startCamera(currentFacingMode);
+        statusEl.textContent = "";
+        switchBtn.style.display = "inline-block";
+        document.getElementById("loadingOverlay").classList.add("hidden");
+        renderHistory();
+        detectLoop();
+      } catch (err) {
+        statusEl.textContent = "Erro: " + err.message;
+        console.error(err);
+      }
+    }
+
+    switchBtn.addEventListener("click", async () => {
+      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+      await startCamera(currentFacingMode);
+    });
+
+    init();
+  </script>
+</body>
+</html>
