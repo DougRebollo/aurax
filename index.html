@@ -126,7 +126,7 @@
     align-items: flex-start;
     gap: 20px;
     width: 100%;
-    max-width: 1040px;
+    max-width: 1360px;
   }
   #videoColumn {
     flex: 1 1 640px;
@@ -135,6 +135,47 @@
     flex-direction: column;
     align-items: center;
   }
+
+  #statusColumn {
+    flex: 1 1 260px;
+    max-width: 280px;
+    min-width: 220px;
+    order: -1;
+  }
+  #status-panel {
+    background: linear-gradient(160deg, rgba(79, 140, 255, 0.10), rgba(126, 231, 135, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 16px 18px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  }
+  #status-panel h2 { font-size: 1rem; margin: 0 0 12px; }
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #aaa;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .status-value { color: #eee; font-weight: 600; font-variant-numeric: tabular-nums; }
+  #statTiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .stat-tile {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+  .stat-tile .stat-value { font-size: 1.05rem; font-weight: 700; color: #7ee787; }
+  .stat-label { font-size: 0.62rem; color: #888; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
 
   #emotions {
     margin-top: 16px;
@@ -433,6 +474,21 @@
 
   <h1>AuraX</h1>
   <div id="stage">
+    <div id="statusColumn">
+      <div id="status-panel">
+        <h2>Status ao vivo</h2>
+        <div class="status-row"><span class="status-label">Câmera ativa</span><span id="cameraUptime" class="status-value">00:00</span></div>
+        <div class="status-row"><span class="status-label">Confiança da detecção</span><span id="detectionConfidence" class="status-value">—</span></div>
+        <div class="status-row"><span class="status-label">Sessão</span><span id="sessionStatusText" class="status-value">Inativa</span></div>
+
+        <div id="statTiles">
+          <div class="stat-tile"><div class="stat-value" id="tileFocused">0%</div><div class="stat-label">Foco</div></div>
+          <div class="stat-tile"><div class="stat-value" id="tileMotivated">0%</div><div class="stat-label">Motivação</div></div>
+          <div class="stat-tile"><div class="stat-value" id="tileTired">0%</div><div class="stat-label">Cansaço</div></div>
+        </div>
+      </div>
+    </div>
+
     <div id="videoColumn">
       <div id="container">
         <video id="video" autoplay muted playsinline></video>
@@ -566,6 +622,21 @@
     const estimatedEl = document.getElementById("estimated");
     const switchBtn = document.getElementById("switchCam");
     const ctx = overlay.getContext("2d");
+
+    // --- Coluna de status ao vivo ---
+    const cameraUptimeEl = document.getElementById("cameraUptime");
+    const detectionConfidenceEl = document.getElementById("detectionConfidence");
+    const sessionStatusTextEl = document.getElementById("sessionStatusText");
+    const tileFocusedEl = document.getElementById("tileFocused");
+    const tileMotivatedEl = document.getElementById("tileMotivated");
+    const tileTiredEl = document.getElementById("tileTired");
+    let cameraStartTime = 0;
+
+    function updateSessionStatusDisplay() {
+      sessionStatusTextEl.textContent = sessionActive
+        ? "Ativa — " + formatClock((Date.now() - sessionStartTime) / 1000)
+        : "Inativa";
+    }
 
     let currentFacingMode = "user";
     let stream = null;
@@ -882,6 +953,12 @@
     setInterval(() => {
       if (!sessionActive) return;
       sessionTimerEl.textContent = "Sessão em andamento: " + formatDuration((Date.now() - sessionStartTime) / 1000);
+      updateSessionStatusDisplay();
+    }, 1000);
+
+    setInterval(() => {
+      if (!cameraStartTime) return;
+      cameraUptimeEl.textContent = formatClock((Date.now() - cameraStartTime) / 1000);
     }, 1000);
 
     startSessionBtn.addEventListener("click", () => {
@@ -897,6 +974,7 @@
       endSessionBtn.style.display = "inline-block";
       summarySection.style.display = "none";
       sessionTimerEl.textContent = "Sessão em andamento: 00m 00s";
+      updateSessionStatusDisplay();
     });
 
     endSessionBtn.addEventListener("click", () => {
@@ -904,6 +982,7 @@
       startSessionBtn.style.display = "inline-block";
       endSessionBtn.style.display = "none";
       sessionTimerEl.textContent = "";
+      updateSessionStatusDisplay();
       renderSummary();
     });
 
@@ -1349,6 +1428,10 @@
         ["motivated", estimates.motivated],
       ].sort((a, b) => b[1] - a[1]);
       renderBarsInto(estimatedEl, entries, ESTIMATED_LABELS_PT);
+
+      tileFocusedEl.textContent = `${Math.round(estimates.focused * 100)}%`;
+      tileMotivatedEl.textContent = `${Math.round(estimates.motivated * 100)}%`;
+      tileTiredEl.textContent = `${Math.round(estimates.tired * 100)}%`;
     }
 
     async function detectLoop() {
@@ -1374,6 +1457,7 @@
         renderBars(expressions, estimates);
         renderEstimated(estimates);
         maybeSampleSession(expressions, estimates);
+        detectionConfidenceEl.textContent = `${Math.round(result.detection.score * 100)}%`;
       } else {
         missedFrames++;
         // Só declara "nenhum rosto" depois de várias falhas seguidas,
@@ -1382,6 +1466,7 @@
           dominantEl.textContent = "Nenhum rosto detectado";
           emotionsEl.innerHTML = "";
           estimatedEl.innerHTML = "";
+          detectionConfidenceEl.textContent = "—";
         }
       }
 
@@ -1397,6 +1482,7 @@
         switchBtn.style.display = "inline-block";
         document.getElementById("loadingOverlay").classList.add("hidden");
         document.getElementById("container").classList.add("is-live");
+        cameraStartTime = Date.now();
         renderHistory();
         detectLoop();
       } catch (err) {
