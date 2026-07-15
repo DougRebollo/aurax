@@ -314,6 +314,28 @@
     font-size: 0.8rem;
   }
   .history-transcript .transcript-line { font-size: 0.8rem; animation: none; }
+
+  #voiceMeta {
+    font-size: 0.75rem;
+    color: #888;
+    margin: 0 0 8px;
+    min-height: 16px;
+  }
+  .transcript-flagged {
+    border-left: 2px solid #ffb648;
+    padding-left: 8px;
+    background: rgba(255, 182, 72, 0.06);
+  }
+  .keyword-tags { margin-top: 4px; }
+  .keyword-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    background: rgba(255, 182, 72, 0.15);
+    color: #ffb648;
+    border-radius: 999px;
+    padding: 2px 9px;
+    margin: 2px 4px 0 0;
+  }
 </style>
 </head>
 <body>
@@ -360,6 +382,7 @@
         <span id="transcriptStatus"></span>
         <span id="transcriptCount"></span>
       </div>
+      <div id="voiceMeta"></div>
       <div id="transcriptLog"></div>
     </div>
   </div>
@@ -395,6 +418,8 @@
     <div id="summaryEstimated"></div>
     <h3>Transcrição da sessão</h3>
     <div id="summaryTranscript"></div>
+    <h3>Insights de negociação</h3>
+    <div id="summaryNegotiation"></div>
     <button id="downloadCsvBtn" class="ghost">Baixar dados (CSV)</button>
   </div>
 
@@ -433,6 +458,24 @@
     function expressionColor(tag) {
       const label = tag.split("—")[0].trim();
       return EXPRESSION_COLORS[label] || "#777";
+    }
+
+    // Palavras que costumam sinalizar um momento de negociação na conversa.
+    const NEGOTIATION_KEYWORDS = [
+      "preço", "preco", "desconto", "prazo", "concorrente", "concorrência", "concorrencia",
+      "cancelar", "cancelamento", "orçamento", "orcamento", "contrato", "proposta",
+      "fechar", "fechamento", "sinal", "pagamento", "parcelar", "urgente", "urgência", "urgencia",
+    ];
+
+    function detectKeywords(text) {
+      const lower = text.toLowerCase();
+      return NEGOTIATION_KEYWORDS.filter((kw) => lower.includes(kw));
+    }
+
+    function renderKeywordTags(counts) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      return entries.map(([kw, count]) => `<span class="keyword-tag">${kw} × ${count}</span>`).join(" ");
     }
 
     const video = document.getElementById("video");
@@ -567,6 +610,7 @@
     const summaryEmotionsEl = document.getElementById("summaryEmotions");
     const summaryEstimatedEl = document.getElementById("summaryEstimated");
     const summaryTranscriptEl = document.getElementById("summaryTranscript");
+    const summaryNegotiationEl = document.getElementById("summaryNegotiation");
     const downloadCsvBtn = document.getElementById("downloadCsvBtn");
     const trendChartEl = document.getElementById("trendChart");
     const trendTooltipEl = document.getElementById("trendTooltip");
@@ -719,10 +763,13 @@
                  ${h.transcript.map(renderTranscriptLineHtml).join("")}
                </details>`
             : "";
+          const negotiationTagsHtml = renderKeywordTags(h.keywordCounts);
           return `
             <div class="history-row">
               <div class="history-date">${formatDateBR(h.date)} — ${formatDuration(h.duration)}</div>
               <div class="history-stats">Focado ${Math.round(h.focused * 100)}% · Motivado ${Math.round(h.motivated * 100)}% · Cansado ${Math.round(h.tired * 100)}%</div>
+              ${h.wpm != null ? `<div class="history-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
+              ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
               ${transcriptHtml}
             </div>`;
         })
@@ -740,6 +787,9 @@
     let lastSampleTime = 0;
     let sessionData = [];
     let sessionTranscript = [];
+    let sessionWordCount = 0;
+    let sessionPauseCount = 0;
+    let sessionKeywordCounts = {};
 
     function formatDuration(totalSeconds) {
       const h = Math.floor(totalSeconds / 3600);
@@ -760,6 +810,9 @@
       lastSampleTime = 0;
       sessionData = [];
       sessionTranscript = [];
+      sessionWordCount = 0;
+      sessionPauseCount = 0;
+      sessionKeywordCounts = {};
       startSessionBtn.style.display = "none";
       endSessionBtn.style.display = "inline-block";
       summarySection.style.display = "none";
@@ -795,6 +848,7 @@
         summaryEmotionsEl.innerHTML = "";
         summaryEstimatedEl.innerHTML = "";
         summaryTranscriptEl.innerHTML = "";
+        summaryNegotiationEl.innerHTML = "";
         return;
       }
 
@@ -825,6 +879,14 @@
         ? sessionTranscript.map(renderTranscriptLineHtml).join("")
         : '<div class="insight-line">Nenhuma fala registrada nesta sessão.</div>';
 
+      const wpmSession = duration > 0 ? Math.round(sessionWordCount / (duration / 60)) : 0;
+      const keywordTagsHtml = renderKeywordTags(sessionKeywordCounts);
+      summaryNegotiationEl.innerHTML = `
+        <div class="insight-line">Ritmo médio de fala: ${wpmSession} palavras/min</div>
+        <div class="insight-line">Pausas longas (mais de 2s): ${sessionPauseCount}</div>
+        <div style="margin-top:8px">${keywordTagsHtml || '<span class="insight-line">Nenhuma palavra-chave de negociação identificada.</span>'}</div>
+      `;
+
       saveHistoryEntry({
         date: new Date().toISOString(),
         duration,
@@ -832,16 +894,24 @@
         tired: average(sessionData.map((d) => d.tired || 0)),
         motivated: average(sessionData.map((d) => d.motivated || 0)),
         transcript: sessionTranscript,
+        wpm: wpmSession,
+        pauses: sessionPauseCount,
+        keywordCounts: sessionKeywordCounts,
       });
       renderHistory();
     }
 
     function renderTranscriptLineHtml(line) {
       const color = expressionColor(line.expression);
+      const hasKeywords = line.keywords && line.keywords.length;
+      const keywordTagsHtml = hasKeywords
+        ? `<div class="keyword-tags">${line.keywords.map((k) => `<span class="keyword-tag">${k}</span>`).join("")}</div>`
+        : "";
       return `
-        <div class="transcript-line">
+        <div class="transcript-line${hasKeywords ? " transcript-flagged" : ""}">
           <span class="transcript-time">${formatClock(line.t)}</span>${line.text}
           <span class="transcript-expression"><span class="expr-dot" style="background:${color}"></span>${line.expression}</span>
+          ${keywordTagsHtml}
         </div>`;
     }
 
@@ -881,9 +951,80 @@
     let stoppedManually = false;
     let transcriptStartTime = 0;
     let transcriptFinalCount = 0;
+    let transcriptWordCount = 0;
 
     function updateTranscriptCount() {
       transcriptCountEl.textContent = transcriptFinalCount ? `${transcriptFinalCount} falas` : "";
+    }
+
+    // --- Ritmo de fala e pausas longas, a partir do volume do microfone ---
+    const voiceMetaEl = document.getElementById("voiceMeta");
+
+    let audioContext = null;
+    let analyserNode = null;
+    let volumeSamples = null;
+    let micAudioStream = null;
+    let volumeSampleIntervalId = null;
+    let silenceStartTime = null;
+    let pauseAlreadyFlagged = false;
+
+    const SILENCE_RMS_THRESHOLD = 0.02;
+    const PAUSE_MIN_MS = 2000;
+
+    async function setupAudioAnalyser() {
+      micAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(micAudioStream);
+      analyserNode = audioContext.createAnalyser();
+      analyserNode.fftSize = 2048;
+      volumeSamples = new Uint8Array(analyserNode.fftSize);
+      source.connect(analyserNode);
+
+      silenceStartTime = null;
+      pauseAlreadyFlagged = false;
+      volumeSampleIntervalId = setInterval(sampleVoiceMetrics, 200);
+    }
+
+    function teardownAudioAnalyser() {
+      if (volumeSampleIntervalId) clearInterval(volumeSampleIntervalId);
+      volumeSampleIntervalId = null;
+      if (micAudioStream) micAudioStream.getTracks().forEach((t) => t.stop());
+      if (audioContext) audioContext.close();
+      audioContext = null;
+      analyserNode = null;
+      micAudioStream = null;
+      voiceMetaEl.textContent = "";
+    }
+
+    function getCurrentVolume() {
+      if (!analyserNode) return 0;
+      analyserNode.getByteTimeDomainData(volumeSamples);
+      let sumSquares = 0;
+      for (let i = 0; i < volumeSamples.length; i++) {
+        const normalized = (volumeSamples[i] - 128) / 128;
+        sumSquares += normalized * normalized;
+      }
+      return Math.sqrt(sumSquares / volumeSamples.length);
+    }
+
+    function sampleVoiceMetrics() {
+      const volume = getCurrentVolume();
+
+      if (volume < SILENCE_RMS_THRESHOLD) {
+        if (silenceStartTime === null) {
+          silenceStartTime = Date.now();
+        } else if (!pauseAlreadyFlagged && Date.now() - silenceStartTime > PAUSE_MIN_MS) {
+          pauseAlreadyFlagged = true;
+          if (sessionActive) sessionPauseCount++;
+        }
+      } else {
+        silenceStartTime = null;
+        pauseAlreadyFlagged = false;
+      }
+
+      const elapsedMin = Math.max((Date.now() - transcriptStartTime) / 60000, 0.05);
+      const wpm = Math.round(transcriptWordCount / elapsedMin);
+      voiceMetaEl.textContent = `${wpm} palavras/min · ${sessionPauseCount} pausas longas`;
     }
 
     function formatClock(totalSeconds) {
@@ -905,13 +1046,16 @@
       // reconhecida — uma aproximação de "com que expressão isso foi dito".
       const expressionTag = dominantEl.textContent || "Sem leitura de expressão";
       const elapsed = (Date.now() - transcriptStartTime) / 1000;
+      const keywords = detectKeywords(text);
+      const wordCount = text.split(/\s+/).filter(Boolean).length;
 
       transcriptLogEl.insertAdjacentHTML(
         "beforeend",
-        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag })
+        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag, keywords })
       );
       transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
       transcriptFinalCount++;
+      transcriptWordCount += wordCount;
       updateTranscriptCount();
 
       if (sessionActive) {
@@ -919,6 +1063,11 @@
           t: (Date.now() - sessionStartTime) / 1000,
           text,
           expression: expressionTag,
+          keywords,
+        });
+        sessionWordCount += wordCount;
+        keywords.forEach((kw) => {
+          sessionKeywordCounts[kw] = (sessionKeywordCounts[kw] || 0) + 1;
         });
       }
     }
@@ -965,6 +1114,7 @@
           stoppedManually = true;
           micPulseEl.classList.add("hidden");
           micToggleBtn.textContent = "Ativar microfone";
+          teardownAudioAnalyser();
         }
       };
 
@@ -994,11 +1144,15 @@
         transcriptStartTime = Date.now();
         transcriptLogEl.innerHTML = "";
         transcriptFinalCount = 0;
+        transcriptWordCount = 0;
         updateTranscriptCount();
         transcriptStatusEl.textContent = "Ouvindo...";
         micPulseEl.classList.remove("hidden");
         micToggleBtn.textContent = "Parar transcrição";
         recognition.start();
+        setupAudioAnalyser().catch((err) => {
+          console.error("Não foi possível analisar o áudio (ritmo/pausas):", err);
+        });
       } else {
         stoppedManually = true;
         transcribing = false;
@@ -1007,6 +1161,7 @@
         transcriptStatusEl.textContent = "Transcrição parada.";
         micPulseEl.classList.add("hidden");
         micToggleBtn.textContent = "Ativar microfone";
+        teardownAudioAnalyser();
       }
     });
 
