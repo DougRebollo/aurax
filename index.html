@@ -177,6 +177,34 @@
   .stat-tile .stat-value { font-size: 1.05rem; font-weight: 700; color: #7ee787; }
   .stat-label { font-size: 0.62rem; color: #888; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
 
+  #liveAlerts { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .live-alert {
+    font-size: 0.72rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255, 182, 72, 0.12);
+    border-left: 2px solid #ffb648;
+    color: #ffd699;
+    animation: transcriptFadeIn 0.25s ease;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    max-width: 280px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: #eee;
+    font-size: 0.85rem;
+    outline: none;
+    font-family: inherit;
+  }
+  input[type="text"]:focus { border-color: #4f8cff; }
+  input[type="text"]::placeholder { color: #777; }
+  #historyClientFilter { margin-bottom: 12px; }
+  .history-client { color: #7ee787; font-size: 0.78rem; margin-top: 2px; }
+
   #emotions {
     margin-top: 16px;
     width: 100%;
@@ -486,6 +514,8 @@
           <div class="stat-tile"><div class="stat-value" id="tileMotivated">0%</div><div class="stat-label">Motivação</div></div>
           <div class="stat-tile"><div class="stat-value" id="tileTired">0%</div><div class="stat-label">Cansaço</div></div>
         </div>
+
+        <div id="liveAlerts"></div>
       </div>
     </div>
 
@@ -505,6 +535,8 @@
       <button id="switchCam" style="display:none">Trocar câmera</button>
 
       <div id="session-controls">
+        <input type="text" id="clientNameInput" placeholder="Nome do cliente (opcional)" />
+        <br />
         <button id="startSessionBtn">Iniciar sessão</button>
         <button id="endSessionBtn" class="danger" style="display:none">Finalizar sessão</button>
         <div id="sessionTimer"></div>
@@ -561,6 +593,18 @@
 
   <div id="history-section" class="card">
     <h2>Histórico de sessões</h2>
+
+    <div id="historyTrendWrap" style="display:none">
+      <h3>Tendência entre sessões</h3>
+      <div id="trend-legend">
+        <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Focado</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
+      </div>
+      <svg id="historyTrendChart" viewBox="0 0 640 200" style="width:100%; height:auto;"></svg>
+    </div>
+
+    <input type="text" id="historyClientFilter" placeholder="Filtrar por cliente..." />
     <div id="historyList"></div>
     <button id="clearHistoryBtn" class="ghost">Limpar histórico</button>
   </div>
@@ -753,6 +797,8 @@
     }
 
     // --- Sessão: coleta dados ao longo do tempo e monta um resumo no final ---
+    const clientNameInputEl = document.getElementById("clientNameInput");
+    let currentClientName = "";
     const startSessionBtn = document.getElementById("startSessionBtn");
     const endSessionBtn = document.getElementById("endSessionBtn");
     const sessionTimerEl = document.getElementById("sessionTimer");
@@ -879,6 +925,10 @@
     const HISTORY_MAX_ENTRIES = 30;
     const historyListEl = document.getElementById("historyList");
     const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+    const historyClientFilterEl = document.getElementById("historyClientFilter");
+    const historyTrendWrapEl = document.getElementById("historyTrendWrap");
+    const historyTrendChartEl = document.getElementById("historyTrendChart");
+    let historyFilterText = "";
 
     function loadHistory() {
       try {
@@ -901,9 +951,17 @@
     }
 
     function renderHistory() {
-      const entries = loadHistory();
+      const allEntries = loadHistory();
+      const entries = historyFilterText
+        ? allEntries.filter((h) => (h.client || "").toLowerCase().includes(historyFilterText))
+        : allEntries;
+
+      renderHistoryTrendChart(entries);
+
       if (!entries.length) {
-        historyListEl.innerHTML = '<div class="insight-line">Nenhuma sessão salva ainda.</div>';
+        historyListEl.innerHTML = allEntries.length
+          ? '<div class="insight-line">Nenhuma sessão encontrada para esse cliente.</div>'
+          : '<div class="insight-line">Nenhuma sessão salva ainda.</div>';
         return;
       }
       historyListEl.innerHTML = entries
@@ -918,6 +976,7 @@
           return `
             <div class="history-row">
               <div class="history-date">${formatDateBR(h.date)} — ${formatDuration(h.duration)}</div>
+              ${h.client ? `<div class="history-client">Cliente: ${escapeHtml(h.client)}</div>` : ""}
               <div class="history-stats">Focado ${Math.round(h.focused * 100)}% · Motivado ${Math.round(h.motivated * 100)}% · Cansado ${Math.round(h.tired * 100)}%</div>
               ${h.wpm != null ? `<div class="history-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
               ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
@@ -927,8 +986,55 @@
         .join("");
     }
 
+    function renderHistoryTrendChart(entries) {
+      if (entries.length < 2) {
+        historyTrendWrapEl.style.display = "none";
+        historyTrendChartEl.innerHTML = "";
+        return;
+      }
+      historyTrendWrapEl.style.display = "block";
+
+      const chronological = [...entries].reverse();
+      const W = 640;
+      const H = 200;
+      const margin = { top: 16, right: 16, bottom: 24, left: 34 };
+      const plotW = W - margin.left - margin.right;
+      const plotH = H - margin.top - margin.bottom;
+      const n = chronological.length;
+      const x = (i) => margin.left + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2);
+      const y = (v) => margin.top + (1 - v) * plotH;
+
+      let svg = "";
+      [0, 0.5, 1].forEach((v) => {
+        const yy = y(v);
+        svg += `<line x1="${margin.left}" y1="${yy}" x2="${W - margin.right}" y2="${yy}" stroke="var(--grid)" stroke-width="1" />`;
+        svg += `<text x="${margin.left - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${Math.round(v * 100)}%</text>`;
+      });
+
+      TREND_SERIES.forEach((series) => {
+        const points = chronological.map((h, i) => `${x(i)},${y(h[series.key] || 0)}`).join(" ");
+        svg += `<polyline points="${points}" fill="none" stroke="${series.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
+        chronological.forEach((h, i) => {
+          svg += `<circle cx="${x(i)}" cy="${y(h[series.key] || 0)}" r="3" fill="${series.color}" stroke="var(--surface)" stroke-width="1.5" />`;
+        });
+      });
+
+      historyTrendChartEl.innerHTML = svg;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
     clearHistoryBtn.addEventListener("click", () => {
       localStorage.removeItem(HISTORY_KEY);
+      renderHistory();
+    });
+
+    historyClientFilterEl.addEventListener("input", () => {
+      historyFilterText = historyClientFilterEl.value.trim().toLowerCase();
       renderHistory();
     });
 
@@ -970,6 +1076,7 @@
       sessionWordCount = 0;
       sessionPauseCount = 0;
       sessionKeywordCounts = {};
+      currentClientName = clientNameInputEl.value.trim();
       startSessionBtn.style.display = "none";
       endSessionBtn.style.display = "inline-block";
       summarySection.style.display = "none";
@@ -1012,7 +1119,7 @@
       }
 
       const duration = sessionData[sessionData.length - 1].t;
-      summaryDurationEl.textContent = `Duração: ${formatDuration(duration)} — ${sessionData.length} leituras coletadas`;
+      summaryDurationEl.textContent = `Duração: ${formatDuration(duration)} — ${sessionData.length} leituras coletadas${currentClientName ? " — Cliente: " + currentClientName : ""}`;
 
       if (sessionData.length >= 2) {
         renderTrendChart(sessionData);
@@ -1056,6 +1163,7 @@
         wpm: wpmSession,
         pauses: sessionPauseCount,
         keywordCounts: sessionKeywordCounts,
+        client: currentClientName,
       });
       renderHistory();
     }
@@ -1169,6 +1277,29 @@
     const SILENCE_RMS_THRESHOLD = 0.02;
     const PAUSE_MIN_MS = 2000;
 
+    // --- Alertas ao vivo: avisos curtos e discretos durante a call ---
+    const liveAlertsEl = document.getElementById("liveAlerts");
+    const MAX_LIVE_ALERTS = 3;
+    const LIVE_ALERT_DURATION_MS = 8000;
+
+    function pushLiveAlert(message) {
+      const el = document.createElement("div");
+      el.className = "live-alert";
+      el.textContent = message;
+      liveAlertsEl.prepend(el);
+      while (liveAlertsEl.children.length > MAX_LIVE_ALERTS) {
+        liveAlertsEl.removeChild(liveAlertsEl.lastChild);
+      }
+      setTimeout(() => el.remove(), LIVE_ALERT_DURATION_MS);
+    }
+
+    // Ritmo "recente" (janela deslizante) em vez da média da call inteira,
+    // pra reagir ao que está acontecendo agora, não ao histórico todo.
+    const PACE_WINDOW_MS = 15000;
+    const FAST_PACE_WPM = 180;
+    let recentWordEvents = [];
+    let fastPaceAlreadyFlagged = false;
+
     async function setupAudioAnalyser() {
       micAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1214,15 +1345,28 @@
         } else if (!pauseAlreadyFlagged && Date.now() - silenceStartTime > PAUSE_MIN_MS) {
           pauseAlreadyFlagged = true;
           if (sessionActive) sessionPauseCount++;
+          pushLiveAlert("Pausa longa detectada");
         }
       } else {
         silenceStartTime = null;
         pauseAlreadyFlagged = false;
       }
 
-      const elapsedMin = Math.max((Date.now() - transcriptStartTime) / 60000, 0.05);
-      const wpm = Math.round(transcriptWordCount / elapsedMin);
-      voiceMetaEl.textContent = `${wpm} palavras/min · ${sessionPauseCount} pausas longas`;
+      const now = Date.now();
+      recentWordEvents = recentWordEvents.filter((e) => now - e.time < PACE_WINDOW_MS);
+      const recentWords = recentWordEvents.reduce((sum, e) => sum + e.count, 0);
+      const recentWpm = Math.round(recentWords / (PACE_WINDOW_MS / 60000));
+
+      if (recentWpm > FAST_PACE_WPM) {
+        if (!fastPaceAlreadyFlagged) {
+          fastPaceAlreadyFlagged = true;
+          pushLiveAlert("Ritmo de fala muito rápido");
+        }
+      } else {
+        fastPaceAlreadyFlagged = false;
+      }
+
+      voiceMetaEl.textContent = `${recentWpm} palavras/min · ${sessionPauseCount} pausas longas`;
     }
 
     function formatClock(totalSeconds) {
@@ -1254,7 +1398,12 @@
       transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
       transcriptFinalCount++;
       transcriptWordCount += wordCount;
+      recentWordEvents.push({ time: Date.now(), count: wordCount });
       updateTranscriptCount();
+
+      if (keywords.length) {
+        pushLiveAlert(`Palavra-chave: ${keywords.join(", ")}`);
+      }
 
       if (sessionActive) {
         sessionTranscript.push({
@@ -1343,6 +1492,9 @@
         transcriptLogEl.innerHTML = "";
         transcriptFinalCount = 0;
         transcriptWordCount = 0;
+        recentWordEvents = [];
+        fastPaceAlreadyFlagged = false;
+        liveAlertsEl.innerHTML = "";
         updateTranscriptCount();
         transcriptStatusEl.textContent = "Ouvindo...";
         micPulseEl.classList.remove("hidden");
