@@ -588,6 +588,8 @@
     <div id="summaryTranscript"></div>
     <h3>Insights de negociação</h3>
     <div id="summaryNegotiation"></div>
+    <h3>Objeções e respostas</h3>
+    <div id="summaryObjections"></div>
     <button id="downloadCsvBtn" class="ghost">Baixar dados (CSV)</button>
     <button id="downloadPdfBtn" class="ghost">Baixar PDF</button>
   </div>
@@ -659,6 +661,27 @@
       const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
       if (!entries.length) return "";
       return entries.map(([kw, count]) => `<span class="keyword-tag">${kw} × ${count}</span>`).join(" ");
+    }
+
+    // Frases comuns de objeção em vendas — detecção por gatilho, não entendimento
+    // real de linguagem. Serve pra aproximar "isso soa como uma objeção".
+    const OBJECTION_PHRASES = [
+      "tá caro", "ta caro", "está caro", "muito caro",
+      "não tenho orçamento", "sem orçamento",
+      "vou pensar", "preciso pensar", "deixa eu pensar",
+      "não é prioridade", "não é o momento", "não é a hora",
+      "não tenho certeza", "não confio",
+      "já uso", "uso outro fornecedor", "outro fornecedor",
+      "não posso agora", "agora não dá",
+      "preciso conversar com", "preciso falar com",
+      "não faz sentido", "não vejo valor",
+      "muito complicado", "complicado demais",
+      "não tenho tempo",
+    ];
+
+    function detectObjectionPhrase(text) {
+      const lower = text.toLowerCase();
+      return OBJECTION_PHRASES.find((p) => lower.includes(p)) || null;
     }
 
     const video = document.getElementById("video");
@@ -811,6 +834,7 @@
     const summaryEstimatedEl = document.getElementById("summaryEstimated");
     const summaryTranscriptEl = document.getElementById("summaryTranscript");
     const summaryNegotiationEl = document.getElementById("summaryNegotiation");
+    const summaryObjectionsEl = document.getElementById("summaryObjections");
     const downloadCsvBtn = document.getElementById("downloadCsvBtn");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const trendChartEl = document.getElementById("trendChart");
@@ -982,7 +1006,7 @@
               <div class="history-date">${formatDateBR(h.date)} — ${formatDuration(h.duration)}</div>
               ${h.client ? `<div class="history-client">Cliente: ${escapeHtml(h.client)}</div>` : ""}
               <div class="history-stats">Focado ${Math.round(h.focused * 100)}% · Motivado ${Math.round(h.motivated * 100)}% · Cansado ${Math.round(h.tired * 100)}%</div>
-              ${h.wpm != null ? `<div class="history-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
+              ${h.wpm != null ? `<div class="history-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}${h.objections && h.objections.length ? ` · Objeções ${h.objections.length}` : ""}</div>` : ""}
               ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
               ${transcriptHtml}
             </div>`;
@@ -1051,6 +1075,47 @@
     let sessionWordCount = 0;
     let sessionPauseCount = 0;
     let sessionKeywordCounts = {};
+    let sessionObjections = [];
+
+    // --- Objeção + resposta: acompanha a expressão por um tempo depois de uma
+    // frase-gatilho de objeção, pra resumir como foi a reação na resposta.
+    const OBJECTION_WINDOW_MS = 20000;
+    let objectionWindowActive = false;
+    let objectionWindowEnd = 0;
+    let objectionWindowSamples = [];
+    let objectionWindowPhrase = "";
+    let objectionWindowStartT = 0;
+
+    function summarizeObjectionWindow(samples) {
+      if (!samples.length) return "Sem dados suficientes durante a resposta";
+      const avgFocused = average(samples.map((s) => s.focused));
+      const avgTired = average(samples.map((s) => s.tired));
+      const negativeCount = samples.filter((s) =>
+        ["Nervoso/Medo", "Triste", "Bravo"].some((label) => s.dominantLabel.startsWith(label))
+      ).length;
+      const negativeRatio = negativeCount / samples.length;
+
+      if (negativeRatio > 0.4) {
+        return `Resposta tensa — sinais de desconforto em ${Math.round(negativeRatio * 100)}% do tempo`;
+      }
+      if (avgFocused > 0.55) {
+        return `Resposta segura — manteve o foco (${Math.round(avgFocused * 100)}%)`;
+      }
+      if (avgTired > 0.5) {
+        return `Resposta com sinais de cansaço (${Math.round(avgTired * 100)}%)`;
+      }
+      return "Resposta neutra, sem sinais fortes";
+    }
+
+    function closeObjectionWindow() {
+      const resultLabel = summarizeObjectionWindow(objectionWindowSamples);
+      pushLiveAlert(`Resultado da resposta: ${resultLabel}`);
+      if (sessionActive) {
+        sessionObjections.push({ t: objectionWindowStartT, phrase: objectionWindowPhrase, result: resultLabel });
+      }
+      objectionWindowActive = false;
+      objectionWindowSamples = [];
+    }
 
     function formatDuration(totalSeconds) {
       const h = Math.floor(totalSeconds / 3600);
@@ -1080,6 +1145,7 @@
       sessionWordCount = 0;
       sessionPauseCount = 0;
       sessionKeywordCounts = {};
+      sessionObjections = [];
       currentClientName = clientNameInputEl.value.trim();
       startSessionBtn.style.display = "none";
       endSessionBtn.style.display = "inline-block";
@@ -1119,6 +1185,7 @@
         summaryEstimatedEl.innerHTML = "";
         summaryTranscriptEl.innerHTML = "";
         summaryNegotiationEl.innerHTML = "";
+        summaryObjectionsEl.innerHTML = "";
         return;
       }
 
@@ -1157,6 +1224,12 @@
         <div style="margin-top:8px">${keywordTagsHtml || '<span class="insight-line">Nenhuma palavra-chave de negociação identificada.</span>'}</div>
       `;
 
+      summaryObjectionsEl.innerHTML = sessionObjections.length
+        ? sessionObjections
+            .map((o) => `<div class="insight-line">${formatClock(o.t)} — Objeção: "${o.phrase}" → ${o.result}</div>`)
+            .join("")
+        : '<div class="insight-line">Nenhuma objeção identificada nesta sessão.</div>';
+
       saveHistoryEntry({
         date: new Date().toISOString(),
         duration,
@@ -1168,6 +1241,7 @@
         pauses: sessionPauseCount,
         keywordCounts: sessionKeywordCounts,
         client: currentClientName,
+        objections: sessionObjections,
       });
       renderHistory();
     }
@@ -1237,6 +1311,13 @@
       Object.entries(sessionKeywordCounts)
         .sort((a, b) => b[1] - a[1])
         .forEach(([kw, count]) => lines.push([csvEscape(kw), count].join(",")));
+
+      lines.push("");
+      lines.push("Objeções e respostas");
+      lines.push(["tempo_minutos", "frase", "resultado"].join(","));
+      sessionObjections.forEach((o) => {
+        lines.push([(o.t / 60).toFixed(2), csvEscape(o.phrase), csvEscape(o.result)].join(","));
+      });
 
       const csv = lines.join("\n");
       const blob = new Blob([csv], { type: "text/csv" });
@@ -1462,6 +1543,16 @@
         pushLiveAlert(`Palavra-chave: ${keywords.join(", ")}`);
       }
 
+      const objectionPhrase = detectObjectionPhrase(text);
+      if (objectionPhrase && !objectionWindowActive) {
+        objectionWindowActive = true;
+        objectionWindowPhrase = objectionPhrase;
+        objectionWindowEnd = Date.now() + OBJECTION_WINDOW_MS;
+        objectionWindowSamples = [];
+        objectionWindowStartT = sessionActive ? (Date.now() - sessionStartTime) / 1000 : 0;
+        pushLiveAlert(`Possível objeção: "${objectionPhrase}" — observando resposta`);
+      }
+
       if (sessionActive) {
         sessionTranscript.push({
           t: (Date.now() - sessionStartTime) / 1000,
@@ -1551,6 +1642,8 @@
         transcriptWordCount = 0;
         recentWordEvents = [];
         fastPaceAlreadyFlagged = false;
+        objectionWindowActive = false;
+        objectionWindowSamples = [];
         liveAlertsEl.innerHTML = "";
         updateTranscriptCount();
         transcriptStatusEl.textContent = "Ouvindo...";
@@ -1667,6 +1760,17 @@
         renderEstimated(estimates);
         maybeSampleSession(expressions, estimates);
         detectionConfidenceEl.textContent = `${Math.round(result.detection.score * 100)}%`;
+
+        if (objectionWindowActive) {
+          objectionWindowSamples.push({
+            focused: estimates.focused,
+            tired: estimates.tired,
+            dominantLabel: dominantEl.textContent,
+          });
+          if (Date.now() > objectionWindowEnd) {
+            closeObjectionWindow();
+          }
+        }
       } else {
         missedFrames++;
         // Só declara "nenhum rosto" depois de várias falhas seguidas,
