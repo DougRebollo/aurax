@@ -589,6 +589,7 @@
     <h3>Insights de negociação</h3>
     <div id="summaryNegotiation"></div>
     <button id="downloadCsvBtn" class="ghost">Baixar dados (CSV)</button>
+    <button id="downloadPdfBtn" class="ghost">Baixar PDF</button>
   </div>
 
   <div id="history-section" class="card">
@@ -612,6 +613,8 @@
   <div id="trendTooltip"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     const EMOTION_LABELS_PT = {
       neutral: "Neutro",
@@ -809,6 +812,7 @@
     const summaryTranscriptEl = document.getElementById("summaryTranscript");
     const summaryNegotiationEl = document.getElementById("summaryNegotiation");
     const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const trendChartEl = document.getElementById("trendChart");
     const trendTooltipEl = document.getElementById("trendTooltip");
     const peakInsightsEl = document.getElementById("peakInsights");
@@ -1242,6 +1246,41 @@
       a.download = `aurax-sessao-${Date.now()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
+    });
+
+    downloadPdfBtn.addEventListener("click", async () => {
+      const originalLabel = downloadPdfBtn.textContent;
+      downloadPdfBtn.disabled = true;
+      downloadPdfBtn.textContent = "Gerando PDF...";
+
+      // Some elements não fazem sentido dentro do PDF (os próprios botões de download).
+      downloadCsvBtn.style.visibility = "hidden";
+      downloadPdfBtn.style.visibility = "hidden";
+
+      try {
+        const canvas = await html2canvas(summarySection, {
+          backgroundColor: "#0b0c10",
+          scale: 2,
+          useCORS: true,
+        });
+        const imgData = canvas.toDataURL("image/png");
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+          orientation: canvas.width >= canvas.height ? "landscape" : "portrait",
+          unit: "px",
+          format: [canvas.width, canvas.height],
+        });
+        pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+        pdf.save(`aurax-resumo-${Date.now()}.pdf`);
+      } catch (err) {
+        console.error("Erro ao gerar PDF:", err);
+        alert("Não foi possível gerar o PDF. Tente novamente.");
+      } finally {
+        downloadCsvBtn.style.visibility = "visible";
+        downloadPdfBtn.style.visibility = "visible";
+        downloadPdfBtn.disabled = false;
+        downloadPdfBtn.textContent = originalLabel;
+      }
     });
 
     // --- Transcrição ao vivo (Web Speech API) ---
