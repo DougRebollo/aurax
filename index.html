@@ -203,7 +203,6 @@
   input[type="text"]:focus { border-color: #4f8cff; }
   input[type="text"]::placeholder { color: #777; }
   #historyClientFilter { margin-bottom: 12px; }
-  .history-client { color: #7ee787; font-size: 0.78rem; margin-top: 2px; }
 
   #emotions {
     margin-top: 16px;
@@ -363,13 +362,58 @@
   #loadingOverlay #status { font-size: 0.8rem; color: #7a8aa8; letter-spacing: 1px; margin: 0; }
 
   #history-section h2 { font-size: 1.1rem; margin-bottom: 8px; }
-  .history-row {
-    padding: 8px 0;
-    border-bottom: 1px solid #222;
-    font-size: 0.85rem;
+
+  .history-card {
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
   }
-  .history-date { color: #aaa; margin-bottom: 2px; }
-  .history-stats { color: #ddd; }
+  .history-card:hover { transform: translateY(-2px); border-color: rgba(79, 140, 255, 0.35); }
+  .history-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .history-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #f2f2f2;
+  }
+  .client-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f8cff, #7ee787);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #0a0a0a;
+    flex-shrink: 0;
+  }
+  .history-card-meta { font-size: 0.75rem; color: #888; white-space: nowrap; }
+
+  .history-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .history-badge {
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-focused { background: rgba(25, 158, 112, 0.15); color: #3ddba0; border: 1px solid rgba(25, 158, 112, 0.4); }
+  .badge-motivated { background: rgba(201, 133, 0, 0.15); color: #ffb648; border: 1px solid rgba(201, 133, 0, 0.4); }
+  .badge-tired { background: rgba(57, 135, 229, 0.15); color: #6fa8f0; border: 1px solid rgba(57, 135, 229, 0.4); }
+
+  .history-secondary-stats { font-size: 0.78rem; color: #999; margin-top: 8px; }
 
   #transcript-section {
     flex: 1 1 320px;
@@ -1000,17 +1044,49 @@
                  ${h.transcript.map(renderTranscriptLineHtml).join("")}
                </details>`
             : "";
+          const objectionsHtml = h.objections && h.objections.length
+            ? `<details class="history-transcript">
+                 <summary>Ver objeções (${h.objections.length})</summary>
+                 ${h.objections
+                   .map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`)
+                   .join("")}
+               </details>`
+            : "";
           const negotiationTagsHtml = renderKeywordTags(h.keywordCounts);
+          const initials = clientInitials(h.client);
+
           return `
-            <div class="history-row">
-              <div class="history-date">${formatDateBR(h.date)} — ${formatDuration(h.duration)}</div>
-              ${h.client ? `<div class="history-client">Cliente: ${escapeHtml(h.client)}</div>` : ""}
-              <div class="history-stats">Focado ${Math.round(h.focused * 100)}% · Motivado ${Math.round(h.motivated * 100)}% · Cansado ${Math.round(h.tired * 100)}%</div>
-              ${h.wpm != null ? `<div class="history-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}${h.objections && h.objections.length ? ` · Objeções ${h.objections.length}` : ""}</div>` : ""}
-              ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
+            <div class="history-card">
+              <div class="history-card-header">
+                <div class="history-card-title">
+                  ${initials ? `<span class="client-avatar">${initials}</span>` : ""}
+                  <span>${h.client ? escapeHtml(h.client) : "Sessão sem cliente"}</span>
+                </div>
+                <div class="history-card-meta">${formatDateBR(h.date)} · ${formatDuration(h.duration)}</div>
+              </div>
+
+              <div class="history-badges">
+                <span class="history-badge badge-focused">Focado ${Math.round(h.focused * 100)}%</span>
+                <span class="history-badge badge-motivated">Motivado ${Math.round(h.motivated * 100)}%</span>
+                <span class="history-badge badge-tired">Cansado ${Math.round(h.tired * 100)}%</span>
+              </div>
+
+              ${h.wpm != null ? `<div class="history-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
+              ${negotiationTagsHtml ? `<div class="keyword-tags" style="margin-top:8px">${negotiationTagsHtml}</div>` : ""}
               ${transcriptHtml}
+              ${objectionsHtml}
             </div>`;
         })
+        .join("");
+    }
+
+    function clientInitials(name) {
+      if (!name) return "";
+      return name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((p) => p[0].toUpperCase())
         .join("");
     }
 
