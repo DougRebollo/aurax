@@ -415,6 +415,38 @@
 
   .history-secondary-stats { font-size: 0.78rem; color: #999; margin-top: 8px; }
 
+  .history-card { cursor: pointer; }
+  .history-card-title { flex: 1; min-width: 0; }
+  .history-edit-btn {
+    margin-top: 0;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: none;
+    box-shadow: none;
+    color: #4f8cff;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .history-edit-btn:hover { background: rgba(79, 140, 255, 0.12); transform: none; box-shadow: none; }
+  input.history-name-input { font-weight: 600; max-width: 220px; }
+  .history-notes {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    color: #ddd;
+    font-size: 0.8rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 44px;
+    cursor: text;
+  }
+  .history-notes:focus { border-color: #4f8cff; outline: none; }
+  .history-notes::placeholder { color: #666; }
+
   #transcript-section {
     flex: 1 1 320px;
     max-width: 380px;
@@ -1017,6 +1049,16 @@
       localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
     }
 
+    // Atualiza uma sessão já salva (usa a data, com precisão de milissegundo,
+    // como identificador — é o único campo garantidamente único que já existia).
+    function updateHistoryEntry(dateKey, patch) {
+      const entries = loadHistory();
+      const idx = entries.findIndex((e) => e.date === dateKey);
+      if (idx === -1) return;
+      entries[idx] = { ...entries[idx], ...patch };
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+    }
+
     function formatDateBR(iso) {
       const d = new Date(iso);
       return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -1056,11 +1098,12 @@
           const initials = clientInitials(h.client);
 
           return `
-            <div class="history-card">
+            <div class="history-card" data-date="${h.date}">
               <div class="history-card-header">
                 <div class="history-card-title">
                   ${initials ? `<span class="client-avatar">${initials}</span>` : ""}
-                  <span>${h.client ? escapeHtml(h.client) : "Sessão sem cliente"}</span>
+                  <span class="history-name-display">${h.client ? escapeHtml(h.client) : "Sessão sem cliente"}</span>
+                  <button type="button" class="history-edit-btn">Editar</button>
                 </div>
                 <div class="history-card-meta">${formatDateBR(h.date)} · ${formatDuration(h.duration)}</div>
               </div>
@@ -1075,6 +1118,7 @@
               ${negotiationTagsHtml ? `<div class="keyword-tags" style="margin-top:8px">${negotiationTagsHtml}</div>` : ""}
               ${transcriptHtml}
               ${objectionsHtml}
+              <textarea class="history-notes" placeholder="Anotações sobre esta sessão...">${escapeHtml(h.notes || "")}</textarea>
             </div>`;
         })
         .join("");
@@ -1089,6 +1133,69 @@
         .map((p) => p[0].toUpperCase())
         .join("");
     }
+
+    function startEditingClientName(editBtn) {
+      const card = editBtn.closest(".history-card");
+      const dateKey = card.dataset.date;
+      const entry = loadHistory().find((e) => e.date === dateKey);
+      if (!entry) return;
+
+      const nameDisplay = card.querySelector(".history-name-display");
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "history-name-input";
+      input.value = entry.client || "";
+      input.placeholder = "Nome do cliente";
+
+      nameDisplay.replaceWith(input);
+      editBtn.style.display = "none";
+      input.focus();
+      input.select();
+
+      const commit = () => {
+        updateHistoryEntry(dateKey, { client: input.value.trim() });
+        renderHistory();
+      };
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          input.blur();
+        } else if (e.key === "Escape") {
+          input.value = entry.client || "";
+          input.blur();
+        }
+      });
+      input.addEventListener("blur", commit, { once: true });
+    }
+
+    // Delegação de eventos: o conteúdo é reconstruído a cada renderHistory(),
+    // então um listener por card se perderia — um listener só na lista resolve.
+    historyListEl.addEventListener("click", (e) => {
+      const editBtn = e.target.closest(".history-edit-btn");
+      if (editBtn) {
+        startEditingClientName(editBtn);
+        return;
+      }
+      if (e.target.closest("input, textarea, details, summary")) return;
+
+      const card = e.target.closest(".history-card");
+      if (!card) return;
+      const transcriptDetails = card.querySelector(".history-transcript");
+      if (transcriptDetails) transcriptDetails.open = !transcriptDetails.open;
+    });
+
+    // blur não borbulha (bubble); precisa ouvir na fase de captura pra delegar.
+    historyListEl.addEventListener(
+      "blur",
+      (e) => {
+        const textarea = e.target.closest(".history-notes");
+        if (!textarea) return;
+        const card = textarea.closest(".history-card");
+        updateHistoryEntry(card.dataset.date, { notes: textarea.value });
+      },
+      true
+    );
 
     function renderHistoryTrendChart(entries) {
       if (entries.length < 2) {
