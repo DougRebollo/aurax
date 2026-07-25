@@ -119,6 +119,23 @@
     animation: micPulse 1.4s infinite;
   }
 
+  #switchCam {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    margin-top: 0;
+    padding: 6px 14px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: none;
+    z-index: 2;
+  }
+  #switchCam:hover { background: rgba(0, 0, 0, 0.65); transform: none; box-shadow: none; }
+
   #stage {
     display: flex;
     flex-wrap: wrap;
@@ -632,8 +649,8 @@
           <span class="corner corner-br"></span>
         </div>
         <div class="live-badge"><span class="live-dot"></span>AO VIVO</div>
+        <button id="switchCam" style="display:none">Trocar câmera</button>
       </div>
-      <button id="switchCam" style="display:none">Trocar câmera</button>
 
       <div id="session-controls">
         <input type="text" id="clientNameInput" placeholder="Nome do cliente (opcional)" />
