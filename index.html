@@ -269,6 +269,7 @@
     color: #888;
     margin-top: 8px;
   }
+  #transcript-note { font-size: 0.7rem; color: #777; margin: 6px 0 2px; }
   button {
     margin-top: 16px;
     padding: 11px 22px;
@@ -428,6 +429,17 @@
     font-weight: 600;
   }
   .history-edit-btn:hover { background: rgba(79, 140, 255, 0.12); transform: none; box-shadow: none; }
+  .history-delete-btn {
+    margin-top: 0;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: none;
+    box-shadow: none;
+    color: #ff6b5b;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .history-delete-btn:hover { background: rgba(255, 107, 91, 0.12); transform: none; box-shadow: none; }
   input.history-name-input { font-weight: 600; max-width: 220px; }
   .history-notes {
     display: block;
@@ -523,6 +535,19 @@
     display: inline-block;
     margin-right: 4px;
   }
+
+  .speaker-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 999px;
+    margin-right: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .speaker-you { background: rgba(79, 140, 255, 0.18); color: #7ba9ff; }
+  .speaker-other { background: rgba(255, 182, 72, 0.18); color: #ffcf80; }
 
   .history-transcript { margin-top: 8px; }
   .history-transcript summary {
@@ -627,6 +652,7 @@
         <h2>Transcrição ao vivo</h2>
         <button id="micToggleBtn">Ativar microfone</button>
       </div>
+      <div id="transcript-note">"Você" / "Outro participante" é uma aproximação pelo volume da voz, não identificação real.</div>
       <div id="transcriptMeta">
         <span id="micPulse" class="mic-pulse hidden"></span>
         <span id="transcriptStatus"></span>
@@ -713,7 +739,6 @@
       Enjoado: "#b388ff",
       Surpreso: "#ffe066",
       Neutro: "#999999",
-      Focado: "#4f8cff",
     };
 
     function expressionColor(tag) {
@@ -886,9 +911,10 @@
       return Math.max(0, Math.min(1, v));
     }
 
-    // O modelo pronto costuma confundir "triste" com rosto neutro/parado.
-    // Correção aproximada: reduz o peso do "triste" antes de exibir/gravar.
-    const EXPRESSION_CALIBRATION = { sad: 0.5 };
+    // O modelo pronto costuma confundir "triste" com rosto neutro/parado (por
+    // isso o peso reduzido), e "bravo" quase nunca passa de um valor baixo a
+    // menos que a pessoa faça uma expressão bem exagerada (por isso o reforço).
+    const EXPRESSION_CALIBRATION = { sad: 0.5, angry: 1.8 };
 
     function calibrateExpressions(expressions) {
       const calibrated = { ...expressions };
@@ -1059,6 +1085,11 @@
       localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
     }
 
+    function deleteHistoryEntry(dateKey) {
+      const entries = loadHistory().filter((e) => e.date !== dateKey);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+    }
+
     function formatDateBR(iso) {
       const d = new Date(iso);
       return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -1104,6 +1135,7 @@
                   ${initials ? `<span class="client-avatar">${initials}</span>` : ""}
                   <span class="history-name-display">${h.client ? escapeHtml(h.client) : "Sessão sem cliente"}</span>
                   <button type="button" class="history-edit-btn">Editar</button>
+                  <button type="button" class="history-delete-btn">Excluir</button>
                 </div>
                 <div class="history-card-meta">${formatDateBR(h.date)} · ${formatDuration(h.duration)}</div>
               </div>
@@ -1175,6 +1207,15 @@
       const editBtn = e.target.closest(".history-edit-btn");
       if (editBtn) {
         startEditingClientName(editBtn);
+        return;
+      }
+      const deleteBtn = e.target.closest(".history-delete-btn");
+      if (deleteBtn) {
+        const card = deleteBtn.closest(".history-card");
+        if (confirm("Excluir esta sessão do histórico? Essa ação não pode ser desfeita.")) {
+          deleteHistoryEntry(card.dataset.date);
+          renderHistory();
+        }
         return;
       }
       if (e.target.closest("input, textarea, details, summary")) return;
@@ -1384,13 +1425,11 @@
       }
 
       const emotionAverages = Object.keys(EMOTION_LABELS_PT)
-        .filter((key) => key !== "neutral")
-        .map((key) => [key, average(sessionData.map((d) => d[key] || 0))]);
-      emotionAverages.push(["focused", average(sessionData.map((d) => d.focused || 0))]);
-      emotionAverages.sort((a, b) => b[1] - a[1]);
+        .map((key) => [key, average(sessionData.map((d) => d[key] || 0))])
+        .sort((a, b) => b[1] - a[1]);
       renderBarsInto(summaryEmotionsEl, emotionAverages, DISPLAY_LABELS_PT);
 
-      const estimatedAverages = ["tired", "motivated"]
+      const estimatedAverages = ["tired", "focused", "motivated"]
         .map((key) => [key, average(sessionData.map((d) => d[key] || 0))])
         .sort((a, b) => b[1] - a[1]);
       renderBarsInto(summaryEstimatedEl, estimatedAverages, ESTIMATED_LABELS_PT);
@@ -1435,9 +1474,12 @@
       const keywordTagsHtml = hasKeywords
         ? `<div class="keyword-tags">${line.keywords.map((k) => `<span class="keyword-tag">${k}</span>`).join("")}</div>`
         : "";
+      const speakerTagHtml = line.speaker
+        ? `<span class="speaker-tag ${line.speaker === "Outro participante" ? "speaker-other" : "speaker-you"}">${line.speaker}</span>`
+        : "";
       return `
         <div class="transcript-line${hasKeywords ? " transcript-flagged" : ""}">
-          <span class="transcript-time">${formatClock(line.t)}</span>${line.text}
+          <span class="transcript-time">${formatClock(line.t)}</span>${speakerTagHtml}${line.text}
           <span class="transcript-expression"><span class="expr-dot" style="background:${color}"></span>${line.expression}</span>
           ${keywordTagsHtml}
         </div>`;
@@ -1471,11 +1513,12 @@
 
       lines.push("");
       lines.push("Transcrição da sessão");
-      lines.push(["tempo_minutos", "texto", "expressao", "palavras_chave"].join(","));
+      lines.push(["tempo_minutos", "falante", "texto", "expressao", "palavras_chave"].join(","));
       sessionTranscript.forEach((line) => {
         lines.push(
           [
             (line.t / 60).toFixed(2),
+            csvEscape(line.speaker || ""),
             csvEscape(line.text),
             csvEscape(line.expression),
             csvEscape((line.keywords || []).join("; ")),
@@ -1621,6 +1664,27 @@
     let recentWordEvents = [];
     let fastPaceAlreadyFlagged = false;
 
+    // --- Distinção de falantes (aproximada, por volume) ---
+    // Não é diarização de verdade — não há como isolar vozes só com um
+    // microfone no navegador. É uma aproximação: quem fala mais alto/perto do
+    // mic (você, tipicamente) tende a soar mais alto que quem vem pela caixa
+    // de som (o outro participante da call).
+    let currentUtteranceVolumes = [];
+    let recentUtteranceAvgVolumes = [];
+    const SPEAKER_HISTORY_SIZE = 30;
+
+    function median(arr) {
+      if (!arr.length) return 0;
+      const sorted = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
+    function classifySpeaker(avgVolume) {
+      if (recentUtteranceAvgVolumes.length < 4 || avgVolume === 0) return "Você";
+      return avgVolume >= median(recentUtteranceAvgVolumes) ? "Você" : "Outro participante";
+    }
+
     async function setupAudioAnalyser() {
       micAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1659,6 +1723,10 @@
 
     function sampleVoiceMetrics() {
       const volume = getCurrentVolume();
+
+      if (volume >= SILENCE_RMS_THRESHOLD) {
+        currentUtteranceVolumes.push(volume);
+      }
 
       if (volume < SILENCE_RMS_THRESHOLD) {
         if (silenceStartTime === null) {
@@ -1712,9 +1780,17 @@
       const keywords = detectKeywords(text);
       const wordCount = text.split(/\s+/).filter(Boolean).length;
 
+      const avgUtteranceVolume = currentUtteranceVolumes.length ? average(currentUtteranceVolumes) : 0;
+      const speaker = classifySpeaker(avgUtteranceVolume);
+      if (avgUtteranceVolume > 0) {
+        recentUtteranceAvgVolumes.push(avgUtteranceVolume);
+        if (recentUtteranceAvgVolumes.length > SPEAKER_HISTORY_SIZE) recentUtteranceAvgVolumes.shift();
+      }
+      currentUtteranceVolumes = [];
+
       transcriptLogEl.insertAdjacentHTML(
         "beforeend",
-        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag, keywords })
+        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag, keywords, speaker })
       );
       transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
       transcriptFinalCount++;
@@ -1733,7 +1809,7 @@
         objectionWindowEnd = Date.now() + OBJECTION_WINDOW_MS;
         objectionWindowSamples = [];
         objectionWindowStartT = sessionActive ? (Date.now() - sessionStartTime) / 1000 : 0;
-        pushLiveAlert(`Possível objeção: "${objectionPhrase}" — observando resposta`);
+        pushLiveAlert(`Possível objeção (${speaker}): "${objectionPhrase}" — observando resposta`);
       }
 
       if (sessionActive) {
@@ -1742,6 +1818,7 @@
           text,
           expression: expressionTag,
           keywords,
+          speaker,
         });
         sessionWordCount += wordCount;
         keywords.forEach((kw) => {
@@ -1827,6 +1904,8 @@
         fastPaceAlreadyFlagged = false;
         objectionWindowActive = false;
         objectionWindowSamples = [];
+        currentUtteranceVolumes = [];
+        recentUtteranceAvgVolumes = [];
         liveAlertsEl.innerHTML = "";
         updateTranscriptCount();
         transcriptStatusEl.textContent = "Ouvindo...";
@@ -1885,10 +1964,11 @@
     const DISPLAY_LABELS_PT = { ...EMOTION_LABELS_PT, focused: "Focado" };
 
     function renderBars(expressions, estimates) {
-      const entries = Object.entries(expressions)
-        .filter(([label]) => label !== "neutral")
-        .concat([["focused", estimates.focused]])
-        .sort((a, b) => b[1] - a[1]);
+      // "Focado" não é uma expressão facial de verdade (é uma estimativa
+      // derivada de cabeça-parada + neutro) — ficava quase sempre em primeiro
+      // por herdar boa parte do score de "Neutro", afogando as expressões reais.
+      // Agora só as 7 expressões cruas do modelo disputam o "dominante".
+      const entries = Object.entries(expressions).sort((a, b) => b[1] - a[1]);
       const [topLabel, topScore] = entries[0];
       const label = `${DISPLAY_LABELS_PT[topLabel] || topLabel} — ${(topScore * 100).toFixed(0)}%`;
       dominantEl.textContent = label;
@@ -1910,6 +1990,7 @@
     function renderEstimated(estimates) {
       const entries = [
         ["tired", estimates.tired],
+        ["focused", estimates.focused],
         ["motivated", estimates.motivated],
       ].sort((a, b) => b[1] - a[1]);
       renderBarsInto(estimatedEl, entries, ESTIMATED_LABELS_PT);
