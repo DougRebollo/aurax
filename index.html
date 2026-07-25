@@ -595,6 +595,37 @@
     padding: 2px 9px;
     margin: 2px 4px 0 0;
   }
+  .slang-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    background: rgba(179, 136, 255, 0.15);
+    color: #c9a6ff;
+    border-radius: 999px;
+    padding: 2px 9px;
+    margin: 2px 4px 0 0;
+  }
+  .transcript-slang {
+    border-left: 2px solid #b388ff;
+    padding-left: 8px;
+    background: rgba(179, 136, 255, 0.06);
+  }
+
+  .talk-split-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #333;
+  }
+  .talk-split-you { background: linear-gradient(90deg, #4f8cff, #7ba9ff); }
+  .talk-split-other { background: linear-gradient(90deg, #ffb648, #ffcf80); }
+  .talk-split-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: #999;
+    margin-top: 6px;
+  }
 </style>
 </head>
 <body>
@@ -699,6 +730,9 @@
     <svg id="trendChart" viewBox="0 0 640 240"></svg>
     <div id="peakInsights"></div>
 
+    <h3>Dinâmica da conversa</h3>
+    <div id="summaryDynamics"></div>
+
     <h3>Emoções (média da sessão)</h3>
     <div id="summaryEmotions"></div>
     <h3>Estimativas (média da sessão)</h3>
@@ -709,6 +743,8 @@
     <div id="summaryNegotiation"></div>
     <h3>Objeções e respostas</h3>
     <div id="summaryObjections"></div>
+    <h3>Vícios de linguagem e gírias</h3>
+    <div id="summaryLanguage"></div>
     <button id="downloadCsvBtn" class="ghost">Baixar dados (CSV)</button>
     <button id="downloadPdfBtn" class="ghost">Baixar PDF</button>
   </div>
@@ -781,6 +817,18 @@
       return entries.map(([kw, count]) => `<span class="keyword-tag">${kw} × ${count}</span>`).join(" ");
     }
 
+    function renderSlangTags(counts) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      return entries
+        .map(([word, count]) => {
+          const suggestion = SLANG_LIBRARY[word];
+          const suggestionText = suggestion ? ` → ${suggestion}` : "";
+          return `<span class="slang-tag">${word}${suggestionText} × ${count}</span>`;
+        })
+        .join(" ");
+    }
+
     // Frases comuns de objeção em vendas — detecção por gatilho, não entendimento
     // real de linguagem. Serve pra aproximar "isso soa como uma objeção".
     const OBJECTION_PHRASES = [
@@ -800,6 +848,52 @@
     function detectObjectionPhrase(text) {
       const lower = text.toLowerCase();
       return OBJECTION_PHRASES.find((p) => lower.includes(p)) || null;
+    }
+
+    function tokenizeWords(text) {
+      return text
+        .toLowerCase()
+        .replace(/[.,!?;:"'()]/g, "")
+        .split(/\s+/)
+        .filter(Boolean);
+    }
+
+    // Gírias/informalidades comuns que soam pouco profissionais numa call de
+    // vendas, com uma sugestão de troca. Lista pequena e editável, não exaustiva.
+    const SLANG_LIBRARY = {
+      "beleza": "perfeito",
+      "valeu": "obrigado",
+      "sussa": "tranquilo",
+      "da hora": "interessante",
+      "show": "ótimo",
+      "top": "excelente",
+      "galera": "equipe",
+      "de boa": "sem problema",
+      "mano": "",
+      "bagulho": "assunto",
+      "treco": "item",
+      "pô": "",
+    };
+
+    function detectSlang(text) {
+      const lower = text.toLowerCase();
+      const tokens = tokenizeWords(text);
+      const found = [];
+      for (const slang in SLANG_LIBRARY) {
+        const isPhrase = slang.includes(" ");
+        const matched = isPhrase ? lower.includes(slang) : tokens.includes(slang);
+        if (matched) found.push(slang);
+      }
+      return found;
+    }
+
+    // Vícios de linguagem: contados pro resumo, mas sem alerta ao vivo — são
+    // frequentes demais na fala natural pra avisar toda vez sem virar ruído.
+    const FILLER_WORDS = ["né", "tipo", "então", "é", "an", "hã", "ahn", "eh", "hum", "assim", "sabe"];
+
+    function detectFillerWords(text) {
+      const tokens = tokenizeWords(text);
+      return tokens.filter((t) => FILLER_WORDS.includes(t));
     }
 
     const video = document.getElementById("video");
@@ -954,6 +1048,8 @@
     const summaryTranscriptEl = document.getElementById("summaryTranscript");
     const summaryNegotiationEl = document.getElementById("summaryNegotiation");
     const summaryObjectionsEl = document.getElementById("summaryObjections");
+    const summaryDynamicsEl = document.getElementById("summaryDynamics");
+    const summaryLanguageEl = document.getElementById("summaryLanguage");
     const downloadCsvBtn = document.getElementById("downloadCsvBtn");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const trendChartEl = document.getElementById("trendChart");
@@ -1143,6 +1239,8 @@
                </details>`
             : "";
           const negotiationTagsHtml = renderKeywordTags(h.keywordCounts);
+          const slangTagsHtml = renderSlangTags(h.slangCounts);
+          const fillerTagsHtml = renderKeywordTags(h.fillerCounts);
           const initials = clientInitials(h.client);
 
           return `
@@ -1164,7 +1262,10 @@
               </div>
 
               ${h.wpm != null ? `<div class="history-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
+              ${h.dynamics ? `<div class="history-secondary-stats">Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>` : ""}
               ${negotiationTagsHtml ? `<div class="keyword-tags" style="margin-top:8px">${negotiationTagsHtml}</div>` : ""}
+              ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
+              ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}
               ${transcriptHtml}
               ${objectionsHtml}
               <textarea class="history-notes" placeholder="Anotações sobre esta sessão...">${escapeHtml(h.notes || "")}</textarea>
@@ -1317,6 +1418,10 @@
     let sessionPauseCount = 0;
     let sessionKeywordCounts = {};
     let sessionObjections = [];
+    let sessionSlangCounts = {};
+    let sessionFillerCounts = {};
+    let sessionSilentSamples = 0;
+    let sessionTotalSamples = 0;
 
     // --- Objeção + resposta: acompanha a expressão por um tempo depois de uma
     // frase-gatilho de objeção, pra resumir como foi a reação na resposta.
@@ -1387,6 +1492,10 @@
       sessionPauseCount = 0;
       sessionKeywordCounts = {};
       sessionObjections = [];
+      sessionSlangCounts = {};
+      sessionFillerCounts = {};
+      sessionSilentSamples = 0;
+      sessionTotalSamples = 0;
       currentClientName = clientNameInputEl.value.trim();
       startSessionBtn.style.display = "none";
       endSessionBtn.style.display = "inline-block";
@@ -1418,6 +1527,43 @@
       });
     }
 
+    // Métricas de dinâmica da conversa (inspiradas em ferramentas de call
+    // intelligence): quem falou mais, quantas trocas de turno, maior fala de
+    // cada um (em palavras, já que não medimos duração exata por fala) e
+    // quanto da sessão foi silêncio.
+    function computeConversationDynamics(transcript) {
+      if (!transcript.length) return null;
+
+      let wordsYou = 0;
+      let wordsOther = 0;
+      let longestYou = 0;
+      let longestOther = 0;
+      let turnChanges = 0;
+
+      transcript.forEach((line, i) => {
+        const wc = line.text.split(/\s+/).filter(Boolean).length;
+        if (line.speaker === "Outro participante") {
+          wordsOther += wc;
+          longestOther = Math.max(longestOther, wc);
+        } else {
+          wordsYou += wc;
+          longestYou = Math.max(longestYou, wc);
+        }
+        if (i > 0 && line.speaker !== transcript[i - 1].speaker) turnChanges++;
+      });
+
+      const totalWords = wordsYou + wordsOther;
+      const pctYou = totalWords ? Math.round((wordsYou / totalWords) * 100) : 0;
+      const pctOther = 100 - pctYou;
+      const durationMin = sessionTranscript.length
+        ? Math.max(sessionTranscript[sessionTranscript.length - 1].t / 60, 0.05)
+        : 0.05;
+      const turnsPerMinute = (turnChanges / durationMin).toFixed(1);
+      const silencePct = sessionTotalSamples ? Math.round((sessionSilentSamples / sessionTotalSamples) * 100) : 0;
+
+      return { pctYou, pctOther, turnsPerMinute, longestYou, longestOther, silencePct };
+    }
+
     function renderSummary() {
       summarySection.style.display = "block";
       if (!sessionData.length) {
@@ -1427,6 +1573,8 @@
         summaryTranscriptEl.innerHTML = "";
         summaryNegotiationEl.innerHTML = "";
         summaryObjectionsEl.innerHTML = "";
+        summaryDynamicsEl.innerHTML = "";
+        summaryLanguageEl.innerHTML = "";
         return;
       }
 
@@ -1469,6 +1617,31 @@
             .join("")
         : '<div class="insight-line">Nenhuma objeção identificada nesta sessão.</div>';
 
+      const dynamics = computeConversationDynamics(sessionTranscript);
+      if (dynamics) {
+        summaryDynamicsEl.innerHTML = `
+          <div class="talk-split-bar">
+            <div class="talk-split-you" style="width:${dynamics.pctYou}%"></div>
+            <div class="talk-split-other" style="width:${dynamics.pctOther}%"></div>
+          </div>
+          <div class="talk-split-labels"><span>Você ${dynamics.pctYou}%</span><span>Outro participante ${dynamics.pctOther}%</span></div>
+          <div class="insight-line" style="margin-top:10px">Trocas de turno: ${dynamics.turnsPerMinute}/min</div>
+          <div class="insight-line">Maior fala sua: ${dynamics.longestYou} palavras · do outro: ${dynamics.longestOther} palavras</div>
+          <div class="insight-line">Silêncio na sessão: ${dynamics.silencePct}%</div>
+        `;
+      } else {
+        summaryDynamicsEl.innerHTML = '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
+      }
+
+      const slangTagsHtml = renderSlangTags(sessionSlangCounts);
+      const fillerTagsHtml = renderKeywordTags(sessionFillerCounts);
+      summaryLanguageEl.innerHTML = `
+        <div class="insight-line">Gírias identificadas:</div>
+        <div style="margin:4px 0 12px">${slangTagsHtml || '<span class="insight-line">Nenhuma gíria identificada.</span>'}</div>
+        <div class="insight-line">Vícios de linguagem ("é", "né", "tipo"...):</div>
+        <div style="margin-top:4px">${fillerTagsHtml || '<span class="insight-line">Nenhum vício de linguagem identificado.</span>'}</div>
+      `;
+
       saveHistoryEntry({
         date: new Date().toISOString(),
         duration,
@@ -1481,6 +1654,9 @@
         keywordCounts: sessionKeywordCounts,
         client: currentClientName,
         objections: sessionObjections,
+        dynamics,
+        slangCounts: sessionSlangCounts,
+        fillerCounts: sessionFillerCounts,
       });
       renderHistory();
     }
@@ -1488,17 +1664,25 @@
     function renderTranscriptLineHtml(line) {
       const color = expressionColor(line.expression);
       const hasKeywords = line.keywords && line.keywords.length;
+      const hasSlang = line.slang && line.slang.length;
       const keywordTagsHtml = hasKeywords
         ? `<div class="keyword-tags">${line.keywords.map((k) => `<span class="keyword-tag">${k}</span>`).join("")}</div>`
+        : "";
+      const slangTagsHtml = hasSlang
+        ? `<div class="keyword-tags">${line.slang
+            .map((w) => `<span class="slang-tag">${w}${SLANG_LIBRARY[w] ? ` → ${SLANG_LIBRARY[w]}` : ""}</span>`)
+            .join("")}</div>`
         : "";
       const speakerTagHtml = line.speaker
         ? `<span class="speaker-tag ${line.speaker === "Outro participante" ? "speaker-other" : "speaker-you"}">${line.speaker}</span>`
         : "";
+      const flagClass = hasKeywords ? " transcript-flagged" : hasSlang ? " transcript-slang" : "";
       return `
-        <div class="transcript-line${hasKeywords ? " transcript-flagged" : ""}">
+        <div class="transcript-line${flagClass}">
           <span class="transcript-time">${formatClock(line.t)}</span>${speakerTagHtml}${line.text}
           <span class="transcript-expression"><span class="expr-dot" style="background:${color}"></span>${line.expression}</span>
           ${keywordTagsHtml}
+          ${slangTagsHtml}
         </div>`;
     }
 
@@ -1561,6 +1745,32 @@
       sessionObjections.forEach((o) => {
         lines.push([(o.t / 60).toFixed(2), csvEscape(o.phrase), csvEscape(o.result)].join(","));
       });
+
+      const dynamics = computeConversationDynamics(sessionTranscript);
+      lines.push("");
+      lines.push("Dinâmica da conversa");
+      if (dynamics) {
+        lines.push(["fala_voce_pct", dynamics.pctYou].join(","));
+        lines.push(["fala_outro_pct", dynamics.pctOther].join(","));
+        lines.push(["trocas_de_turno_por_min", dynamics.turnsPerMinute].join(","));
+        lines.push(["maior_fala_voce_palavras", dynamics.longestYou].join(","));
+        lines.push(["maior_fala_outro_palavras", dynamics.longestOther].join(","));
+        lines.push(["silencio_pct", dynamics.silencePct].join(","));
+      }
+
+      lines.push("");
+      lines.push("Gírias identificadas");
+      lines.push(["giria", "sugestao", "ocorrencias"].join(","));
+      Object.entries(sessionSlangCounts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([word, count]) => lines.push([csvEscape(word), csvEscape(SLANG_LIBRARY[word] || ""), count].join(",")));
+
+      lines.push("");
+      lines.push("Vícios de linguagem");
+      lines.push(["vicio", "ocorrencias"].join(","));
+      Object.entries(sessionFillerCounts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([word, count]) => lines.push([csvEscape(word), count].join(",")));
 
       const csv = lines.join("\n");
       const blob = new Blob([csv], { type: "text/csv" });
@@ -1745,6 +1955,11 @@
         currentUtteranceVolumes.push(volume);
       }
 
+      if (sessionActive) {
+        sessionTotalSamples++;
+        if (volume < SILENCE_RMS_THRESHOLD) sessionSilentSamples++;
+      }
+
       if (volume < SILENCE_RMS_THRESHOLD) {
         if (silenceStartTime === null) {
           silenceStartTime = Date.now();
@@ -1795,6 +2010,8 @@
       const expressionTag = dominantEl.textContent || "Sem leitura de expressão";
       const elapsed = (Date.now() - transcriptStartTime) / 1000;
       const keywords = detectKeywords(text);
+      const slangMatches = detectSlang(text);
+      const fillerMatches = detectFillerWords(text);
       const wordCount = text.split(/\s+/).filter(Boolean).length;
 
       const avgUtteranceVolume = currentUtteranceVolumes.length ? average(currentUtteranceVolumes) : 0;
@@ -1807,7 +2024,7 @@
 
       transcriptLogEl.insertAdjacentHTML(
         "beforeend",
-        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag, keywords, speaker })
+        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag, keywords, speaker, slang: slangMatches })
       );
       transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
       transcriptFinalCount++;
@@ -1829,6 +2046,13 @@
         pushLiveAlert(`Possível objeção (${speaker}): "${objectionPhrase}" — observando resposta`);
       }
 
+      if (slangMatches.length) {
+        const suggestion = SLANG_LIBRARY[slangMatches[0]];
+        pushLiveAlert(
+          `Gíria: "${slangMatches[0]}"${suggestion ? ` → tente "${suggestion}"` : ""}`
+        );
+      }
+
       if (sessionActive) {
         sessionTranscript.push({
           t: (Date.now() - sessionStartTime) / 1000,
@@ -1836,10 +2060,17 @@
           expression: expressionTag,
           keywords,
           speaker,
+          slang: slangMatches,
         });
         sessionWordCount += wordCount;
         keywords.forEach((kw) => {
           sessionKeywordCounts[kw] = (sessionKeywordCounts[kw] || 0) + 1;
+        });
+        slangMatches.forEach((word) => {
+          sessionSlangCounts[word] = (sessionSlangCounts[word] || 0) + 1;
+        });
+        fillerMatches.forEach((word) => {
+          sessionFillerCounts[word] = (sessionFillerCounts[word] || 0) + 1;
         });
       }
     }
