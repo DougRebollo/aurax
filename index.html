@@ -168,7 +168,14 @@
     -webkit-backdrop-filter: blur(8px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   }
-  #status-panel h2 { font-size: 1rem; margin: 0 0 12px; }
+  #status-panel h2 { font-size: 1rem; margin: 0; }
+  .status-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .status-panel-header .ghost {
+    margin-top: 0;
+    padding: 4px 12px;
+    font-size: 0.72rem;
+    box-shadow: none;
+  }
   .status-row {
     display: flex;
     justify-content: space-between;
@@ -655,7 +662,10 @@
   <div id="stage">
     <div id="statusColumn">
       <div id="status-panel">
-        <h2>Status ao vivo</h2>
+        <div class="status-panel-header">
+          <h2>Status ao vivo</h2>
+          <button type="button" id="logoutBtn" class="ghost">Sair</button>
+        </div>
         <div class="status-row"><span class="status-label">Câmera ativa</span><span id="cameraUptime" class="status-value">00:00</span></div>
         <div class="status-row"><span class="status-label">Confiança da detecção</span><span id="detectionConfidence" class="status-value">—</span></div>
         <div class="status-row"><span class="status-label">Sessão</span><span id="sessionStatusText" class="status-value">Inativa</span></div>
@@ -777,6 +787,7 @@
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script>
     const EMOTION_LABELS_PT = {
       neutral: "Focado",
@@ -2434,7 +2445,26 @@
       await startCamera(currentFacingMode);
     });
 
-    init();
+    // --- Login: exige sessão do Supabase antes de ligar câmera/modelos ---
+    const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function requireAuthThenInit() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        window.location.href = "login.html";
+        return;
+      }
+      init();
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = "login.html";
+    });
+
+    requireAuthThenInit();
   </script>
 </body>
 </html>
