@@ -177,8 +177,7 @@
       }
     });
 
-    // Depois de logado, manda cada papel pra tela certa. O painel do gestor
-    // ainda está em construção — por enquanto todo mundo cai no app.
+    // Depois de logado, manda cada papel pra tela certa.
     async function redirectByRole() {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) return;
@@ -189,7 +188,7 @@
         .single();
 
       if (profile && profile.role === "gestor") {
-        window.location.href = "index.html"; // painel-gestor.html ainda não existe
+        window.location.href = "painel-gestor.html";
       } else {
         window.location.href = "index.html";
       }
