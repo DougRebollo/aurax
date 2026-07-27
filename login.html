@@ -111,6 +111,12 @@
       <div id="nameField">
         <label for="nameInput">Nome</label>
         <input type="text" id="nameInput" placeholder="Seu nome" />
+
+        <label for="cargoInput">Cargo <span style="color:#666">(opcional)</span></label>
+        <input type="text" id="cargoInput" placeholder="Ex: Gerente Comercial" />
+
+        <label for="empresaInput">Empresa <span style="color:#666">(opcional)</span></label>
+        <input type="text" id="empresaInput" placeholder="Ex: Registro Rural" />
       </div>
 
       <label for="emailInput">E-mail</label>
@@ -141,6 +147,8 @@
     const form = document.getElementById("authForm");
     const nameField = document.getElementById("nameField");
     const nameInput = document.getElementById("nameInput");
+    const cargoInput = document.getElementById("cargoInput");
+    const empresaInput = document.getElementById("empresaInput");
     const emailInput = document.getElementById("emailInput");
     const passwordInput = document.getElementById("passwordInput");
     const submitBtn = document.getElementById("submitBtn");
@@ -205,10 +213,12 @@
       try {
         if (mode === "signup") {
           const name = nameInput.value.trim();
+          const cargo = cargoInput.value.trim();
+          const empresa = empresaInput.value.trim();
           const { data, error } = await supabaseClient.auth.signUp({
             email,
             password,
-            options: { data: { name } },
+            options: { data: { name, cargo, empresa } },
           });
           if (error) throw error;
 

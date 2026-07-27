@@ -153,6 +153,7 @@
     <div class="panel-head">
       <div class="panel-eyebrow">Painel do gestor</div>
       <h1 id="greeting">Olá</h1>
+      <p id="greetingRole" style="display:none"></p>
       <p>Gerencie quem faz parte do seu time no AuraX.</p>
     </div>
 
@@ -190,7 +191,7 @@
             <span class="avatar">${initials(person.name)}</span>
             <div>
               <div class="person-name">${person.name || "(sem nome)"}</div>
-              <div class="person-email">${person.email || ""}</div>
+              <div class="person-email">${person.cargo ? person.cargo + " · " : ""}${person.email || ""}</div>
             </div>
           </div>
           <div class="person-footer">
@@ -202,7 +203,7 @@
     async function loadTeam() {
       const { data, error } = await supabaseClient
         .from("profiles")
-        .select("id, name, email")
+        .select("id, name, email, cargo")
         .eq("manager_id", currentUserId)
         .order("name");
 
@@ -310,7 +311,7 @@
 
       const { data: profile, error } = await supabaseClient
         .from("profiles")
-        .select("id, name, role")
+        .select("id, name, role, cargo, empresa")
         .eq("id", session.user.id)
         .single();
 
@@ -321,6 +322,11 @@
 
       currentUserId = profile.id;
       document.getElementById("greeting").textContent = `Olá, ${profile.name}`;
+      if (profile.cargo || profile.empresa) {
+        const roleEl = document.getElementById("greetingRole");
+        roleEl.textContent = [profile.cargo, profile.empresa].filter(Boolean).join(" · ");
+        roleEl.style.display = "block";
+      }
       document.getElementById("gate").hidden = true;
       document.getElementById("app").hidden = false;
 
