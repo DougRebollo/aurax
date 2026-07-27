@@ -347,6 +347,8 @@
   .tooltip-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
   #peakInsights { font-size: 0.85rem; color: #ddd; margin: 10px 0 4px; }
   .insight-line { margin: 4px 0; padding-left: 10px; border-left: 2px solid #4f8cff; }
+  .tip-positive { border-left-color: #7ee787; }
+  .tip-improve { border-left-color: #ffb648; }
 
   #loadingOverlay {
     position: fixed;
@@ -659,7 +661,7 @@
         <div class="status-row"><span class="status-label">Sessão</span><span id="sessionStatusText" class="status-value">Inativa</span></div>
 
         <div id="statTiles">
-          <div class="stat-tile"><div class="stat-value" id="tileFocused">0%</div><div class="stat-label">Foco</div></div>
+          <div class="stat-tile"><div class="stat-value" id="tileFocused">0%</div><div class="stat-label">Constância</div></div>
           <div class="stat-tile"><div class="stat-value" id="tileMotivated">0%</div><div class="stat-label">Motivação</div></div>
           <div class="stat-tile"><div class="stat-value" id="tileTired">0%</div><div class="stat-label">Cansaço</div></div>
         </div>
@@ -721,10 +723,13 @@
     <h2>Resumo da sessão</h2>
     <div id="summaryDuration"></div>
 
+    <h3>Dicas de melhoria</h3>
+    <div id="summaryTips"></div>
+
     <h3>Como evoluiu ao longo da sessão</h3>
     <div id="trend-legend">
       <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
-      <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Focado</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Constância</span>
       <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
     </div>
     <svg id="trendChart" viewBox="0 0 640 240"></svg>
@@ -756,7 +761,7 @@
       <h3>Tendência entre sessões</h3>
       <div id="trend-legend">
         <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
-        <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Focado</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Constância</span>
         <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
       </div>
       <svg id="historyTrendChart" viewBox="0 0 640 200" style="width:100%; height:auto;"></svg>
@@ -774,7 +779,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     const EMOTION_LABELS_PT = {
-      neutral: "Neutro",
+      neutral: "Focado",
       happy: "Feliz",
       sad: "Triste",
       angry: "Bravo",
@@ -791,7 +796,7 @@
       "Nervoso/Medo": "#ffb648",
       Enjoado: "#b388ff",
       Surpreso: "#ffe066",
-      Neutro: "#999999",
+      Focado: "#3ddba0",
     };
 
     function expressionColor(tag) {
@@ -1049,6 +1054,7 @@
     const summaryNegotiationEl = document.getElementById("summaryNegotiation");
     const summaryObjectionsEl = document.getElementById("summaryObjections");
     const summaryDynamicsEl = document.getElementById("summaryDynamics");
+    const summaryTipsEl = document.getElementById("summaryTips");
     const summaryLanguageEl = document.getElementById("summaryLanguage");
     const downloadCsvBtn = document.getElementById("downloadCsvBtn");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
@@ -1058,7 +1064,7 @@
 
     const TREND_SERIES = [
       { key: "tired", label: "Cansado", color: "var(--series-tired)" },
-      { key: "focused", label: "Focado", color: "var(--series-focused)" },
+      { key: "focused", label: "Constância", color: "var(--series-focused)" },
       { key: "motivated", label: "Motivado", color: "var(--series-motivated)" },
     ];
 
@@ -1256,11 +1262,12 @@
               </div>
 
               <div class="history-badges">
-                <span class="history-badge badge-focused">Focado ${Math.round(h.focused * 100)}%</span>
+                <span class="history-badge badge-focused">Constância ${Math.round(h.focused * 100)}%</span>
                 <span class="history-badge badge-motivated">Motivado ${Math.round(h.motivated * 100)}%</span>
                 <span class="history-badge badge-tired">Cansado ${Math.round(h.tired * 100)}%</span>
               </div>
 
+              ${h.tips && h.tips.length ? `<div style="margin-top:10px">${renderCoachingTips(h.tips)}</div>` : ""}
               ${h.wpm != null ? `<div class="history-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
               ${h.dynamics ? `<div class="history-secondary-stats">Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>` : ""}
               ${negotiationTagsHtml ? `<div class="keyword-tags" style="margin-top:8px">${negotiationTagsHtml}</div>` : ""}
@@ -1564,6 +1571,79 @@
       return { pctYou, pctOther, turnsPerMinute, longestYou, longestOther, silencePct };
     }
 
+    // Dicas de autoavaliação ao final da sessão — regras simples sobre os
+    // dados que já coletamos (nada de IA generativa aqui, é tudo heurística
+    // direta a partir do que foi medido nesta mesma sessão).
+    function generateCoachingTips({ dynamics, wpm, pauseCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated }) {
+      const tips = [];
+
+      if (wpm > 170) {
+        tips.push({ type: "melhorar", text: `Ritmo de fala acelerado (${wpm} palavras/min) — desacelerar passa mais segurança.` });
+      } else if (wpm > 0 && wpm < 100) {
+        tips.push({ type: "positivo", text: `Ritmo de fala tranquilo (${wpm} palavras/min) — bom controle de pausas.` });
+      }
+
+      if (pauseCount >= 5) {
+        tips.push({ type: "melhorar", text: `Muitas pausas longas (${pauseCount}) — pode passar hesitação.` });
+      }
+
+      if (dynamics) {
+        if (dynamics.pctYou >= 75) {
+          tips.push({ type: "melhorar", text: `Você dominou ${dynamics.pctYou}% da conversa — abra mais espaço para o outro participante.` });
+        } else if (dynamics.pctOther >= 35) {
+          tips.push({ type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o outro participante falar.` });
+        }
+        if (dynamics.silencePct >= 15) {
+          tips.push({ type: "melhorar", text: `Silêncio acima do ideal (${dynamics.silencePct}%) — pode indicar hesitação na condução.` });
+        }
+      }
+
+      const totalSlang = Object.values(slangCounts || {}).reduce((a, b) => a + b, 0);
+      if (totalSlang >= 3) {
+        tips.push({ type: "melhorar", text: `${totalSlang} gírias/informalidades identificadas — considere termos mais profissionais.` });
+      }
+
+      const totalFiller = Object.values(fillerCounts || {}).reduce((a, b) => a + b, 0);
+      if (totalFiller >= 15) {
+        tips.push({ type: "melhorar", text: `${totalFiller} vícios de linguagem ("é", "né", "tipo"...) — reduzir isso deixa a fala mais assertiva.` });
+      } else if (totalFiller > 0 && totalFiller <= 5) {
+        tips.push({ type: "positivo", text: `Poucos vícios de linguagem (${totalFiller}) — fala limpa e direta.` });
+      }
+
+      if (objections && objections.length) {
+        const tense = objections.filter((o) => o.result.startsWith("Resposta tensa")).length;
+        const secure = objections.filter((o) => o.result.startsWith("Resposta segura")).length;
+        if (secure > tense) {
+          tips.push({ type: "positivo", text: "Boa recuperação em objeções — manteve o foco na maioria das respostas." });
+        } else if (tense > 0) {
+          tips.push({ type: "melhorar", text: `Sinais de tensão ao responder objeções (${tense} de ${objections.length}) — treinar essas respostas pode ajudar.` });
+        }
+      }
+
+      if (avgTired >= 0.4) {
+        tips.push({ type: "melhorar", text: "Sinais de cansaço ao longo da sessão — considere pausas entre reuniões." });
+      }
+      if (avgMotivated >= 0.5) {
+        tips.push({ type: "positivo", text: "Boa energia/motivação sustentada durante a conversa." });
+      }
+
+      if (!tips.length) {
+        tips.push({ type: "positivo", text: "Sessão equilibrada, sem pontos de atenção fortes identificados." });
+      }
+
+      return tips;
+    }
+
+    function renderCoachingTips(tips) {
+      if (!tips || !tips.length) return "";
+      return tips
+        .map(
+          (t) =>
+            `<div class="insight-line ${t.type === "positivo" ? "tip-positive" : "tip-improve"}">${t.type === "positivo" ? "✓" : "→"} ${t.text}</div>`
+        )
+        .join("");
+    }
+
     function renderSummary() {
       summarySection.style.display = "block";
       if (!sessionData.length) {
@@ -1575,6 +1655,7 @@
         summaryObjectionsEl.innerHTML = "";
         summaryDynamicsEl.innerHTML = "";
         summaryLanguageEl.innerHTML = "";
+        summaryTipsEl.innerHTML = "";
         return;
       }
 
@@ -1642,12 +1723,28 @@
         <div style="margin-top:4px">${fillerTagsHtml || '<span class="insight-line">Nenhum vício de linguagem identificado.</span>'}</div>
       `;
 
+      const avgFocused = average(sessionData.map((d) => d.focused || 0));
+      const avgTired = average(sessionData.map((d) => d.tired || 0));
+      const avgMotivated = average(sessionData.map((d) => d.motivated || 0));
+
+      const tips = generateCoachingTips({
+        dynamics,
+        wpm: wpmSession,
+        pauseCount: sessionPauseCount,
+        slangCounts: sessionSlangCounts,
+        fillerCounts: sessionFillerCounts,
+        objections: sessionObjections,
+        avgTired,
+        avgMotivated,
+      });
+      summaryTipsEl.innerHTML = renderCoachingTips(tips);
+
       saveHistoryEntry({
         date: new Date().toISOString(),
         duration,
-        focused: average(sessionData.map((d) => d.focused || 0)),
-        tired: average(sessionData.map((d) => d.tired || 0)),
-        motivated: average(sessionData.map((d) => d.motivated || 0)),
+        focused: avgFocused,
+        tired: avgTired,
+        motivated: avgMotivated,
         transcript: sessionTranscript,
         wpm: wpmSession,
         pauses: sessionPauseCount,
@@ -1657,6 +1754,7 @@
         dynamics,
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
+        tips,
       });
       renderHistory();
     }
@@ -1771,6 +1869,21 @@
       Object.entries(sessionFillerCounts)
         .sort((a, b) => b[1] - a[1])
         .forEach(([word, count]) => lines.push([csvEscape(word), count].join(",")));
+
+      const tipsForCsv = generateCoachingTips({
+        dynamics,
+        wpm: wpmSession,
+        pauseCount: sessionPauseCount,
+        slangCounts: sessionSlangCounts,
+        fillerCounts: sessionFillerCounts,
+        objections: sessionObjections,
+        avgTired: sessionData.length ? average(sessionData.map((d) => d.tired || 0)) : 0,
+        avgMotivated: sessionData.length ? average(sessionData.map((d) => d.motivated || 0)) : 0,
+      });
+      lines.push("");
+      lines.push("Dicas de melhoria");
+      lines.push(["tipo", "dica"].join(","));
+      tipsForCsv.forEach((t) => lines.push([csvEscape(t.type), csvEscape(t.text)].join(",")));
 
       const csv = lines.join("\n");
       const blob = new Blob([csv], { type: "text/csv" });
@@ -2209,7 +2322,7 @@
         .join("");
     }
 
-    const DISPLAY_LABELS_PT = { ...EMOTION_LABELS_PT, focused: "Focado" };
+    const DISPLAY_LABELS_PT = { ...EMOTION_LABELS_PT };
 
     function renderBars(expressions, estimates) {
       // "Focado" não é uma expressão facial de verdade (é uma estimativa
@@ -2231,7 +2344,7 @@
 
     const ESTIMATED_LABELS_PT = {
       tired: "Cansado",
-      focused: "Focado",
+      focused: "Constância",
       motivated: "Motivado",
     };
 

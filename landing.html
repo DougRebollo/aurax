@@ -316,12 +316,12 @@
     </nav>
 
     <header class="hero">
-      <span class="eyebrow">Para heads comerciais, gestores e team leaders</span>
-      <h1 class="hero-title">A visibilidade que falta pra liderar<br>um time comercial de verdade</h1>
+      <span class="eyebrow">Para heads comerciais, gestores e líderes de equipe</span>
+      <h1 class="hero-title">A autoavaliação de quem<br>lidera pelo exemplo</h1>
       <p class="hero-sub">
-        Você não pode estar em toda negociação do seu time. O AuraX pode: lê expressão facial,
-        ritmo de fala, objeções e vícios de comunicação em tempo real, e transforma cada call
-        em dado de coaching — não em mais uma gravação perdida no drive.
+        O AuraX não monitora seu time — te ajuda a evoluir você. Nas suas próprias reuniões e
+        negociações, ele lê expressão facial, ritmo de fala, pausas e gírias em tempo real, e
+        fecha cada call com dicas objetivas de onde melhorar.
       </p>
       <div class="hero-ctas">
         <a class="btn big" id="heroCta" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
@@ -337,14 +337,19 @@
 
     <section id="funcionalidades">
       <div class="section-head">
-        <h2>Tudo que acontece numa call de vendas, decodificado</h2>
-        <p>O AuraX lê sinais que passam despercebidos numa negociação e transforma em dados acionáveis para você e seu time.</p>
+        <h2>Tudo que acontece na sua reunião, decodificado</h2>
+        <p>O AuraX lê sinais que passam despercebidos na sua própria negociação e fecha cada sessão com dicas práticas de onde evoluir.</p>
       </div>
       <div class="feature-grid">
         <div class="card feature-card">
           <div class="feature-icon">FA</div>
           <h3>Leitura facial em tempo real</h3>
           <p>Detecta foco, motivação e cansaço enquanto a call acontece, com uma "auréola" visual que muda de cor conforme a expressão dominante.</p>
+        </div>
+        <div class="card feature-card">
+          <div class="feature-icon">DI</div>
+          <h3>Dicas de melhoria ao final</h3>
+          <p>Cada sessão termina com uma autoavaliação objetiva: ritmo acelerado, muitas pausas, boa escuta ativa, gírias em excesso — o que evoluir na próxima.</p>
         </div>
         <div class="card feature-card">
           <div class="feature-icon">TR</div>
@@ -354,7 +359,7 @@
         <div class="card feature-card">
           <div class="feature-icon">OB</div>
           <h3>Detecção de objeções</h3>
-          <p>Identifica frases comuns de objeção ("tá caro", "vou pensar"...) e analisa como a resposta foi entregue nos segundos seguintes.</p>
+          <p>Identifica frases comuns de objeção ("tá caro", "vou pensar"...) e analisa como a sua resposta foi entregue nos segundos seguintes.</p>
         </div>
         <div class="card feature-card">
           <div class="feature-icon">AL</div>
@@ -363,13 +368,13 @@
         </div>
         <div class="card feature-card">
           <div class="feature-icon">HI</div>
-          <h3>Histórico por cliente</h3>
-          <p>Cada sessão vira um card editável, com anotações livres e filtro por cliente — organizado como um mini-CRM de comportamento.</p>
+          <h3>Histórico das suas reuniões</h3>
+          <p>Cada sessão vira um card editável, com anotações livres e filtro por cliente — sua própria evolução, registrada reunião após reunião.</p>
         </div>
         <div class="card feature-card">
           <div class="feature-icon">RE</div>
           <h3>Relatórios prontos</h3>
-          <p>Exporte cada sessão em PDF (com os mesmos gráficos que você vê na tela) ou CSV, prontos pra enviar ou revisar com o time.</p>
+          <p>Exporte cada sessão em PDF (com os mesmos gráficos que você vê na tela) ou CSV, prontos pra revisar depois ou guardar como histórico da sua evolução.</p>
         </div>
       </div>
     </section>
@@ -392,8 +397,8 @@
         </div>
         <div class="card step">
           <div class="step-num">3</div>
-          <h3>Receba os insights</h3>
-          <p>Ao final, um resumo completo — pronto pra revisar sozinho ou levar pro time.</p>
+          <h3>Receba suas dicas</h3>
+          <p>Ao final, um resumo completo com dicas objetivas de onde melhorar na próxima reunião.</p>
         </div>
       </div>
     </section>
@@ -410,6 +415,7 @@
           <li>Leitura facial e estimativas em tempo real</li>
           <li>Transcrição ao vivo com distinção de falantes</li>
           <li>Detecção de objeções e alertas ao vivo</li>
+          <li>Dicas de melhoria ao final de cada reunião</li>
           <li>Histórico ilimitado com anotações por cliente</li>
           <li>Exportação em PDF e CSV</li>
           <li>Suporte direto via WhatsApp</li>
@@ -425,7 +431,7 @@
     </section>
 
     <footer>
-      AuraX — feito para times de vendas que querem entender além das palavras.
+      AuraX — feito para quem lidera pelo exemplo e quer evoluir além das palavras.
       <br>
       <a href="index.html">Acessar o app</a>
     </footer>
@@ -442,11 +448,12 @@
 
     const ORBIT_ITEMS = [
       { title: "Leitura Facial", sub: "Foco, motivação e cansaço em tempo real" },
+      { title: "Dicas de Melhoria", sub: "Autoavaliação objetiva ao final da reunião" },
       { title: "Transcrição + Vozes", sub: "Distingue você do outro participante" },
       { title: "Objeções", sub: "Detecta e analisa como você respondeu" },
       { title: "Alertas ao Vivo", sub: "Ritmo, pausas e palavras-chave" },
-      { title: "Histórico", sub: "Organizado por cliente, com anotações" },
-      { title: "Relatórios", sub: "PDF e CSV prontos pra enviar" },
+      { title: "Histórico", sub: "Suas reuniões, organizadas com anotações" },
+      { title: "Relatórios", sub: "PDF e CSV prontos pra revisar depois" },
     ];
 
     const ring = document.getElementById("orbitRing");
