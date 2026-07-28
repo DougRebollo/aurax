@@ -715,7 +715,7 @@
         <h2>Transcrição ao vivo</h2>
         <button id="micToggleBtn">Ativar microfone</button>
       </div>
-      <div id="transcript-note">"Você" / "Outro participante" é uma aproximação pelo volume da voz, não identificação real.</div>
+      <div id="transcript-note">"Você" / "Outro participante" é uma aproximação pelo volume da voz, não identificação real. Use fone de ouvido na call para o resultado ficar bem mais confiável.</div>
       <div id="transcriptMeta">
         <span id="micPulse" class="mic-pulse hidden"></span>
         <span id="transcriptStatus"></span>
@@ -2077,7 +2077,14 @@
     }
 
     async function setupAudioAnalyser() {
-      micAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // echoCancellation ajuda a reduzir o som da própria caixa de som voltando
+      // pelo microfone. autoGainControl fica desligado de propósito: ele
+      // normalizaria o volume de tudo pro mesmo nível, o que destruiria o
+      // único sinal que temos pra diferenciar "perto" (você) de "longe/caixa
+      // de som" (outro participante).
+      micAudioStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
+      });
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContext.createMediaStreamSource(micAudioStream);
       analyserNode = audioContext.createAnalyser();
