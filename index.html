@@ -664,7 +664,10 @@
       <div id="status-panel">
         <div class="status-panel-header">
           <h2>Status ao vivo</h2>
-          <button type="button" id="logoutBtn" class="ghost">Sair</button>
+          <div style="display:flex; gap:6px;">
+            <button type="button" id="backToGestorBtn" class="ghost" style="display:none">Painel do Gestor</button>
+            <button type="button" id="logoutBtn" class="ghost">Sair</button>
+          </div>
         </div>
         <div class="status-row"><span class="status-label">Câmera ativa</span><span id="cameraUptime" class="status-value">00:00</span></div>
         <div class="status-row"><span class="status-label">Confiança da detecção</span><span id="detectionConfidence" class="status-value">—</span></div>
@@ -1180,8 +1183,7 @@
       peakInsightsEl.innerHTML = lines.map((l) => `<div class="insight-line">${l}</div>`).join("");
     }
 
-    // --- Histórico: guarda um resumo de cada sessão no navegador (localStorage) ---
-    const HISTORY_KEY = "emotionAppSessionHistory";
+    // --- Histórico: cada sessão salva na nuvem (Supabase), amarrada ao usuário logado ---
     const HISTORY_MAX_ENTRIES = 30;
     const historyListEl = document.getElementById("historyList");
     const clearHistoryBtn = document.getElementById("clearHistoryBtn");
@@ -1190,34 +1192,71 @@
     const historyTrendChartEl = document.getElementById("historyTrendChart");
     let historyFilterText = "";
 
-    function loadHistory() {
-      try {
-        return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-      } catch (e) {
+    // Nomes de campo no app (camelCase) não batem 1:1 com as colunas do banco
+    // (snake_case) — essas duas funções fazem a conversão nos dois sentidos.
+    function toDbPatch(patch) {
+      const out = { ...patch };
+      if ("client" in out) { out.client_name = out.client; delete out.client; }
+      if ("keywordCounts" in out) { out.keyword_counts = out.keywordCounts; delete out.keywordCounts; }
+      if ("slangCounts" in out) { out.slang_counts = out.slangCounts; delete out.slangCounts; }
+      if ("fillerCounts" in out) { out.filler_counts = out.fillerCounts; delete out.fillerCounts; }
+      return out;
+    }
+
+    function fromDbRow(row) {
+      return {
+        id: row.id,
+        date: row.date,
+        duration: row.duration,
+        client: row.client_name,
+        focused: row.focused,
+        tired: row.tired,
+        motivated: row.motivated,
+        wpm: row.wpm,
+        pauses: row.pauses,
+        keywordCounts: row.keyword_counts || {},
+        slangCounts: row.slang_counts || {},
+        fillerCounts: row.filler_counts || {},
+        objections: row.objections || [],
+        dynamics: row.dynamics,
+        tips: row.tips || [],
+        transcript: row.transcript || [],
+        notes: row.notes || "",
+      };
+    }
+
+    async function loadHistory() {
+      const { data, error } = await supabaseClient
+        .from("sessions")
+        .select("*")
+        .eq("user_id", currentUserId)
+        .order("date", { ascending: false })
+        .limit(HISTORY_MAX_ENTRIES);
+      if (error) {
+        console.error("Erro ao carregar histórico:", error.message);
         return [];
       }
+      return data.map(fromDbRow);
     }
 
-    function saveHistoryEntry(entry) {
-      const entries = loadHistory();
-      entries.unshift(entry);
-      entries.length = Math.min(entries.length, HISTORY_MAX_ENTRIES);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+    async function saveHistoryEntry(entry) {
+      const { error } = await supabaseClient
+        .from("sessions")
+        .insert({ ...toDbPatch(entry), user_id: currentUserId });
+      if (error) console.error("Erro ao salvar sessão:", error.message);
     }
 
-    // Atualiza uma sessão já salva (usa a data, com precisão de milissegundo,
-    // como identificador — é o único campo garantidamente único que já existia).
-    function updateHistoryEntry(dateKey, patch) {
-      const entries = loadHistory();
-      const idx = entries.findIndex((e) => e.date === dateKey);
-      if (idx === -1) return;
-      entries[idx] = { ...entries[idx], ...patch };
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+    async function updateHistoryEntry(id, patch) {
+      const { error } = await supabaseClient
+        .from("sessions")
+        .update(toDbPatch(patch))
+        .eq("id", id);
+      if (error) console.error("Erro ao atualizar sessão:", error.message);
     }
 
-    function deleteHistoryEntry(dateKey) {
-      const entries = loadHistory().filter((e) => e.date !== dateKey);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+    async function deleteHistoryEntry(id) {
+      const { error } = await supabaseClient.from("sessions").delete().eq("id", id);
+      if (error) console.error("Erro ao excluir sessão:", error.message);
     }
 
     function formatDateBR(iso) {
@@ -1225,8 +1264,8 @@
       return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     }
 
-    function renderHistory() {
-      const allEntries = loadHistory();
+    async function renderHistory() {
+      const allEntries = await loadHistory();
       const entries = historyFilterText
         ? allEntries.filter((h) => (h.client || "").toLowerCase().includes(historyFilterText))
         : allEntries;
@@ -1261,7 +1300,7 @@
           const initials = clientInitials(h.client);
 
           return `
-            <div class="history-card" data-date="${h.date}">
+            <div class="history-card" data-id="${h.id}">
               <div class="history-card-header">
                 <div class="history-card-title">
                   ${initials ? `<span class="client-avatar">${initials}</span>` : ""}
@@ -1302,17 +1341,17 @@
         .join("");
     }
 
-    function startEditingClientName(editBtn) {
+    async function startEditingClientName(editBtn) {
       const card = editBtn.closest(".history-card");
-      const dateKey = card.dataset.date;
-      const entry = loadHistory().find((e) => e.date === dateKey);
-      if (!entry) return;
+      const id = card.dataset.id;
+      const { data: row } = await supabaseClient.from("sessions").select("client_name").eq("id", id).single();
+      if (!row) return;
 
       const nameDisplay = card.querySelector(".history-name-display");
       const input = document.createElement("input");
       input.type = "text";
       input.className = "history-name-input";
-      input.value = entry.client || "";
+      input.value = row.client_name || "";
       input.placeholder = "Nome do cliente";
 
       nameDisplay.replaceWith(input);
@@ -1320,8 +1359,8 @@
       input.focus();
       input.select();
 
-      const commit = () => {
-        updateHistoryEntry(dateKey, { client: input.value.trim() });
+      const commit = async () => {
+        await updateHistoryEntry(id, { client: input.value.trim() });
         renderHistory();
       };
 
@@ -1330,7 +1369,7 @@
           e.preventDefault();
           input.blur();
         } else if (e.key === "Escape") {
-          input.value = entry.client || "";
+          input.value = row.client_name || "";
           input.blur();
         }
       });
@@ -1349,8 +1388,7 @@
       if (deleteBtn) {
         const card = deleteBtn.closest(".history-card");
         if (confirm("Excluir esta sessão do histórico? Essa ação não pode ser desfeita.")) {
-          deleteHistoryEntry(card.dataset.date);
-          renderHistory();
+          deleteHistoryEntry(card.dataset.id).then(() => renderHistory());
         }
         return;
       }
@@ -1369,7 +1407,7 @@
         const textarea = e.target.closest(".history-notes");
         if (!textarea) return;
         const card = textarea.closest(".history-card");
-        updateHistoryEntry(card.dataset.date, { notes: textarea.value });
+        updateHistoryEntry(card.dataset.id, { notes: textarea.value });
       },
       true
     );
@@ -1416,8 +1454,10 @@
       return div.innerHTML;
     }
 
-    clearHistoryBtn.addEventListener("click", () => {
-      localStorage.removeItem(HISTORY_KEY);
+    clearHistoryBtn.addEventListener("click", async () => {
+      if (!confirm("Limpar todo o histórico? Essa ação não pode ser desfeita.")) return;
+      const { error } = await supabaseClient.from("sessions").delete().eq("user_id", currentUserId);
+      if (error) console.error("Erro ao limpar histórico:", error.message);
       renderHistory();
     });
 
@@ -1655,7 +1695,7 @@
         .join("");
     }
 
-    function renderSummary() {
+    async function renderSummary() {
       summarySection.style.display = "block";
       if (!sessionData.length) {
         summaryDurationEl.textContent = "Nenhum dado coletado (rosto não foi detectado durante a sessão).";
@@ -1750,7 +1790,7 @@
       });
       summaryTipsEl.innerHTML = renderCoachingTips(tips);
 
-      saveHistoryEntry({
+      await saveHistoryEntry({
         date: new Date().toISOString(),
         duration,
         focused: avgFocused,
@@ -2450,14 +2490,33 @@
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    let currentUserId = null;
+    let currentUserRole = null;
+
     async function requireAuthThenInit() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) {
         window.location.href = "login.html";
         return;
       }
+      currentUserId = session.user.id;
+
+      const { data: profile } = await supabaseClient
+        .from("profiles")
+        .select("role")
+        .eq("id", currentUserId)
+        .single();
+      currentUserRole = profile ? profile.role : "funcionario";
+      if (currentUserRole === "gestor") {
+        document.getElementById("backToGestorBtn").style.display = "inline-block";
+      }
+
       init();
     }
+
+    document.getElementById("backToGestorBtn").addEventListener("click", () => {
+      window.location.href = "painel-gestor.html";
+    });
 
     document.getElementById("logoutBtn").addEventListener("click", async () => {
       await supabaseClient.auth.signOut();

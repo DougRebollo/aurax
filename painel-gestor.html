@@ -132,6 +132,34 @@
 
   .section-title { font-size: 0.95rem; margin: 0 0 12px; color: #dcdfe4; }
 
+  .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filter-tabs button {
+    border: 1px solid var(--card-border);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 999px;
+  }
+  .filter-tabs button.active {
+    border-color: var(--accent-blue);
+    background: rgba(79, 140, 255, 0.14);
+    color: #fff;
+  }
+
+  .session-card { padding: 14px 16px; margin-bottom: 10px; }
+  .session-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .session-title { font-weight: 600; font-size: 0.9rem; }
+  .session-meta { font-size: 0.75rem; color: var(--text-dim); }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .badge { font-size: 0.7rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+  .badge-focused { background: rgba(61, 219, 160, 0.15); color: var(--accent-teal); border: 1px solid rgba(61, 219, 160, 0.4); }
+  .badge-motivated { background: rgba(255, 182, 72, 0.15); color: var(--accent-amber); border: 1px solid rgba(255, 182, 72, 0.4); }
+  .badge-tired { background: rgba(79, 140, 255, 0.15); color: #7ba9ff; border: 1px solid rgba(79, 140, 255, 0.4); }
+  .tip-line { font-size: 0.8rem; margin: 8px 0 0; padding-left: 9px; border-left: 2px solid var(--accent-amber); color: #ddd; }
+  .tip-line.positive { border-left-color: var(--accent-green); }
+
   #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   #gate p { color: var(--text-muted); font-size: 0.9rem; }
 
@@ -166,9 +194,9 @@
     <div class="section-title">Seu time</div>
     <div class="team-strip" id="teamStrip"></div>
 
-    <div class="card placeholder-card">
-      <b>Próximo passo:</b> as sessões da equipe ainda vivem só no navegador de cada pessoa. Assim que o AuraX passar a salvar as sessões na nuvem, elas vão aparecer aqui, por pessoa, igual ao seu histórico pessoal no app.
-    </div>
+    <div class="section-title">Sessões</div>
+    <div class="filter-tabs" id="filterTabs"></div>
+    <div id="sessionsList"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -178,6 +206,20 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUserId = null;
+    let teamMembers = []; // [{ id, name }]
+    let selectedFilter = "todos";
+
+    function formatDateBR(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function formatDurationShort(totalSeconds) {
+      const s = Math.round(totalSeconds || 0);
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${m}m ${String(r).padStart(2, "0")}s`;
+    }
 
     function initials(name) {
       if (!name) return "?";
@@ -210,17 +252,89 @@
       const teamStrip = document.getElementById("teamStrip");
       if (error) {
         teamStrip.innerHTML = `<div class="empty-state">Não foi possível carregar o time agora.</div>`;
+        teamMembers = [];
+      } else if (!data.length) {
+        teamStrip.innerHTML = `<div class="empty-state">Nenhum funcionário no time ainda. Adicione pelo e-mail acima.</div>`;
+        teamMembers = [];
+      } else {
+        teamStrip.innerHTML = data.map(personCardHtml).join("");
+        teamStrip.querySelectorAll("[data-remove]").forEach((btn) => {
+          btn.addEventListener("click", () => removeFromTeam(btn.dataset.remove));
+        });
+        teamMembers = data.map((p) => ({ id: p.id, name: p.name }));
+      }
+
+      renderFilterTabs();
+      await renderSessions();
+    }
+
+    function renderFilterTabs() {
+      const tabsEl = document.getElementById("filterTabs");
+      const tabs = [{ id: "todos", label: "Toda a equipe" }, { id: currentUserId, label: "Você" }].concat(
+        teamMembers.map((m) => ({ id: m.id, label: m.name }))
+      );
+      tabsEl.innerHTML = tabs
+        .map((t) => `<button type="button" data-filter="${t.id}" class="${t.id === selectedFilter ? "active" : ""}">${t.label}</button>`)
+        .join("");
+      tabsEl.querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectedFilter = btn.dataset.filter;
+          renderFilterTabs();
+          renderSessions();
+        });
+      });
+    }
+
+    function sessionCardHtml(personName, row) {
+      const tips = (row.tips || []).slice(0, 2);
+      const tipsHtml = tips
+        .map(
+          (t) =>
+            `<div class="tip-line ${t.type === "positivo" ? "positive" : ""}">${t.type === "positivo" ? "✓" : "→"} ${t.text}</div>`
+        )
+        .join("");
+      return `
+        <div class="card session-card">
+          <div class="session-head">
+            <div>
+              <div class="session-title">${personName}${row.client_name ? " — Cliente: " + row.client_name : ""}</div>
+              <div class="session-meta">${formatDateBR(row.date)} · ${formatDurationShort(row.duration)}</div>
+            </div>
+          </div>
+          <div class="badges">
+            <span class="badge badge-focused">Constância ${Math.round((row.focused || 0) * 100)}%</span>
+            <span class="badge badge-motivated">Motivado ${Math.round((row.motivated || 0) * 100)}%</span>
+            <span class="badge badge-tired">Cansado ${Math.round((row.tired || 0) * 100)}%</span>
+          </div>
+          ${tipsHtml}
+        </div>`;
+    }
+
+    async function renderSessions() {
+      const listEl = document.getElementById("sessionsList");
+      const allPeople = [{ id: currentUserId, name: "Você" }].concat(teamMembers);
+      const targetIds = selectedFilter === "todos" ? allPeople.map((p) => p.id) : [selectedFilter];
+
+      const { data, error } = await supabaseClient
+        .from("sessions")
+        .select("*")
+        .in("user_id", targetIds)
+        .order("date", { ascending: false })
+        .limit(30);
+
+      if (error) {
+        listEl.innerHTML = `<div class="empty-state">Não foi possível carregar as sessões agora.</div>`;
         return;
       }
       if (!data.length) {
-        teamStrip.innerHTML = `<div class="empty-state">Nenhum funcionário no time ainda. Adicione pelo e-mail acima.</div>`;
+        listEl.innerHTML = `<div class="empty-state">Nenhuma sessão registrada ainda.</div>`;
         return;
       }
-      teamStrip.innerHTML = data.map(personCardHtml).join("");
 
-      teamStrip.querySelectorAll("[data-remove]").forEach((btn) => {
-        btn.addEventListener("click", () => removeFromTeam(btn.dataset.remove));
-      });
+      const nameById = {};
+      allPeople.forEach((p) => { nameById[p.id] = p.name; });
+
+      listEl.innerHTML = data.map((row) => sessionCardHtml(nameById[row.user_id] || "Alguém do time", row)).join("");
     }
 
     function showFeedback(text, type) {
