@@ -673,6 +673,31 @@
     background: rgba(179, 136, 255, 0.06);
   }
 
+  .language-block-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #999;
+    margin: 4px 0 8px;
+  }
+  .language-swap-list { display: flex; flex-direction: column; gap: 8px; }
+  .language-swap-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255, 182, 72, 0.08);
+    border-left: 3px solid #ffb648;
+  }
+  .language-swap-card.slang-swap { background: rgba(179, 136, 255, 0.08); border-left-color: #b388ff; }
+  .language-swap-word { font-size: 0.95rem; font-weight: 700; color: #f2f2f2; }
+  .language-swap-count { font-size: 0.7rem; color: #999; margin-left: 6px; }
+  .language-swap-arrow { color: #666; margin: 0 8px; }
+  .language-swap-suggestion { font-size: 0.88rem; font-weight: 600; color: #7ee787; }
+
   .talk-split-bar {
     display: flex;
     height: 10px;
@@ -809,6 +834,9 @@
     <h3>Dicas de melhoria</h3>
     <div id="summaryTips"></div>
 
+    <h3>Vícios de linguagem e gírias</h3>
+    <div id="summaryLanguage"></div>
+
     <h3>Como evoluiu ao longo da sessão</h3>
     <div id="trend-legend">
       <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
@@ -831,8 +859,6 @@
     <div id="summaryNegotiation"></div>
     <h3>Objeções e respostas</h3>
     <div id="summaryObjections"></div>
-    <h3>Vícios de linguagem e gírias</h3>
-    <div id="summaryLanguage"></div>
     <button id="downloadCsvBtn" class="ghost">Baixar dados (CSV)</button>
     <button id="downloadPdfBtn" class="ghost">Baixar PDF</button>
   </div>
@@ -918,6 +944,25 @@
         .join(" ");
     }
 
+    // Cards maiores e mais visíveis pra "palavra/vício → troca sugerida",
+    // usados no resumo da sessão (em vez das tag-pills discretas acima,
+    // que continuam servindo pra transcrição linha a linha e o histórico).
+    function renderLanguageSwapCards(counts, library, variantClass) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      return entries
+        .map(([word, count]) => {
+          const suggestion = library[word] || "reduzir ou fazer uma pausa no lugar";
+          return `
+            <div class="language-swap-card ${variantClass}">
+              <span><span class="language-swap-word">"${word}"</span><span class="language-swap-count">× ${count}</span></span>
+              <span><span class="language-swap-arrow">→</span><span class="language-swap-suggestion">${suggestion}</span></span>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
     // Frases comuns de objeção em vendas — detecção por gatilho, não entendimento
     // real de linguagem. Serve pra aproximar "isso soa como uma objeção".
     const OBJECTION_PHRASES = [
@@ -978,7 +1023,22 @@
 
     // Vícios de linguagem: contados pro resumo, mas sem alerta ao vivo — são
     // frequentes demais na fala natural pra avisar toda vez sem virar ruído.
-    const FILLER_WORDS = ["né", "tipo", "então", "é", "an", "hã", "ahn", "eh", "hum", "assim", "sabe"];
+    // Sons de hesitação pura ("an", "hã"...) não têm sinônimo real — a troca
+    // sugerida pra eles é uma pausa silenciosa, não outra palavra.
+    const FILLER_LIBRARY = {
+      "né": "corte a palavra ou faça uma pausa",
+      "tipo": "por exemplo",
+      "então": "diante disso / dessa forma",
+      "é": "uma pausa silenciosa",
+      "an": "uma pausa silenciosa",
+      "hã": "uma pausa silenciosa",
+      "ahn": "uma pausa silenciosa",
+      "eh": "uma pausa silenciosa",
+      "hum": "uma pausa silenciosa",
+      "assim": "dessa forma",
+      "sabe": "entende / compreende",
+    };
+    const FILLER_WORDS = Object.keys(FILLER_LIBRARY);
 
     function detectFillerWords(text) {
       const tokens = tokenizeWords(text);
@@ -1835,13 +1895,13 @@
         summaryDynamicsEl.innerHTML = '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
       }
 
-      const slangTagsHtml = renderSlangTags(sessionSlangCounts);
-      const fillerTagsHtml = renderKeywordTags(sessionFillerCounts);
+      const fillerSwapHtml = renderLanguageSwapCards(sessionFillerCounts, FILLER_LIBRARY, "filler-swap");
+      const slangSwapHtml = renderLanguageSwapCards(sessionSlangCounts, SLANG_LIBRARY, "slang-swap");
       summaryLanguageEl.innerHTML = `
-        <div class="insight-line">Gírias identificadas:</div>
-        <div style="margin:4px 0 12px">${slangTagsHtml || '<span class="insight-line">Nenhuma gíria identificada.</span>'}</div>
-        <div class="insight-line">Vícios de linguagem ("é", "né", "tipo"...):</div>
-        <div style="margin-top:4px">${fillerTagsHtml || '<span class="insight-line">Nenhum vício de linguagem identificado.</span>'}</div>
+        <div class="language-block-title">Vícios de linguagem ("é", "né", "tipo"...)</div>
+        <div class="language-swap-list">${fillerSwapHtml || '<div class="insight-line">Nenhum vício de linguagem identificado — fala limpa.</div>'}</div>
+        <div class="language-block-title" style="margin-top:16px">Gírias identificadas</div>
+        <div class="language-swap-list">${slangSwapHtml || '<div class="insight-line">Nenhuma gíria identificada.</div>'}</div>
       `;
 
       const avgFocused = average(sessionData.map((d) => d.focused || 0));
@@ -1986,10 +2046,10 @@
 
       lines.push("");
       lines.push("Vícios de linguagem");
-      lines.push(["vicio", "ocorrencias"].join(","));
+      lines.push(["vicio", "sugestao", "ocorrencias"].join(","));
       Object.entries(sessionFillerCounts)
         .sort((a, b) => b[1] - a[1])
-        .forEach(([word, count]) => lines.push([csvEscape(word), count].join(",")));
+        .forEach(([word, count]) => lines.push([csvEscape(word), csvEscape(FILLER_LIBRARY[word] || ""), count].join(",")));
 
       const tipsForCsv = generateCoachingTips({
         dynamics,
