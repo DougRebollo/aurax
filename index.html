@@ -294,6 +294,60 @@
     margin-top: 8px;
   }
   #transcript-note { font-size: 0.7rem; color: #777; margin: 6px 0 2px; }
+
+  /* Onboarding: tutorial + consentimento LGPD na primeira visita */
+  #onboardingOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 6, 10, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+  }
+  #onboardingOverlay.hidden { display: none; }
+  .onboarding-card {
+    width: 100%;
+    max-width: 460px;
+    background: linear-gradient(160deg, rgba(79, 140, 255, 0.14), rgba(126, 231, 135, 0.05));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 32px 28px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  }
+  .onboarding-eyebrow {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #7ba9ff;
+    margin-bottom: 10px;
+  }
+  .onboarding-card h2 { font-size: 1.25rem; margin: 0 0 12px; color: #f5f5f5; }
+  .onboarding-card p { font-size: 0.88rem; color: #ccc; line-height: 1.6; margin: 0 0 10px; }
+  .onboarding-card ul { padding-left: 18px; margin: 10px 0; }
+  .onboarding-card li { font-size: 0.85rem; color: #ccc; line-height: 1.6; margin-bottom: 4px; }
+  .onboarding-consent-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    font-size: 0.8rem;
+    color: #bbb;
+  }
+  .onboarding-consent-row input { margin-top: 3px; }
+  .onboarding-dots { display: flex; gap: 6px; justify-content: center; margin-top: 24px; }
+  .onboarding-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); }
+  .onboarding-dot.active { background: #4f8cff; }
+  .onboarding-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 22px; }
+  .onboarding-actions button { margin-top: 0; }
+  .onboarding-skip { background: none; box-shadow: none; color: #888; padding: 11px 4px; }
+  .onboarding-skip:hover { background: none; box-shadow: none; color: #aaa; transform: none; }
   button {
     margin-top: 16px;
     padding: 11px 22px;
@@ -638,6 +692,18 @@
 </style>
 </head>
 <body>
+  <div id="onboardingOverlay" class="hidden">
+    <div class="onboarding-card">
+      <div id="onboardingStepBody"></div>
+      <div class="onboarding-dots" id="onboardingDots"></div>
+      <div class="onboarding-actions">
+        <button type="button" id="onboardingBackBtn" class="ghost" style="visibility:hidden">Voltar</button>
+        <button type="button" id="onboardingSkipBtn" class="onboarding-skip">Pular</button>
+        <button type="button" id="onboardingNextBtn">Avançar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="loadingOverlay">
     <svg viewBox="0 0 120 120" width="120" height="120">
       <defs>
@@ -665,6 +731,7 @@
         <div class="status-panel-header">
           <h2>Status ao vivo</h2>
           <div style="display:flex; gap:6px;">
+            <button type="button" id="howItWorksBtn" class="ghost">Como funciona</button>
             <button type="button" id="backToGestorBtn" class="ghost" style="display:none">Painel do Gestor</button>
             <button type="button" id="logoutBtn" class="ghost">Sair</button>
           </div>
@@ -2560,6 +2627,149 @@
       requestAnimationFrame(detectLoop);
     }
 
+    // --- Onboarding: tutorial de primeiro acesso + consentimento LGPD ---
+    const onboardingOverlay = document.getElementById("onboardingOverlay");
+    const onboardingStepBody = document.getElementById("onboardingStepBody");
+    const onboardingDots = document.getElementById("onboardingDots");
+    const onboardingBackBtn = document.getElementById("onboardingBackBtn");
+    const onboardingNextBtn = document.getElementById("onboardingNextBtn");
+    const onboardingSkipBtn = document.getElementById("onboardingSkipBtn");
+    const howItWorksBtn = document.getElementById("howItWorksBtn");
+    const ONBOARDING_SEEN_KEY = "aurax_onboarding_seen";
+    const ONBOARDING_CONSENT_KEY = "aurax_consent_at";
+
+    const ONBOARDING_STEPS = [
+      {
+        eyebrow: "Passo 1 de 4 · Privacidade",
+        title: "Antes de começar",
+        body: `
+          <p>O AuraX usa sua câmera e microfone durante suas próprias sessões, pra analisar expressão facial e ritmo de fala e gerar sua autoavaliação.</p>
+          <ul>
+            <li>Vídeo e áudio são processados no seu navegador — não são gravados nem enviados a ninguém.</li>
+            <li>Só o resumo da sessão (métricas, transcrição e dicas) fica salvo na sua conta.</li>
+            <li>Se você tem um gestor vinculado, ele vê apenas esse resumo — nunca o vídeo ou o áudio.</li>
+          </ul>
+        `,
+        consent: true,
+      },
+      {
+        eyebrow: "Passo 2 de 4 · Calibração",
+        title: "Calibre sua voz",
+        body: `
+          <p>Pra distinguir sua voz da voz de quem mais estiver na call, o AuraX precisa saber como o seu microfone capta a SUA voz.</p>
+          <ul>
+            <li>Clique em "Calibrar agora" e fale uma frase qualquer por 3 segundos.</li>
+            <li>Recalibre se trocar de computador, microfone ou ambiente.</li>
+            <li>Usar fone de ouvido na call deixa a distinção ainda mais confiável.</li>
+          </ul>
+        `,
+        action: { label: "Calibrar agora", handler: () => calibrateVoice() },
+      },
+      {
+        eyebrow: "Passo 3 de 4 · Durante a call",
+        title: "Como iniciar uma sessão",
+        body: `
+          <ul>
+            <li>Com a câmera já ligada, clique em <strong>"Iniciar sessão"</strong> assim que a reunião começar.</li>
+            <li>Clique em <strong>"Ativar microfone"</strong> pra ligar a transcrição ao vivo e os alertas de ritmo, pausas e objeções.</li>
+            <li>Ao terminar, clique em <strong>"Finalizar sessão"</strong> — é isso que fecha e salva a sessão.</li>
+          </ul>
+        `,
+      },
+      {
+        eyebrow: "Passo 4 de 4 · Depois da call",
+        title: "Seu histórico e dicas",
+        body: `
+          <ul>
+            <li>Cada sessão finalizada vira um card no histórico, com dicas de melhoria automáticas.</li>
+            <li>Você pode nomear o cliente, adicionar anotações e reabrir qualquer sessão depois.</li>
+            <li>Exporte em PDF ou CSV quando quiser revisar ou guardar fora do AuraX.</li>
+          </ul>
+        `,
+      },
+    ];
+
+    let onboardingStepIndex = 0;
+
+    function renderOnboardingStep() {
+      const step = ONBOARDING_STEPS[onboardingStepIndex];
+
+      onboardingStepBody.innerHTML = `
+        <div class="onboarding-eyebrow">${step.eyebrow}</div>
+        <h2>${step.title}</h2>
+        ${step.body}
+        ${step.consent ? `
+          <label class="onboarding-consent-row">
+            <input type="checkbox" id="onboardingConsentCheck" ${onboardingOverlay.dataset.consentChecked === "1" ? "checked" : ""} />
+            <span>Autorizo o uso da minha câmera e microfone durante as sessões do AuraX, conforme descrito acima.</span>
+          </label>
+        ` : ""}
+        ${step.action ? `<button type="button" id="onboardingActionBtn" class="ghost" style="width:100%; margin-top:16px;">${step.action.label}</button>` : ""}
+      `;
+
+      onboardingDots.innerHTML = ONBOARDING_STEPS.map((_, i) =>
+        `<span class="onboarding-dot${i === onboardingStepIndex ? " active" : ""}"></span>`
+      ).join("");
+
+      onboardingBackBtn.style.visibility = onboardingStepIndex === 0 ? "hidden" : "visible";
+      onboardingSkipBtn.style.visibility = step.consent ? "hidden" : "visible";
+      onboardingNextBtn.textContent = onboardingStepIndex === ONBOARDING_STEPS.length - 1 ? "Começar a usar" : "Avançar";
+
+      if (step.consent) {
+        const checkbox = document.getElementById("onboardingConsentCheck");
+        const updateNextState = () => {
+          onboardingOverlay.dataset.consentChecked = checkbox.checked ? "1" : "0";
+          onboardingNextBtn.disabled = !checkbox.checked;
+        };
+        checkbox.addEventListener("change", updateNextState);
+        updateNextState();
+      } else {
+        onboardingNextBtn.disabled = false;
+      }
+
+      if (step.action) {
+        document.getElementById("onboardingActionBtn").addEventListener("click", step.action.handler);
+      }
+    }
+
+    function showOnboarding() {
+      onboardingStepIndex = 0;
+      onboardingOverlay.classList.remove("hidden");
+      renderOnboardingStep();
+    }
+
+    function closeOnboarding() {
+      onboardingOverlay.classList.add("hidden");
+      localStorage.setItem(ONBOARDING_SEEN_KEY, "1");
+      if (onboardingOverlay.dataset.consentChecked === "1" && !localStorage.getItem(ONBOARDING_CONSENT_KEY)) {
+        localStorage.setItem(ONBOARDING_CONSENT_KEY, new Date().toISOString());
+      }
+    }
+
+    onboardingNextBtn.addEventListener("click", () => {
+      if (onboardingStepIndex === ONBOARDING_STEPS.length - 1) {
+        closeOnboarding();
+        return;
+      }
+      onboardingStepIndex++;
+      renderOnboardingStep();
+    });
+
+    onboardingBackBtn.addEventListener("click", () => {
+      if (onboardingStepIndex === 0) return;
+      onboardingStepIndex--;
+      renderOnboardingStep();
+    });
+
+    onboardingSkipBtn.addEventListener("click", closeOnboarding);
+    howItWorksBtn.addEventListener("click", showOnboarding);
+
+    function maybeShowOnboarding() {
+      if (!localStorage.getItem(ONBOARDING_SEEN_KEY)) {
+        showOnboarding();
+      }
+    }
+
     async function init() {
       try {
         await loadModels();
@@ -2572,6 +2782,7 @@
         cameraStartTime = Date.now();
         renderHistory();
         detectLoop();
+        maybeShowOnboarding();
       } catch (err) {
         statusEl.textContent = "Erro: " + err.message;
         console.error(err);
