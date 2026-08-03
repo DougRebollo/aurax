@@ -2128,36 +2128,52 @@
 
     // --- Distinção de falantes (aproximada, por volume) ---
     // Não é diarização de verdade — não há como isolar vozes só com um
-    // microfone no navegador. É uma aproximação: quem fala mais alto/perto do
-    // mic (você, tipicamente) tende a soar mais alto que quem vem pela caixa
-    // de som (o outro participante da call).
+    // microfone no navegador quando as duas vozes saem pela mesma caixa de som
+    // e voltam pelo mesmo mic (sem fone). É uma aproximação por agrupamento:
+    // ao longo da call, as falas vão se dividindo em dois grupos que se
+    // ajustam sozinhos (você / outro participante) em vez de comparar com um
+    // número fixo travado no momento da calibração — um limiar fixo quebra
+    // fácil, porque o volume "normal" muda de call pra call (ambiente,
+    // volume da caixa de som etc.), e tudo acaba caindo do lado errado.
     let currentUtteranceVolumes = [];
-    let recentUtteranceAvgVolumes = [];
-    const SPEAKER_HISTORY_SIZE = 30;
-
-    // Calibração: âncora fixa no SEU volume real, em vez de só comparar com a
-    // mediana das últimas falas (que pode "derivar" se um áudio externo tocar
-    // alto, tipo um áudio de WhatsApp — sem âncora, o sistema podia achar que
-    // aquele áudio alto era você).
     const VOICE_BASELINE_KEY = "aurax_voice_baseline";
-    const SPEAKER_THRESHOLD_RATIO = 0.55;
     const CALIBRATION_DURATION_MS = 3000;
+    const CLUSTER_LEARNING_RATE = 0.2;
+    const OTHER_CLUSTER_SEED_RATIO = 0.7; // só marca "outro participante" se soar bem mais baixo que você
     let ownVoiceBaseline = Number(localStorage.getItem(VOICE_BASELINE_KEY)) || null;
+    let ownClusterAvg = null;
+    let otherClusterAvg = null;
 
-    function median(arr) {
-      if (!arr.length) return 0;
-      const sorted = [...arr].sort((a, b) => a - b);
-      const mid = Math.floor(sorted.length / 2);
-      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    function resetSpeakerClusters() {
+      ownClusterAvg = ownVoiceBaseline;
+      otherClusterAvg = null;
     }
 
     function classifySpeaker(avgVolume) {
       if (avgVolume === 0) return "Você";
-      if (ownVoiceBaseline) {
-        return avgVolume >= ownVoiceBaseline * SPEAKER_THRESHOLD_RATIO ? "Você" : "Outro participante";
+
+      if (ownClusterAvg === null) {
+        ownClusterAvg = avgVolume;
+        return "Você";
       }
-      if (recentUtteranceAvgVolumes.length < 4) return "Você";
-      return avgVolume >= median(recentUtteranceAvgVolumes) ? "Você" : "Outro participante";
+
+      if (otherClusterAvg === null) {
+        if (avgVolume < ownClusterAvg * OTHER_CLUSTER_SEED_RATIO) {
+          otherClusterAvg = avgVolume;
+          return "Outro participante";
+        }
+        ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
+        return "Você";
+      }
+
+      const distToOwn = Math.abs(avgVolume - ownClusterAvg);
+      const distToOther = Math.abs(avgVolume - otherClusterAvg);
+      if (distToOwn <= distToOther) {
+        ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
+        return "Você";
+      }
+      otherClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - otherClusterAvg);
+      return "Outro participante";
     }
 
     async function calibrateVoice() {
@@ -2345,10 +2361,6 @@
 
       const avgUtteranceVolume = currentUtteranceVolumes.length ? average(currentUtteranceVolumes) : 0;
       const speaker = classifySpeaker(avgUtteranceVolume);
-      if (avgUtteranceVolume > 0) {
-        recentUtteranceAvgVolumes.push(avgUtteranceVolume);
-        if (recentUtteranceAvgVolumes.length > SPEAKER_HISTORY_SIZE) recentUtteranceAvgVolumes.shift();
-      }
       currentUtteranceVolumes = [];
 
       transcriptLogEl.insertAdjacentHTML(
@@ -2482,7 +2494,7 @@
         objectionWindowActive = false;
         objectionWindowSamples = [];
         currentUtteranceVolumes = [];
-        recentUtteranceAvgVolumes = [];
+        resetSpeakerClusters();
         liveAlertsEl.innerHTML = "";
         updateTranscriptCount();
         transcriptStatusEl.textContent = "Ouvindo...";
