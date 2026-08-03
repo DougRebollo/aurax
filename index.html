@@ -2140,9 +2140,11 @@
     const CALIBRATION_DURATION_MS = 3000;
     const CLUSTER_LEARNING_RATE = 0.2;
     const OTHER_CLUSTER_SEED_RATIO = 0.7; // só marca "outro participante" se soar bem mais baixo que você
+    const OTHER_CLUSTER_CONFIRM_STREAK = 2; // exige 2 falas baixas seguidas antes de confirmar outra voz
     let ownVoiceBaseline = Number(localStorage.getItem(VOICE_BASELINE_KEY)) || null;
     let ownClusterAvg = null;
     let otherClusterAvg = null;
+    let belowSeedThresholdStreak = 0;
 
     // Se os dois grupos de volume ficarem parecidos demais — ou se nenhum
     // "outro participante" aparecer depois de várias falas — a distinção de
@@ -2156,6 +2158,7 @@
     function resetSpeakerClusters() {
       ownClusterAvg = ownVoiceBaseline;
       otherClusterAvg = null;
+      belowSeedThresholdStreak = 0;
       lowSeparationAlertShown = false;
       utteranceCountSinceReset = 0;
     }
@@ -2184,9 +2187,17 @@
 
       if (otherClusterAvg === null) {
         if (avgVolume < ownClusterAvg * OTHER_CLUSTER_SEED_RATIO) {
-          otherClusterAvg = avgVolume;
-          return "Outro participante";
+          belowSeedThresholdStreak++;
+          if (belowSeedThresholdStreak >= OTHER_CLUSTER_CONFIRM_STREAK) {
+            otherClusterAvg = avgVolume;
+            return "Outro participante";
+          }
+          // Só uma fala mais baixa ainda não confirma outra voz — pode ser
+          // só uma variação natural da sua própria fala (ex: trecho mais
+          // calmo de uma frase longa).
+          return "Você";
         }
+        belowSeedThresholdStreak = 0;
         ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
         maybeWarnLowSeparation();
         return "Você";
@@ -2265,7 +2276,11 @@
       if (tempContext) tempContext.close();
 
       if (readings.length >= 3) {
-        ownVoiceBaseline = average(readings);
+        // Usa um percentil baixo (não a média) como referência: a fala tem
+        // trechos naturalmente mais baixos, e se a referência for a média
+        // "cheia", esses trechos ficam parecendo outra pessoa falando.
+        const sorted = [...readings].sort((a, b) => a - b);
+        ownVoiceBaseline = sorted[Math.floor(sorted.length * 0.25)];
         localStorage.setItem(VOICE_BASELINE_KEY, String(ownVoiceBaseline));
         calibrateVoiceBtn.textContent = "Voz calibrada ✓";
       } else {
