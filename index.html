@@ -186,6 +186,13 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
   .status-value { color: #eee; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .status-client-input {
+    max-width: 170px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    text-align: right;
+    margin: 0;
+  }
   #statTiles {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -788,6 +795,10 @@
             <button type="button" id="logoutBtn" class="ghost">Sair</button>
           </div>
         </div>
+        <div class="status-row">
+          <span class="status-label">Cliente</span>
+          <input type="text" id="clientNameInput" placeholder="Nome (opcional)" class="status-client-input" />
+        </div>
         <div class="status-row"><span class="status-label">Câmera ativa</span><span id="cameraUptime" class="status-value">00:00</span></div>
         <div class="status-row"><span class="status-label">Confiança da detecção</span><span id="detectionConfidence" class="status-value">—</span></div>
         <div class="status-row"><span class="status-label">Sessão</span><span id="sessionStatusText" class="status-value">Inativa</span></div>
@@ -829,8 +840,6 @@
       </div>
 
       <div id="session-controls">
-        <input type="text" id="clientNameInput" placeholder="Nome do cliente (opcional)" />
-        <br />
         <button id="startSessionBtn">Iniciar sessão</button>
         <button id="endSessionBtn" class="danger" style="display:none">Finalizar sessão</button>
         <div id="sessionTimer"></div>
