@@ -698,6 +698,33 @@
   .language-swap-arrow { color: #666; margin: 0 8px; }
   .language-swap-suggestion { font-size: 0.88rem; font-weight: 600; color: #7ee787; }
 
+  .oratoria-card { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .oratoria-score-badge {
+    flex-shrink: 0;
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), rgba(255, 255, 255, 0.08) 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .oratoria-score-inner {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: #0d0e13;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .oratoria-score-value { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+  .oratoria-score-label { font-size: 0.65rem; color: #888; margin-top: 2px; }
+  .oratoria-breakdown { flex: 1 1 260px; min-width: 240px; }
+  .oratoria-breakdown .bar-label { width: 150px; font-size: 0.8rem; text-transform: none; }
+  .oratoria-disclaimer { font-size: 0.72rem; color: #777; margin-top: 10px; }
+
   .talk-split-bar {
     display: flex;
     height: 10px;
@@ -833,6 +860,9 @@
 
     <h3>Dicas de melhoria</h3>
     <div id="summaryTips"></div>
+
+    <h3>Nota de oratória</h3>
+    <div id="summaryOratoria"></div>
 
     <h3>Vícios de linguagem e gírias</h3>
     <div id="summaryLanguage"></div>
@@ -1199,6 +1229,7 @@
     const summaryObjectionsEl = document.getElementById("summaryObjections");
     const summaryDynamicsEl = document.getElementById("summaryDynamics");
     const summaryTipsEl = document.getElementById("summaryTips");
+    const summaryOratoriaEl = document.getElementById("summaryOratoria");
     const summaryLanguageEl = document.getElementById("summaryLanguage");
     const downloadCsvBtn = document.getElementById("downloadCsvBtn");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
@@ -1610,6 +1641,8 @@
     let sessionFillerCounts = {};
     let sessionSilentSamples = 0;
     let sessionTotalSamples = 0;
+    let sessionOwnConfidences = [];
+    let sessionOwnVolumes = [];
 
     // --- Objeção + resposta: acompanha a expressão por um tempo depois de uma
     // frase-gatilho de objeção, pra resumir como foi a reação na resposta.
@@ -1684,6 +1717,8 @@
       sessionFillerCounts = {};
       sessionSilentSamples = 0;
       sessionTotalSamples = 0;
+      sessionOwnConfidences = [];
+      sessionOwnVolumes = [];
       currentClientName = clientNameInputEl.value.trim();
       startSessionBtn.style.display = "none";
       endSessionBtn.style.display = "inline-block";
@@ -1750,6 +1785,116 @@
       const silencePct = sessionTotalSamples ? Math.round((sessionSilentSamples / sessionTotalSamples) * 100) : 0;
 
       return { pctYou, pctOther, turnsPerMinute, longestYou, longestOther, silencePct };
+    }
+
+    // Nota de oratória: combina sinais que já coletamos (ritmo, pausas,
+    // vícios) com dois novos, medidos só a partir da SUA fala (nunca do outro
+    // participante): confiança do reconhecimento de voz do navegador (uma
+    // aproximação de clareza/dicção — não é um teste fonético de verdade) e
+    // a variação do volume da sua voz (fala mais monótona x mais expressiva).
+    function computeOratoriaScore({ wpm, pauseCount, fillerCounts, wordCount, ownConfidences, ownVolumes }) {
+      const subScores = [];
+
+      if (wpm > 0) {
+        let paceScore;
+        if (wpm >= 110 && wpm <= 160) paceScore = 100;
+        else if (wpm < 110) paceScore = clamp01(wpm / 110) * 100;
+        else paceScore = clamp01(1 - (wpm - 160) / 120) * 100;
+        subScores.push({ key: "ritmo", label: "Ritmo de fala", score: paceScore });
+      }
+
+      const pauseScore = clamp01(1 - Math.max(0, pauseCount - 2) / 10) * 100;
+      subScores.push({ key: "pausas", label: "Pausas", score: pauseScore });
+
+      const totalFiller = Object.values(fillerCounts || {}).reduce((a, b) => a + b, 0);
+      const fillerRate = wordCount > 0 ? (totalFiller / wordCount) * 100 : 0;
+      const fillerScore = clamp01(1 - fillerRate / 12) * 100;
+      subScores.push({ key: "vicios", label: "Vícios de linguagem", score: fillerScore });
+
+      if (ownConfidences.length >= 3) {
+        subScores.push({ key: "clareza", label: "Clareza/dicção", score: clamp01(average(ownConfidences)) * 100 });
+      }
+
+      if (ownVolumes.length >= 4) {
+        const meanVol = average(ownVolumes);
+        const sd = Math.sqrt(average(ownVolumes.map((v) => (v - meanVol) ** 2)));
+        const cv = meanVol > 0 ? sd / meanVol : 0;
+        let projScore;
+        if (cv >= 0.15 && cv <= 0.45) projScore = 100;
+        else if (cv < 0.15) projScore = clamp01(cv / 0.15) * 100;
+        else projScore = clamp01(1 - (cv - 0.45) / 0.4) * 100;
+        subScores.push({ key: "projecao", label: "Projeção de voz", score: projScore });
+      }
+
+      const overall = subScores.length ? Math.round(average(subScores.map((s) => s.score))) : null;
+      return { overall, subScores };
+    }
+
+    function oratoriaScoreColor(score) {
+      if (score >= 75) return "#7ee787";
+      if (score >= 50) return "#ffb648";
+      return "#ff6b5b";
+    }
+
+    function oratoriaInsightLines({ subScores, wpm, pauseCount, ownConfidences }) {
+      const lines = [];
+      subScores
+        .filter((s) => s.score < 60)
+        .sort((a, b) => a.score - b.score)
+        .slice(0, 2)
+        .forEach((s) => {
+          if (s.key === "ritmo") {
+            lines.push(wpm > 160
+              ? `Ritmo acelerado (${wpm} palavras/min) — desacelere um pouco pra passar mais clareza.`
+              : `Ritmo bem devagar (${wpm} palavras/min) — um pouco mais de energia ajuda a prender atenção.`);
+          } else if (s.key === "pausas") {
+            lines.push(`Muitas pausas longas (${pauseCount}) — pode passar hesitação na condução.`);
+          } else if (s.key === "vicios") {
+            lines.push("Vícios de linguagem frequentes — veja os cards abaixo pra saber quais e por que trocar.");
+          } else if (s.key === "clareza") {
+            lines.push("Reconhecimento de fala teve dificuldade de entender parte da sua fala — pode ser dicção, ritmo ou o microfone captando baixo.");
+          } else if (s.key === "projecao") {
+            lines.push("Voz bastante monótona nesta sessão — variar o tom em pontos-chave deixa a fala mais envolvente.");
+          }
+        });
+      if (!lines.length) {
+        lines.push("Boa entrega nesta sessão — sem pontos fracos fortes na oratória.");
+      }
+      if (!ownConfidences.length) {
+        lines.push("Clareza/dicção não pôde ser medida nesta sessão (navegador não retornou confiança do reconhecimento de fala).");
+      }
+      return lines;
+    }
+
+    function renderOratoriaCard({ overall, subScores }, insightLines) {
+      if (overall === null) {
+        return '<div class="insight-line">Sem fala suficiente pra calcular a nota de oratória nesta sessão.</div>';
+      }
+      const color = oratoriaScoreColor(overall);
+      const barsHtml = subScores
+        .map(
+          (s) => `
+          <div class="bar-row">
+            <div class="bar-label">${s.label}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.score)}%; background:${oratoriaScoreColor(s.score)}"></div></div>
+            <div class="bar-pct">${Math.round(s.score)}%</div>
+          </div>`
+        )
+        .join("");
+      const insightsHtml = insightLines.map((l) => `<div class="insight-line">${l}</div>`).join("");
+      return `
+        <div class="oratoria-card">
+          <div class="oratoria-score-badge" style="--score:${overall}; --score-color:${color}">
+            <div class="oratoria-score-inner">
+              <div class="oratoria-score-value" style="color:${color}">${overall}</div>
+              <div class="oratoria-score-label">/100</div>
+            </div>
+          </div>
+          <div class="oratoria-breakdown">${barsHtml}</div>
+        </div>
+        <div style="margin-top:12px">${insightsHtml}</div>
+        <div class="oratoria-disclaimer">Aproximação a partir de ritmo, pausas, vícios de linguagem, confiança do reconhecimento de fala e variação de volume — não é uma avaliação fonoaudiológica.</div>
+      `;
     }
 
     // Dicas de autoavaliação ao final da sessão — regras simples sobre os
@@ -1836,6 +1981,7 @@
         summaryObjectionsEl.innerHTML = "";
         summaryDynamicsEl.innerHTML = "";
         summaryLanguageEl.innerHTML = "";
+        summaryOratoriaEl.innerHTML = "";
         summaryTipsEl.innerHTML = "";
         return;
       }
@@ -1872,6 +2018,22 @@
         <div class="insight-line">Pausas longas (mais de 2s): ${sessionPauseCount}</div>
         <div style="margin-top:8px">${keywordTagsHtml || '<span class="insight-line">Nenhuma palavra-chave de negociação identificada.</span>'}</div>
       `;
+
+      const oratoriaResult = computeOratoriaScore({
+        wpm: wpmSession,
+        pauseCount: sessionPauseCount,
+        fillerCounts: sessionFillerCounts,
+        wordCount: sessionWordCount,
+        ownConfidences: sessionOwnConfidences,
+        ownVolumes: sessionOwnVolumes,
+      });
+      const oratoriaInsights = oratoriaInsightLines({
+        subScores: oratoriaResult.subScores,
+        wpm: wpmSession,
+        pauseCount: sessionPauseCount,
+        ownConfidences: sessionOwnConfidences,
+      });
+      summaryOratoriaEl.innerHTML = renderOratoriaCard(oratoriaResult, oratoriaInsights);
 
       summaryObjectionsEl.innerHTML = sessionObjections.length
         ? sessionObjections
@@ -2451,7 +2613,7 @@
       if (interimEl) interimEl.remove();
     }
 
-    function appendTranscriptLine(text) {
+    function appendTranscriptLine(text, confidence) {
       clearInterimLine();
       if (!text) return;
 
@@ -2518,6 +2680,12 @@
         fillerMatches.forEach((word) => {
           sessionFillerCounts[word] = (sessionFillerCounts[word] || 0) + 1;
         });
+        // Só entra na nota de oratória a fala classificada como sua — não faz
+        // sentido avaliar a dicção/projeção de voz do outro participante.
+        if (speaker === "Você") {
+          if (avgUtteranceVolume > 0) sessionOwnVolumes.push(avgUtteranceVolume);
+          if (typeof confidence === "number" && confidence > 0) sessionOwnConfidences.push(confidence);
+        }
       }
     }
 
@@ -2544,7 +2712,7 @@
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
           if (result.isFinal) {
-            appendTranscriptLine(result[0].transcript.trim());
+            appendTranscriptLine(result[0].transcript.trim(), result[0].confidence);
           } else {
             interim += result[0].transcript;
           }
