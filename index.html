@@ -2144,13 +2144,38 @@
     let ownClusterAvg = null;
     let otherClusterAvg = null;
 
+    // Se os dois grupos de volume ficarem parecidos demais — ou se nenhum
+    // "outro participante" aparecer depois de várias falas — a distinção de
+    // vozes deixa de ser confiável (normalmente sinal de call sem fone de
+    // ouvido, com o volume da caixa de som alto). Avisa uma vez por sessão.
+    const LOW_SEPARATION_RATIO = 0.75;
+    const NO_OTHER_VOICE_STREAK = 8;
+    let lowSeparationAlertShown = false;
+    let utteranceCountSinceReset = 0;
+
     function resetSpeakerClusters() {
       ownClusterAvg = ownVoiceBaseline;
       otherClusterAvg = null;
+      lowSeparationAlertShown = false;
+      utteranceCountSinceReset = 0;
+    }
+
+    function maybeWarnLowSeparation() {
+      if (lowSeparationAlertShown) return;
+      if (otherClusterAvg !== null && ownClusterAvg > 0 && otherClusterAvg / ownClusterAvg > LOW_SEPARATION_RATIO) {
+        lowSeparationAlertShown = true;
+        pushLiveAlert("Sua voz e a do outro participante estão com volume parecido — use fone de ouvido pra melhorar a distinção.");
+        return;
+      }
+      if (otherClusterAvg === null && utteranceCountSinceReset >= NO_OTHER_VOICE_STREAK) {
+        lowSeparationAlertShown = true;
+        pushLiveAlert("Não estou distinguindo outra voz até agora — se tiver mais alguém na call, use fone de ouvido pra melhorar a distinção.");
+      }
     }
 
     function classifySpeaker(avgVolume) {
       if (avgVolume === 0) return "Você";
+      utteranceCountSinceReset++;
 
       if (ownClusterAvg === null) {
         ownClusterAvg = avgVolume;
@@ -2163,17 +2188,22 @@
           return "Outro participante";
         }
         ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
+        maybeWarnLowSeparation();
         return "Você";
       }
 
       const distToOwn = Math.abs(avgVolume - ownClusterAvg);
       const distToOther = Math.abs(avgVolume - otherClusterAvg);
+      let speaker;
       if (distToOwn <= distToOther) {
         ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
-        return "Você";
+        speaker = "Você";
+      } else {
+        otherClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - otherClusterAvg);
+        speaker = "Outro participante";
       }
-      otherClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - otherClusterAvg);
-      return "Outro participante";
+      maybeWarnLowSeparation();
+      return speaker;
     }
 
     async function calibrateVoice() {
