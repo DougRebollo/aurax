@@ -713,9 +713,12 @@
     <div id="transcript-section">
       <div id="transcript-header">
         <h2>Transcrição ao vivo</h2>
-        <button id="micToggleBtn">Ativar microfone</button>
+        <div style="display:flex; gap:6px;">
+          <button type="button" id="calibrateVoiceBtn" class="ghost">Calibrar minha voz</button>
+          <button id="micToggleBtn">Ativar microfone</button>
+        </div>
       </div>
-      <div id="transcript-note">"Você" / "Outro participante" é uma aproximação pelo volume da voz, não identificação real. Use fone de ouvido na call para o resultado ficar bem mais confiável.</div>
+      <div id="transcript-note">"Você" / "Outro participante" é uma aproximação pelo volume da voz, não identificação real. Calibre sua voz antes da call e use fone de ouvido para o resultado ficar bem mais confiável.</div>
       <div id="transcriptMeta">
         <span id="micPulse" class="mic-pulse hidden"></span>
         <span id="transcriptStatus"></span>
@@ -2001,6 +2004,7 @@
 
     // --- Transcrição ao vivo (Web Speech API) ---
     const micToggleBtn = document.getElementById("micToggleBtn");
+    const calibrateVoiceBtn = document.getElementById("calibrateVoiceBtn");
     const transcriptStatusEl = document.getElementById("transcriptStatus");
     const transcriptLogEl = document.getElementById("transcriptLog");
     const micPulseEl = document.getElementById("micPulse");
@@ -2064,6 +2068,15 @@
     let recentUtteranceAvgVolumes = [];
     const SPEAKER_HISTORY_SIZE = 30;
 
+    // Calibração: âncora fixa no SEU volume real, em vez de só comparar com a
+    // mediana das últimas falas (que pode "derivar" se um áudio externo tocar
+    // alto, tipo um áudio de WhatsApp — sem âncora, o sistema podia achar que
+    // aquele áudio alto era você).
+    const VOICE_BASELINE_KEY = "aurax_voice_baseline";
+    const SPEAKER_THRESHOLD_RATIO = 0.55;
+    const CALIBRATION_DURATION_MS = 3000;
+    let ownVoiceBaseline = Number(localStorage.getItem(VOICE_BASELINE_KEY)) || null;
+
     function median(arr) {
       if (!arr.length) return 0;
       const sorted = [...arr].sort((a, b) => a - b);
@@ -2072,9 +2085,87 @@
     }
 
     function classifySpeaker(avgVolume) {
-      if (recentUtteranceAvgVolumes.length < 4 || avgVolume === 0) return "Você";
+      if (avgVolume === 0) return "Você";
+      if (ownVoiceBaseline) {
+        return avgVolume >= ownVoiceBaseline * SPEAKER_THRESHOLD_RATIO ? "Você" : "Outro participante";
+      }
+      if (recentUtteranceAvgVolumes.length < 4) return "Você";
       return avgVolume >= median(recentUtteranceAvgVolumes) ? "Você" : "Outro participante";
     }
+
+    async function calibrateVoice() {
+      if (calibrateVoiceBtn.disabled) return;
+      const originalLabel = calibrateVoiceBtn.textContent;
+      calibrateVoiceBtn.disabled = true;
+
+      let tempStream = null;
+      let tempContext = null;
+      let readVolume;
+
+      if (analyserNode) {
+        // Transcrição já está ativa — reaproveita a análise em andamento.
+        readVolume = getCurrentVolume;
+      } else {
+        try {
+          tempStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
+          });
+        } catch (err) {
+          calibrateVoiceBtn.textContent = originalLabel;
+          calibrateVoiceBtn.disabled = false;
+          alert("Não foi possível acessar o microfone para calibrar.");
+          return;
+        }
+        tempContext = new (window.AudioContext || window.webkitAudioContext)();
+        const tempSource = tempContext.createMediaStreamSource(tempStream);
+        const tempAnalyser = tempContext.createAnalyser();
+        tempAnalyser.fftSize = 2048;
+        const tempSamples = new Uint8Array(tempAnalyser.fftSize);
+        tempSource.connect(tempAnalyser);
+        readVolume = () => {
+          tempAnalyser.getByteTimeDomainData(tempSamples);
+          let sumSquares = 0;
+          for (let i = 0; i < tempSamples.length; i++) {
+            const normalized = (tempSamples[i] - 128) / 128;
+            sumSquares += normalized * normalized;
+          }
+          return Math.sqrt(sumSquares / tempSamples.length);
+        };
+      }
+
+      const readings = [];
+      calibrateVoiceBtn.textContent = "Fale algumas frases...";
+      const startedAt = Date.now();
+
+      await new Promise((resolve) => {
+        const intervalId = setInterval(() => {
+          const v = readVolume();
+          if (v >= SILENCE_RMS_THRESHOLD) readings.push(v);
+          if (Date.now() - startedAt >= CALIBRATION_DURATION_MS) {
+            clearInterval(intervalId);
+            resolve();
+          }
+        }, 100);
+      });
+
+      if (tempStream) tempStream.getTracks().forEach((t) => t.stop());
+      if (tempContext) tempContext.close();
+
+      if (readings.length >= 3) {
+        ownVoiceBaseline = average(readings);
+        localStorage.setItem(VOICE_BASELINE_KEY, String(ownVoiceBaseline));
+        calibrateVoiceBtn.textContent = "Voz calibrada ✓";
+      } else {
+        calibrateVoiceBtn.textContent = "Não captou sua voz, tente de novo";
+      }
+
+      setTimeout(() => {
+        calibrateVoiceBtn.textContent = originalLabel;
+        calibrateVoiceBtn.disabled = false;
+      }, 2200);
+    }
+
+    calibrateVoiceBtn.addEventListener("click", calibrateVoice);
 
     async function setupAudioAnalyser() {
       // echoCancellation ajuda a reduzir o som da própria caixa de som voltando
