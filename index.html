@@ -143,7 +143,7 @@
     align-items: flex-start;
     gap: 20px;
     width: 100%;
-    max-width: 1360px;
+    max-width: 1440px;
   }
   #videoColumn {
     flex: 1 1 640px;
@@ -154,9 +154,9 @@
   }
 
   #statusColumn {
-    flex: 1 1 260px;
-    max-width: 280px;
-    min-width: 220px;
+    flex: 1 1 340px;
+    max-width: 360px;
+    min-width: 280px;
     order: -1;
   }
   #status-panel {
@@ -800,6 +800,17 @@
 
         <div id="liveAlerts"></div>
       </div>
+
+      <div id="leftSummaryCards" class="card" style="display:none">
+        <h3 style="margin-top:0">Dicas de melhoria</h3>
+        <div id="summaryTips"></div>
+
+        <h3>Nota de oratória</h3>
+        <div id="summaryOratoria"></div>
+
+        <h3>Vícios de linguagem e gírias</h3>
+        <div id="summaryLanguage"></div>
+      </div>
     </div>
 
     <div id="videoColumn">
@@ -857,15 +868,6 @@
   <div id="summary-section" class="card" style="display:none">
     <h2>Resumo da sessão</h2>
     <div id="summaryDuration"></div>
-
-    <h3>Dicas de melhoria</h3>
-    <div id="summaryTips"></div>
-
-    <h3>Nota de oratória</h3>
-    <div id="summaryOratoria"></div>
-
-    <h3>Vícios de linguagem e gírias</h3>
-    <div id="summaryLanguage"></div>
 
     <h3>Como evoluiu ao longo da sessão</h3>
     <div id="trend-legend">
@@ -1221,6 +1223,7 @@
     const endSessionBtn = document.getElementById("endSessionBtn");
     const sessionTimerEl = document.getElementById("sessionTimer");
     const summarySection = document.getElementById("summary-section");
+    const leftSummaryCardsEl = document.getElementById("leftSummaryCards");
     const summaryDurationEl = document.getElementById("summaryDuration");
     const summaryEmotionsEl = document.getElementById("summaryEmotions");
     const summaryEstimatedEl = document.getElementById("summaryEstimated");
@@ -1723,6 +1726,7 @@
       startSessionBtn.style.display = "none";
       endSessionBtn.style.display = "inline-block";
       summarySection.style.display = "none";
+      leftSummaryCardsEl.style.display = "none";
       sessionTimerEl.textContent = "Sessão em andamento: 00m 00s";
       updateSessionStatusDisplay();
     });
@@ -1972,6 +1976,7 @@
 
     async function renderSummary() {
       summarySection.style.display = "block";
+      leftSummaryCardsEl.style.display = "block";
       if (!sessionData.length) {
         summaryDurationEl.textContent = "Nenhum dado coletado (rosto não foi detectado durante a sessão).";
         summaryEmotionsEl.innerHTML = "";
