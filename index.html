@@ -766,6 +766,13 @@
     vertical-align: middle;
   }
 </style>
+<script>
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  posthog.init('phc_vyVJ7sTb6kpXhAdzVbWcyBCf4epgvTv7UnnuiPqnFCpm', {
+    api_host: 'https://us.i.posthog.com',
+    person_profiles: 'identified_only',
+  });
+</script>
 </head>
 <body>
   <div id="onboardingOverlay" class="hidden">
@@ -1761,15 +1768,18 @@
       summaryOratoriaEl.innerHTML = '<div class="insight-line">Fale um pouco pra começar a ver sua nota aqui.</div>';
       sessionTimerEl.textContent = "Sessão em andamento: 00m 00s";
       updateSessionStatusDisplay();
+      posthog.capture("session_started");
     });
 
     endSessionBtn.addEventListener("click", () => {
+      const durationSeconds = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 1000) : 0;
       sessionActive = false;
       startSessionBtn.style.display = "inline-block";
       endSessionBtn.style.display = "none";
       sessionTimerEl.textContent = "";
       updateSessionStatusDisplay();
       renderSummary();
+      posthog.capture("session_ended", { duration_seconds: durationSeconds });
 
       // O resumo do que acabou de acontecer já fica salvo nos cards da
       // esquerda e no resumo completo abaixo — a transcrição ao vivo e os
@@ -2239,6 +2249,7 @@
     }
 
     downloadCsvBtn.addEventListener("click", () => {
+      posthog.capture("export_csv");
       const lines = [];
 
       lines.push("Leituras da sessão (expressões e estimativas)");
@@ -2344,6 +2355,7 @@
     });
 
     downloadPdfBtn.addEventListener("click", async () => {
+      posthog.capture("export_pdf");
       const originalLabel = downloadPdfBtn.textContent;
       downloadPdfBtn.disabled = true;
       downloadPdfBtn.textContent = "Gerando PDF...";
@@ -2955,10 +2967,12 @@
         setupAudioAnalyser().catch((err) => {
           console.error("Não foi possível analisar o áudio (ritmo/pausas):", err);
         });
+        posthog.capture("mic_activated");
       } else {
         stoppedManually = true;
         transcribing = false;
         recognition.stop();
+        posthog.capture("mic_stopped");
         clearInterimLine();
         transcriptStatusEl.textContent = "Transcrição parada.";
         micPulseEl.classList.add("hidden");
@@ -3227,6 +3241,7 @@
     onboardingSkipBtn.addEventListener("click", closeOnboarding);
     howItWorksBtn.addEventListener("click", showOnboarding);
     document.getElementById("insightsBtn").addEventListener("click", () => {
+      posthog.capture("insights_opened");
       window.location.href = "insights.html";
     });
 
@@ -3285,6 +3300,8 @@
       if (currentUserRole === "gestor") {
         document.getElementById("backToGestorBtn").style.display = "inline-block";
       }
+
+      posthog.identify(currentUserId, { email: session.user.email, role: currentUserRole });
 
       init();
     }
