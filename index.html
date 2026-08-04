@@ -873,6 +873,24 @@
         <div id="estimated"></div>
         <div id="estimated-note">Calculadas a partir de sinais indiretos (abertura dos olhos, estabilidade da cabeça, expressão sustentada). Podem não ser precisas.</div>
       </div>
+
+      <div id="history-section" class="card">
+        <h2>Histórico de sessões</h2>
+
+        <div id="historyTrendWrap" style="display:none">
+          <h3>Tendência entre sessões</h3>
+          <div id="trend-legend">
+            <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
+            <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Constância</span>
+            <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
+          </div>
+          <svg id="historyTrendChart" viewBox="0 0 640 200" style="width:100%; height:auto;"></svg>
+        </div>
+
+        <input type="text" id="historyClientFilter" placeholder="Filtrar por cliente..." />
+        <div id="historyList"></div>
+        <button id="clearHistoryBtn" class="ghost">Limpar histórico</button>
+      </div>
     </div>
 
     <div id="transcript-section">
@@ -922,24 +940,6 @@
     <div id="summaryObjections"></div>
     <button id="downloadCsvBtn" class="ghost">Baixar dados (CSV)</button>
     <button id="downloadPdfBtn" class="ghost">Baixar PDF</button>
-  </div>
-
-  <div id="history-section" class="card">
-    <h2>Histórico de sessões</h2>
-
-    <div id="historyTrendWrap" style="display:none">
-      <h3>Tendência entre sessões</h3>
-      <div id="trend-legend">
-        <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
-        <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Constância</span>
-        <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
-      </div>
-      <svg id="historyTrendChart" viewBox="0 0 640 200" style="width:100%; height:auto;"></svg>
-    </div>
-
-    <input type="text" id="historyClientFilter" placeholder="Filtrar por cliente..." />
-    <div id="historyList"></div>
-    <button id="clearHistoryBtn" class="ghost">Limpar histórico</button>
   </div>
 
   <div id="trendTooltip"></div>
