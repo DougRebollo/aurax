@@ -299,9 +299,90 @@
   }
   footer a { color: #7ba9ff; text-decoration: none; }
 
+  /* Preview do produto no topo — recriação fiel da tela real do app, pra
+     mostrar o diferencial (nota de oratória + vícios de linguagem) de cara,
+     sem precisar esperar o carrossel ou rolar a página. */
+  .hero-preview {
+    max-width: 760px;
+    margin: 34px auto 10px;
+    padding: 22px 24px;
+    text-align: left;
+  }
+  .hero-preview-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #7ee787;
+    background: rgba(126, 231, 135, 0.12);
+    border-radius: 999px;
+    padding: 3px 11px;
+    margin-bottom: 14px;
+  }
+  .hero-preview-grid {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .hp-oratoria { flex: 1 1 320px; display: flex; gap: 18px; align-items: center; }
+  .hp-score-badge {
+    flex-shrink: 0;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: conic-gradient(#7ee787 82%, rgba(255, 255, 255, 0.08) 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hp-score-inner {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: #0d0e13;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .hp-score-value { font-size: 1.55rem; font-weight: 800; color: #7ee787; line-height: 1; }
+  .hp-score-label { font-size: 0.6rem; color: #888; margin-top: 2px; }
+  .hp-bars { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .hp-bar-row { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: #bbb; }
+  .hp-bar-label { width: 92px; flex-shrink: 0; }
+  .hp-bar-track { flex: 1; background: #2a2a30; border-radius: 6px; height: 7px; overflow: hidden; }
+  .hp-bar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #4f8cff, #7ee787); }
+  .hp-bar-pct { width: 32px; text-align: right; flex-shrink: 0; }
+
+  .hp-vicios { flex: 1 1 280px; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+  .hp-vicios-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px; color: #999; margin-bottom: 2px; }
+  .hp-swap-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 9px;
+    background: rgba(255, 182, 72, 0.08);
+    border-left: 3px solid #ffb648;
+    font-size: 0.78rem;
+  }
+  .hp-swap-card.slang { background: rgba(179, 136, 255, 0.08); border-left-color: #b388ff; }
+  .hp-swap-word { font-weight: 700; color: #f2f2f2; }
+  .hp-swap-arrow { color: #666; margin: 0 6px; }
+  .hp-swap-suggestion { font-weight: 600; color: #7ee787; }
+  .hp-insight-line {
+    font-size: 0.76rem;
+    color: #ccc;
+    padding-left: 9px;
+    border-left: 2px solid #4f8cff;
+  }
+
   @media (max-width: 640px) {
     .orbit-stage { height: 300px; }
     .orbit-card { width: 150px; height: 96px; margin: -48px 0 0 -75px; }
+    .hp-oratoria { flex-direction: column; align-items: flex-start; }
   }
 </style>
 </head>
@@ -310,7 +391,7 @@
     <nav class="top">
       <span class="logo">AuraX</span>
       <div>
-        <a class="ghost-link" href="index.html">Já uso o AuraX</a>
+        <a class="btn ghost" href="login.html">Entrar</a>
         <a class="btn ghost" id="navCta" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
       </div>
     </nav>
@@ -328,6 +409,50 @@
         <a class="btn ghost big" href="#funcionalidades">Ver funcionalidades</a>
       </div>
       <div class="hero-note">Sem cartão de crédito. Ative direto pelo WhatsApp.</div>
+
+      <div class="card hero-preview">
+        <span class="hero-preview-badge">O diferencial do AuraX</span>
+        <div class="hero-preview-grid">
+          <div class="hp-oratoria">
+            <div class="hp-score-badge">
+              <div class="hp-score-inner">
+                <div class="hp-score-value">82</div>
+                <div class="hp-score-label">/100</div>
+              </div>
+            </div>
+            <div class="hp-bars">
+              <div class="hp-bar-row">
+                <span class="hp-bar-label">Ritmo de fala</span>
+                <span class="hp-bar-track"><span class="hp-bar-fill" style="width:88%"></span></span>
+                <span class="hp-bar-pct">88%</span>
+              </div>
+              <div class="hp-bar-row">
+                <span class="hp-bar-label">Clareza/dicção</span>
+                <span class="hp-bar-track"><span class="hp-bar-fill" style="width:79%"></span></span>
+                <span class="hp-bar-pct">79%</span>
+              </div>
+              <div class="hp-bar-row">
+                <span class="hp-bar-label">Projeção de voz</span>
+                <span class="hp-bar-track"><span class="hp-bar-fill" style="width:74%"></span></span>
+                <span class="hp-bar-pct">74%</span>
+              </div>
+              <div class="hp-insight-line">Nota de oratória — atualiza ao vivo, durante a sua própria call</div>
+            </div>
+          </div>
+          <div class="hp-vicios">
+            <div class="hp-vicios-title">Vícios de linguagem e insights</div>
+            <div class="hp-swap-card">
+              <span><span class="hp-swap-word">"né"</span> × 6</span>
+              <span><span class="hp-swap-arrow">→</span><span class="hp-swap-suggestion">corte a palavra ou pause</span></span>
+            </div>
+            <div class="hp-swap-card slang">
+              <span><span class="hp-swap-word">"tipo"</span> × 4</span>
+              <span><span class="hp-swap-arrow">→</span><span class="hp-swap-suggestion">por exemplo</span></span>
+            </div>
+            <div class="hp-insight-line">+ evolução entre reuniões na tela de Insights</div>
+          </div>
+        </div>
+      </div>
 
       <div class="orbit-stage">
         <div class="orbit-core"></div>
