@@ -803,6 +803,7 @@
           <h2>Status ao vivo</h2>
           <div style="display:flex; gap:6px;">
             <button type="button" id="howItWorksBtn" class="ghost">Como funciona</button>
+            <button type="button" id="insightsBtn" class="ghost">Meus Insights</button>
             <button type="button" id="backToGestorBtn" class="ghost" style="display:none">Painel do Gestor</button>
             <button type="button" id="logoutBtn" class="ghost">Sair</button>
           </div>
@@ -1387,6 +1388,7 @@
       if ("keywordCounts" in out) { out.keyword_counts = out.keywordCounts; delete out.keywordCounts; }
       if ("slangCounts" in out) { out.slang_counts = out.slangCounts; delete out.slangCounts; }
       if ("fillerCounts" in out) { out.filler_counts = out.fillerCounts; delete out.fillerCounts; }
+      if ("oratoriaScore" in out) { out.oratoria_score = out.oratoriaScore; delete out.oratoriaScore; }
       return out;
     }
 
@@ -1406,6 +1408,7 @@
         fillerCounts: row.filler_counts || {},
         objections: row.objections || [],
         dynamics: row.dynamics,
+        oratoriaScore: row.oratoria_score,
         tips: row.tips || [],
         transcript: row.transcript || [],
         notes: row.notes || "",
@@ -1964,57 +1967,57 @@
       const tips = [];
 
       if (wpm > 170) {
-        tips.push({ type: "melhorar", text: `Ritmo de fala acelerado (${wpm} palavras/min) — desacelerar passa mais segurança.` });
+        tips.push({ key: "ritmo_acelerado", type: "melhorar", text: `Ritmo de fala acelerado (${wpm} palavras/min) — desacelerar passa mais segurança.` });
       } else if (wpm > 0 && wpm < 100) {
-        tips.push({ type: "positivo", text: `Ritmo de fala tranquilo (${wpm} palavras/min) — bom controle de pausas.` });
+        tips.push({ key: "ritmo_tranquilo", type: "positivo", text: `Ritmo de fala tranquilo (${wpm} palavras/min) — bom controle de pausas.` });
       }
 
       if (pauseCount >= 5) {
-        tips.push({ type: "melhorar", text: `Muitas pausas longas (${pauseCount}) — pode passar hesitação.` });
+        tips.push({ key: "muitas_pausas", type: "melhorar", text: `Muitas pausas longas (${pauseCount}) — pode passar hesitação.` });
       }
 
       if (dynamics) {
         if (dynamics.pctYou >= 75) {
-          tips.push({ type: "melhorar", text: `Você dominou ${dynamics.pctYou}% da conversa — abra mais espaço para o outro participante.` });
+          tips.push({ key: "dominou_conversa", type: "melhorar", text: `Você dominou ${dynamics.pctYou}% da conversa — abra mais espaço para o outro participante.` });
         } else if (dynamics.pctOther >= 35) {
-          tips.push({ type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o outro participante falar.` });
+          tips.push({ key: "boa_escuta", type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o outro participante falar.` });
         }
         if (dynamics.silencePct >= 15) {
-          tips.push({ type: "melhorar", text: `Silêncio acima do ideal (${dynamics.silencePct}%) — pode indicar hesitação na condução.` });
+          tips.push({ key: "silencio_alto", type: "melhorar", text: `Silêncio acima do ideal (${dynamics.silencePct}%) — pode indicar hesitação na condução.` });
         }
       }
 
       const totalSlang = Object.values(slangCounts || {}).reduce((a, b) => a + b, 0);
       if (totalSlang >= 3) {
-        tips.push({ type: "melhorar", text: `${totalSlang} gírias/informalidades identificadas — considere termos mais profissionais.` });
+        tips.push({ key: "muitas_girias", type: "melhorar", text: `${totalSlang} gírias/informalidades identificadas — considere termos mais profissionais.` });
       }
 
       const totalFiller = Object.values(fillerCounts || {}).reduce((a, b) => a + b, 0);
       if (totalFiller >= 15) {
-        tips.push({ type: "melhorar", text: `${totalFiller} vícios de linguagem ("é", "né", "tipo"...) — reduzir isso deixa a fala mais assertiva.` });
+        tips.push({ key: "muitos_vicios", type: "melhorar", text: `${totalFiller} vícios de linguagem ("é", "né", "tipo"...) — reduzir isso deixa a fala mais assertiva.` });
       } else if (totalFiller > 0 && totalFiller <= 5) {
-        tips.push({ type: "positivo", text: `Poucos vícios de linguagem (${totalFiller}) — fala limpa e direta.` });
+        tips.push({ key: "poucos_vicios", type: "positivo", text: `Poucos vícios de linguagem (${totalFiller}) — fala limpa e direta.` });
       }
 
       if (objections && objections.length) {
         const tense = objections.filter((o) => o.result.startsWith("Resposta tensa")).length;
         const secure = objections.filter((o) => o.result.startsWith("Resposta segura")).length;
         if (secure > tense) {
-          tips.push({ type: "positivo", text: "Boa recuperação em objeções — manteve o foco na maioria das respostas." });
+          tips.push({ key: "objecao_segura", type: "positivo", text: "Boa recuperação em objeções — manteve o foco na maioria das respostas." });
         } else if (tense > 0) {
-          tips.push({ type: "melhorar", text: `Sinais de tensão ao responder objeções (${tense} de ${objections.length}) — treinar essas respostas pode ajudar.` });
+          tips.push({ key: "objecao_tensa", type: "melhorar", text: `Sinais de tensão ao responder objeções (${tense} de ${objections.length}) — treinar essas respostas pode ajudar.` });
         }
       }
 
       if (avgTired >= 0.4) {
-        tips.push({ type: "melhorar", text: "Sinais de cansaço ao longo da sessão — considere pausas entre reuniões." });
+        tips.push({ key: "cansaco", type: "melhorar", text: "Sinais de cansaço ao longo da sessão — considere pausas entre reuniões." });
       }
       if (avgMotivated >= 0.5) {
-        tips.push({ type: "positivo", text: "Boa energia/motivação sustentada durante a conversa." });
+        tips.push({ key: "boa_energia", type: "positivo", text: "Boa energia/motivação sustentada durante a conversa." });
       }
 
       if (!tips.length) {
-        tips.push({ type: "positivo", text: "Sessão equilibrada, sem pontos de atenção fortes identificados." });
+        tips.push({ key: "equilibrada", type: "positivo", text: "Sessão equilibrada, sem pontos de atenção fortes identificados." });
       }
 
       return tips;
@@ -2158,6 +2161,7 @@
         dynamics,
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
+        oratoriaScore: oratoriaResult.overall,
         tips,
       });
       renderHistory();
@@ -3110,6 +3114,9 @@
 
     onboardingSkipBtn.addEventListener("click", closeOnboarding);
     howItWorksBtn.addEventListener("click", showOnboarding);
+    document.getElementById("insightsBtn").addEventListener("click", () => {
+      window.location.href = "insights.html";
+    });
 
     function maybeShowOnboarding() {
       if (!localStorage.getItem(ONBOARDING_SEEN_KEY)) {

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AuraX — Meus Insights</title>
+<style>
+  :root {
+    --bg-1: #1a2338;
+    --bg-2: #0b0c10;
+    --bg-3: #08080a;
+    --text: #eee;
+    --text-muted: #9aa0ab;
+    --text-dim: #6b7280;
+    --accent-blue: #4f8cff;
+    --accent-green: #7ee787;
+    --accent-teal: #3ddba0;
+    --accent-amber: #ffb648;
+    --accent-red: #e5533d;
+    --accent-purple: #c9a6ff;
+    --card-bg: linear-gradient(160deg, rgba(79, 140, 255, 0.07), rgba(126, 231, 135, 0.025));
+    --card-border: rgba(255, 255, 255, 0.08);
+    --grid: #2c2c2a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(79, 140, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79, 140, 255, 0.045) 1px, transparent 1px);
+    background-size: 42px 42px;
+    -webkit-mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
+    mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
+    pointer-events: none;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 20px 80px; position: relative; }
+
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .logo {
+    font-size: 1.15rem; font-weight: 700; letter-spacing: 1.5px;
+    background: linear-gradient(90deg, #eaf2ff, var(--accent-green) 55%, var(--accent-blue));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .btn.ghost {
+    padding: 10px 20px;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    border: 1px solid var(--card-border);
+  }
+
+  .panel-head { margin-bottom: 22px; }
+  .panel-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-blue); margin-bottom: 6px; }
+  .panel-head h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .panel-head p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  .section-title { font-size: 0.95rem; margin: 30px 0 12px; color: #dcdfe4; }
+  .section-title:first-of-type { margin-top: 0; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .stat-card { padding: 16px 18px; text-align: center; }
+  .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--accent-green); }
+  .stat-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  .chart-card { padding: 20px 22px; }
+  .chart-empty { padding: 20px 0; text-align: center; color: var(--text-dim); font-size: 0.86rem; }
+  .chart-legend { display: flex; gap: 16px; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .language-swap-list { display: flex; flex-direction: column; gap: 8px; }
+  .language-swap-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255, 182, 72, 0.08);
+    border-left: 3px solid var(--accent-amber);
+  }
+  .language-swap-card.slang-swap { background: rgba(179, 136, 255, 0.08); border-left-color: var(--accent-purple); }
+  .language-swap-word { font-size: 0.95rem; font-weight: 700; color: #f2f2f2; }
+  .language-swap-count { font-size: 0.7rem; color: var(--text-dim); margin-left: 6px; }
+  .language-swap-arrow { color: #666; margin: 0 8px; }
+  .language-swap-suggestion { font-size: 0.85rem; font-weight: 600; color: var(--accent-green); }
+
+  .tip-freq-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
+  }
+  .tip-freq-row.positive { border-left: 3px solid var(--accent-green); }
+  .tip-freq-row.improve { border-left: 3px solid var(--accent-amber); }
+  .tip-freq-label { font-size: 0.88rem; }
+  .tip-freq-count { font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; }
+
+  .talk-split-bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: #333; margin-top: 6px; }
+  .talk-split-you { background: linear-gradient(90deg, var(--accent-blue), #7ba9ff); }
+  .talk-split-other { background: linear-gradient(90deg, var(--accent-amber), #ffcf80); }
+  .talk-split-labels { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; }
+
+  .empty-state { padding: 30px 18px; text-align: center; color: var(--text-dim); font-size: 0.88rem; }
+
+  #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  #gate p { color: var(--text-muted); font-size: 0.9rem; }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <div id="gate"><p>Carregando...</p></div>
+
+  <div class="wrap" id="app" hidden>
+    <div class="top-bar">
+      <span class="logo">AuraX</span>
+      <div style="display:flex; gap:10px;">
+        <a class="btn ghost" href="index.html" style="text-decoration:none; display:inline-block;">Meu AuraX</a>
+        <button type="button" class="btn ghost" id="logoutBtn">Sair</button>
+      </div>
+    </div>
+
+    <div class="panel-head">
+      <div class="panel-eyebrow">Sua evolução</div>
+      <h1>Meus Insights</h1>
+      <p>Como você tem evoluído nas suas próprias reuniões, sessão após sessão.</p>
+    </div>
+
+    <div id="emptyState" class="card empty-state" hidden>
+      Nenhuma sessão registrada ainda. Finalize sua primeira sessão no AuraX pra começar a ver sua evolução aqui.
+    </div>
+
+    <div id="insightsBody" hidden>
+      <div class="stat-grid">
+        <div class="card stat-card"><div class="stat-value" id="statTotalSessions">0</div><div class="stat-label">Sessões</div></div>
+        <div class="card stat-card"><div class="stat-value" id="statAvgOratoria">—</div><div class="stat-label">Oratória média</div></div>
+        <div class="card stat-card"><div class="stat-value" id="statAvgTalk">—</div><div class="stat-label">Fala média sua</div></div>
+        <div class="card stat-card"><div class="stat-value" id="statDateRange">—</div><div class="stat-label">Período</div></div>
+      </div>
+
+      <div class="section-title">Evolução da nota de oratória</div>
+      <div class="card chart-card">
+        <div id="oratoriaChartWrap"></div>
+      </div>
+
+      <div class="section-title">Padrão emocional ao longo do tempo</div>
+      <div class="card chart-card">
+        <div class="chart-legend">
+          <span class="legend-item"><span class="swatch" style="background:#3987e5"></span>Cansado</span>
+          <span class="legend-item"><span class="swatch" style="background:#199e70"></span>Constância</span>
+          <span class="legend-item"><span class="swatch" style="background:#c98500"></span>Motivado</span>
+        </div>
+        <div id="emotionChartWrap"></div>
+      </div>
+
+      <div class="section-title">Equilíbrio de conversa</div>
+      <div class="card chart-card" id="talkBalanceWrap"></div>
+
+      <div class="section-title">Principais pontos de melhoria</div>
+      <div class="card chart-card" id="tipsFreqWrap"></div>
+
+      <div class="section-title">Vícios de linguagem recorrentes</div>
+      <div class="card chart-card" id="fillerFreqWrap"></div>
+
+      <div class="section-title">Gírias recorrentes</div>
+      <div class="card chart-card" id="slangFreqWrap"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUserId = null;
+
+    // Mesmas bibliotecas de sugestão usadas no app principal — duplicadas
+    // aqui porque cada página do AuraX é um HTML independente, sem módulo
+    // compartilhado.
+    const SLANG_LIBRARY = {
+      "beleza": "perfeito",
+      "valeu": "obrigado",
+      "sussa": "tranquilo",
+      "da hora": "interessante",
+      "show": "ótimo",
+      "top": "excelente",
+      "galera": "equipe",
+      "de boa": "sem problema",
+      "mano": "",
+      "bagulho": "assunto",
+      "treco": "item",
+      "pô": "",
+    };
+    const FILLER_LIBRARY = {
+      "né": "corte a palavra ou faça uma pausa",
+      "tipo": "por exemplo",
+      "então": "diante disso / dessa forma",
+      "é": "uma pausa silenciosa",
+      "an": "uma pausa silenciosa",
+      "hã": "uma pausa silenciosa",
+      "ahn": "uma pausa silenciosa",
+      "eh": "uma pausa silenciosa",
+      "hum": "uma pausa silenciosa",
+      "assim": "dessa forma",
+      "sabe": "entende / compreende",
+    };
+
+    const TIP_KEY_LABELS = {
+      ritmo_acelerado: "Ritmo de fala acelerado",
+      ritmo_tranquilo: "Ritmo de fala tranquilo",
+      muitas_pausas: "Muitas pausas longas",
+      dominou_conversa: "Dominou a conversa",
+      boa_escuta: "Boa escuta ativa",
+      silencio_alto: "Silêncio acima do ideal",
+      muitas_girias: "Muitas gírias/informalidades",
+      muitos_vicios: "Muitos vícios de linguagem",
+      poucos_vicios: "Poucos vícios de linguagem",
+      objecao_segura: "Boa recuperação em objeções",
+      objecao_tensa: "Tensão ao responder objeções",
+      cansaco: "Sinais de cansaço",
+      boa_energia: "Boa energia/motivação",
+      equilibrada: "Sessão equilibrada",
+    };
+
+    function average(arr) {
+      if (!arr.length) return 0;
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    function formatDateShort(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    }
+
+    function renderLineChart(containerEl, series, opts) {
+      const { maxY = 1, height = 200 } = opts || {};
+      const points = series[0].points;
+      if (points.length < 2) {
+        containerEl.innerHTML = '<div class="chart-empty">Poucos dados ainda — precisa de pelo menos 2 sessões com essa métrica.</div>';
+        return;
+      }
+      const W = 900;
+      const H = height;
+      const margin = { top: 16, right: 16, bottom: 28, left: 38 };
+      const plotW = W - margin.left - margin.right;
+      const plotH = H - margin.top - margin.bottom;
+      const n = points.length;
+      const x = (i) => margin.left + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2);
+      const y = (v) => margin.top + (1 - v / maxY) * plotH;
+
+      let svg = "";
+      [0, 0.5, 1].forEach((v) => {
+        const yy = margin.top + (1 - v) * plotH;
+        const label = maxY === 1 ? `${Math.round(v * 100)}%` : Math.round(v * maxY);
+        svg += `<line x1="${margin.left}" y1="${yy}" x2="${W - margin.right}" y2="${yy}" stroke="var(--grid)" stroke-width="1" />`;
+        svg += `<text x="${margin.left - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="var(--text-dim)">${label}</text>`;
+      });
+
+      series.forEach((s) => {
+        const linePoints = s.points.map((p, i) => `${x(i)},${y(p.value)}`).join(" ");
+        svg += `<polyline points="${linePoints}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
+        s.points.forEach((p, i) => {
+          svg += `<circle cx="${x(i)}" cy="${y(p.value)}" r="3" fill="${s.color}" stroke="#0d0e13" stroke-width="1.5" />`;
+        });
+      });
+
+      // Eixo X: mostra algumas datas (início, meio, fim) pra não poluir.
+      const labelIdxs = n <= 5 ? points.map((_, i) => i) : [0, Math.floor((n - 1) / 2), n - 1];
+      labelIdxs.forEach((i) => {
+        svg += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--text-dim)">${formatDateShort(points[i].date)}</text>`;
+      });
+
+      containerEl.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto;">${svg}</svg>`;
+    }
+
+    function renderLanguageSwapCards(counts, library, variantClass) {
+      const entries = Object.entries(counts).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
+      if (!entries.length) return '<div class="chart-empty">Nada identificado ainda.</div>';
+      return `<div class="language-swap-list">${entries
+        .map(([word, info]) => {
+          const suggestion = library[word] || "reduzir ou fazer uma pausa no lugar";
+          return `
+            <div class="language-swap-card ${variantClass}">
+              <span><span class="language-swap-word">"${word}"</span><span class="language-swap-count">× ${info.total} · em ${info.sessions} sessões</span></span>
+              <span><span class="language-swap-arrow">→</span><span class="language-swap-suggestion">${suggestion}</span></span>
+            </div>`;
+        })
+        .join("")}</div>`;
+    }
+
+    function accumulateCounts(target, counts) {
+      Object.entries(counts || {}).forEach(([word, count]) => {
+        if (!target[word]) target[word] = { total: 0, sessions: 0 };
+        target[word].total += count;
+        target[word].sessions += 1;
+      });
+    }
+
+    function renderInsights(sessions) {
+      const emptyStateEl = document.getElementById("emptyState");
+      const bodyEl = document.getElementById("insightsBody");
+
+      if (!sessions.length) {
+        emptyStateEl.hidden = false;
+        bodyEl.hidden = true;
+        return;
+      }
+      emptyStateEl.hidden = true;
+      bodyEl.hidden = false;
+
+      const chronological = [...sessions].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      document.getElementById("statTotalSessions").textContent = chronological.length;
+      document.getElementById("statDateRange").textContent =
+        chronological.length >= 2
+          ? `${formatDateShort(chronological[0].date)} — ${formatDateShort(chronological[chronological.length - 1].date)}`
+          : formatDateShort(chronological[0].date);
+
+      // --- Nota de oratória ao longo do tempo ---
+      const oratoriaPoints = chronological
+        .filter((s) => s.oratoria_score != null)
+        .map((s) => ({ date: s.date, value: s.oratoria_score }));
+      document.getElementById("statAvgOratoria").textContent = oratoriaPoints.length
+        ? Math.round(average(oratoriaPoints.map((p) => p.value)))
+        : "—";
+      renderLineChart(
+        document.getElementById("oratoriaChartWrap"),
+        [{ points: oratoriaPoints, color: "#7ee787" }],
+        { maxY: 100 }
+      );
+      if (!oratoriaPoints.length) {
+        document.getElementById("oratoriaChartWrap").innerHTML =
+          '<div class="chart-empty">Suas próximas sessões vão começar a alimentar esse gráfico — a nota de oratória só passou a ser salva a partir de agora.</div>';
+      }
+
+      // --- Padrão emocional ---
+      const tiredPoints = chronological.map((s) => ({ date: s.date, value: s.tired || 0 }));
+      const focusedPoints = chronological.map((s) => ({ date: s.date, value: s.focused || 0 }));
+      const motivatedPoints = chronological.map((s) => ({ date: s.date, value: s.motivated || 0 }));
+      renderLineChart(
+        document.getElementById("emotionChartWrap"),
+        [
+          { points: tiredPoints, color: "#3987e5" },
+          { points: focusedPoints, color: "#199e70" },
+          { points: motivatedPoints, color: "#c98500" },
+        ],
+        { maxY: 1 }
+      );
+
+      // --- Equilíbrio de conversa ---
+      const withDynamics = chronological.filter((s) => s.dynamics && typeof s.dynamics.pctYou === "number");
+      const talkWrap = document.getElementById("talkBalanceWrap");
+      if (withDynamics.length) {
+        const avgYou = Math.round(average(withDynamics.map((s) => s.dynamics.pctYou)));
+        const avgOther = 100 - avgYou;
+        document.getElementById("statAvgTalk").textContent = `${avgYou}%`;
+        talkWrap.innerHTML = `
+          <div class="talk-split-bar">
+            <div class="talk-split-you" style="width:${avgYou}%"></div>
+            <div class="talk-split-other" style="width:${avgOther}%"></div>
+          </div>
+          <div class="talk-split-labels"><span>Você ${avgYou}% (média)</span><span>Outro participante ${avgOther}% (média)</span></div>
+          <div class="chart-empty" style="padding-top:14px">Baseado em ${withDynamics.length} de ${chronological.length} sessões com dados de fala suficientes.</div>
+        `;
+      } else {
+        document.getElementById("statAvgTalk").textContent = "—";
+        talkWrap.innerHTML = '<div class="chart-empty">Sem dados de dinâmica de conversa suficientes ainda.</div>';
+      }
+
+      // --- Principais pontos de melhoria (agregado por chave estável) ---
+      const tipCounts = {};
+      chronological.forEach((s) => {
+        (s.tips || []).forEach((t) => {
+          if (!t || !t.key) return;
+          if (!tipCounts[t.key]) tipCounts[t.key] = { type: t.type, count: 0 };
+          tipCounts[t.key].count += 1;
+        });
+      });
+      const rankedTips = Object.entries(tipCounts).sort((a, b) => b[1].count - a[1].count);
+      const tipsWrap = document.getElementById("tipsFreqWrap");
+      if (rankedTips.length) {
+        tipsWrap.innerHTML = rankedTips
+          .slice(0, 10)
+          .map(([key, info]) => {
+            const label = TIP_KEY_LABELS[key] || key;
+            const cls = info.type === "positivo" ? "positive" : "improve";
+            const icon = info.type === "positivo" ? "✓" : "→";
+            return `
+              <div class="tip-freq-row ${cls}">
+                <span class="tip-freq-label">${icon} ${label}</span>
+                <span class="tip-freq-count">${info.count} de ${chronological.length} sessões</span>
+              </div>`;
+          })
+          .join("");
+      } else {
+        tipsWrap.innerHTML = '<div class="chart-empty">Sem dicas registradas ainda.</div>';
+      }
+
+      // --- Vícios de linguagem e gírias recorrentes ---
+      const fillerTotals = {};
+      const slangTotals = {};
+      chronological.forEach((s) => {
+        accumulateCounts(fillerTotals, s.filler_counts);
+        accumulateCounts(slangTotals, s.slang_counts);
+      });
+      document.getElementById("fillerFreqWrap").innerHTML = renderLanguageSwapCards(fillerTotals, FILLER_LIBRARY, "filler-swap");
+      document.getElementById("slangFreqWrap").innerHTML = renderLanguageSwapCards(slangTotals, SLANG_LIBRARY, "slang-swap");
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = "login.html";
+    });
+
+    async function init() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        window.location.href = "login.html";
+        return;
+      }
+      currentUserId = session.user.id;
+
+      const { data, error } = await supabaseClient
+        .from("sessions")
+        .select("*")
+        .eq("user_id", currentUserId)
+        .order("date", { ascending: true });
+
+      document.getElementById("gate").hidden = true;
+      document.getElementById("app").hidden = false;
+
+      if (error) {
+        document.getElementById("emptyState").hidden = false;
+        document.getElementById("emptyState").textContent = "Não foi possível carregar seu histórico agora.";
+        document.getElementById("insightsBody").hidden = true;
+        return;
+      }
+
+      renderInsights(data || []);
+    }
+
+    init();
+  </script>
+</body>
+</html>
