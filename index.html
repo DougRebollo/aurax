@@ -2393,7 +2393,9 @@
     let pauseAlreadyFlagged = false;
 
     const SILENCE_RMS_THRESHOLD = 0.02;
-    const PAUSE_MIN_MS = 2000;
+    // 2s disparava até em pausa natural de respiração/pensamento entre frases.
+    // Uma pausa só começa a soar estranha numa conversa por volta de 4s.
+    const PAUSE_MIN_MS = 4000;
 
     // --- Alertas ao vivo: avisos curtos e discretos durante a call ---
     const liveAlertsEl = document.getElementById("liveAlerts");
