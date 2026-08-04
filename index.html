@@ -2446,13 +2446,19 @@
     let recentWordEvents = [];
     let fastPaceAlreadyFlagged = false;
 
-    // Nível de volume "recente" comparado com o seu volume normal (o mesmo
-    // "ownClusterAvg" da distinção de falantes) — pra avisar se está falando
-    // baixo demais ou alto demais, não só se está monótono ou não.
+    // Nível de volume "recente" comparado com o seu volume típico NESTA call
+    // — pra avisar se está falando baixo demais ou alto demais. Importante:
+    // usa uma referência própria (typicalVolumeSamples), não o ownClusterAvg
+    // da distinção de falantes — aquele é calibrado de propósito pra baixo
+    // (percentil 25) pra não confundir sua própria voz com "outro
+    // participante", o que faria QUALQUER volume normal parecer "alto
+    // demais" aqui se reaproveitado pra essa outra finalidade.
     const VOLUME_WINDOW_MS = 3000;
-    const VOLUME_LOW_RATIO = 0.55;
-    const VOLUME_HIGH_RATIO = 1.7;
+    const TYPICAL_VOLUME_WINDOW_MS = 45000;
+    const VOLUME_LOW_RATIO = 0.5;
+    const VOLUME_HIGH_RATIO = 2;
     let recentVolumeSamples = [];
+    let typicalVolumeSamples = [];
     let lowVolumeAlreadyFlagged = false;
     let highVolumeAlreadyFlagged = false;
 
@@ -2710,13 +2716,18 @@
       let volumeLabel = "";
       if (volume >= SILENCE_RMS_THRESHOLD) {
         recentVolumeSamples.push({ time: now, volume });
+        typicalVolumeSamples.push({ time: now, volume });
       }
       recentVolumeSamples = recentVolumeSamples.filter((s) => now - s.time < VOLUME_WINDOW_MS);
+      typicalVolumeSamples = typicalVolumeSamples.filter((s) => now - s.time < TYPICAL_VOLUME_WINDOW_MS);
       const recentAvgVolume = recentVolumeSamples.length
         ? average(recentVolumeSamples.map((s) => s.volume))
         : 0;
-      if (ownClusterAvg && recentAvgVolume > 0) {
-        const ratio = recentAvgVolume / ownClusterAvg;
+      const typicalAvgVolume = typicalVolumeSamples.length
+        ? average(typicalVolumeSamples.map((s) => s.volume))
+        : 0;
+      if (typicalVolumeSamples.length >= 5 && recentAvgVolume > 0) {
+        const ratio = recentAvgVolume / typicalAvgVolume;
         if (ratio < VOLUME_LOW_RATIO) {
           volumeLabel = " · Volume: baixo demais";
           if (!lowVolumeAlreadyFlagged) {
@@ -2918,6 +2929,7 @@
         recentWordEvents = [];
         fastPaceAlreadyFlagged = false;
         recentVolumeSamples = [];
+        typicalVolumeSamples = [];
         lowVolumeAlreadyFlagged = false;
         highVolumeAlreadyFlagged = false;
         objectionWindowActive = false;
