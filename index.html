@@ -1875,7 +1875,26 @@
       return "#ff6b5b";
     }
 
-    function oratoriaInsightLines({ subScores, wpm, pauseCount, ownConfidences }) {
+    // Compara a primeira metade da sessão com a segunda: se o volume da voz
+    // caiu bastante, é um sinal de cansaço vocal (a energia da fala vai
+    // esvaziando) — complementa o cansaço facial (que já olha pros olhos),
+    // já que uma pessoa pode ficar com a voz mais fraca antes de aparecer no rosto.
+    const VOCAL_FATIGUE_DROP_RATIO = 0.25;
+
+    function detectVocalFatigue(ownVolumes) {
+      if (ownVolumes.length < 6) return null;
+      const mid = Math.floor(ownVolumes.length / 2);
+      const firstHalf = average(ownVolumes.slice(0, mid));
+      const secondHalf = average(ownVolumes.slice(mid));
+      if (firstHalf <= 0) return null;
+      const dropRatio = (firstHalf - secondHalf) / firstHalf;
+      if (dropRatio >= VOCAL_FATIGUE_DROP_RATIO) {
+        return `Sua voz perdeu ${Math.round(dropRatio * 100)}% de energia na segunda metade da sessão — pode ser sinal de cansaço vocal.`;
+      }
+      return null;
+    }
+
+    function oratoriaInsightLines({ subScores, wpm, pauseCount, ownConfidences, ownVolumes }) {
       const lines = [];
       subScores
         .filter((s) => s.score < 60)
@@ -1896,6 +1915,10 @@
             lines.push("Voz bastante monótona nesta sessão — variar o tom em pontos-chave deixa a fala mais envolvente.");
           }
         });
+
+      const fatigueLine = detectVocalFatigue(ownVolumes || []);
+      if (fatigueLine) lines.push(fatigueLine);
+
       if (!lines.length) {
         lines.push("Boa entrega nesta sessão — sem pontos fracos fortes na oratória.");
       }
@@ -1961,6 +1984,7 @@
         wpm,
         pauseCount: sessionPauseCount,
         ownConfidences: sessionConfidences,
+        ownVolumes: sessionVolumes,
       });
       summaryOratoriaEl.innerHTML = renderOratoriaCard(result, insights);
     }
@@ -2101,6 +2125,7 @@
         wpm: wpmSession,
         pauseCount: sessionPauseCount,
         ownConfidences: sessionConfidences,
+        ownVolumes: sessionVolumes,
       });
       summaryOratoriaEl.innerHTML = renderOratoriaCard(oratoriaResult, oratoriaInsights);
 
@@ -2421,6 +2446,16 @@
     let recentWordEvents = [];
     let fastPaceAlreadyFlagged = false;
 
+    // Nível de volume "recente" comparado com o seu volume normal (o mesmo
+    // "ownClusterAvg" da distinção de falantes) — pra avisar se está falando
+    // baixo demais ou alto demais, não só se está monótono ou não.
+    const VOLUME_WINDOW_MS = 3000;
+    const VOLUME_LOW_RATIO = 0.55;
+    const VOLUME_HIGH_RATIO = 1.7;
+    let recentVolumeSamples = [];
+    let lowVolumeAlreadyFlagged = false;
+    let highVolumeAlreadyFlagged = false;
+
     // --- Distinção de falantes (aproximada, por volume) ---
     // Não é diarização de verdade — não há como isolar vozes só com um
     // microfone no navegador quando as duas vozes saem pela mesma caixa de som
@@ -2672,7 +2707,38 @@
         fastPaceAlreadyFlagged = false;
       }
 
-      voiceMetaEl.textContent = `${recentWpm} palavras/min · ${sessionPauseCount} pausas longas`;
+      let volumeLabel = "";
+      if (volume >= SILENCE_RMS_THRESHOLD) {
+        recentVolumeSamples.push({ time: now, volume });
+      }
+      recentVolumeSamples = recentVolumeSamples.filter((s) => now - s.time < VOLUME_WINDOW_MS);
+      const recentAvgVolume = recentVolumeSamples.length
+        ? average(recentVolumeSamples.map((s) => s.volume))
+        : 0;
+      if (ownClusterAvg && recentAvgVolume > 0) {
+        const ratio = recentAvgVolume / ownClusterAvg;
+        if (ratio < VOLUME_LOW_RATIO) {
+          volumeLabel = " · Volume: baixo demais";
+          if (!lowVolumeAlreadyFlagged) {
+            lowVolumeAlreadyFlagged = true;
+            pushLiveAlert("Sua voz está baixa demais — projete mais ou aproxime o microfone.");
+          }
+        } else {
+          lowVolumeAlreadyFlagged = false;
+          if (ratio > VOLUME_HIGH_RATIO) {
+            volumeLabel = " · Volume: alto demais";
+            if (!highVolumeAlreadyFlagged) {
+              highVolumeAlreadyFlagged = true;
+              pushLiveAlert("Sua voz está alta demais — vale abaixar um pouco.");
+            }
+          } else {
+            highVolumeAlreadyFlagged = false;
+            volumeLabel = " · Volume: bom nível";
+          }
+        }
+      }
+
+      voiceMetaEl.textContent = `${recentWpm} palavras/min · ${sessionPauseCount} pausas longas${volumeLabel}`;
     }
 
     function formatClock(totalSeconds) {
@@ -2851,6 +2917,9 @@
         transcriptWordCount = 0;
         recentWordEvents = [];
         fastPaceAlreadyFlagged = false;
+        recentVolumeSamples = [];
+        lowVolumeAlreadyFlagged = false;
+        highVolumeAlreadyFlagged = false;
         objectionWindowActive = false;
         objectionWindowSamples = [];
         currentUtteranceVolumes = [];
