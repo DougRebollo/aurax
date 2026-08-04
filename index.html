@@ -169,13 +169,18 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   }
   #status-panel h2 { font-size: 1rem; margin: 0; }
-  .status-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .status-panel-header .ghost {
+  .status-panel-header { margin-bottom: 10px; }
+  .status-panel-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .status-panel-nav .ghost {
     margin-top: 0;
-    padding: 4px 12px;
-    font-size: 0.72rem;
+    padding: 6px 13px;
+    font-size: 0.74rem;
     box-shadow: none;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #eee;
   }
+  .status-panel-nav .ghost:hover { background: rgba(255, 255, 255, 0.16); }
   .status-row {
     display: flex;
     justify-content: space-between;
@@ -801,12 +806,12 @@
       <div id="status-panel">
         <div class="status-panel-header">
           <h2>Status ao vivo</h2>
-          <div style="display:flex; gap:6px;">
-            <button type="button" id="howItWorksBtn" class="ghost">Como funciona</button>
-            <button type="button" id="insightsBtn" class="ghost">Meus Insights</button>
-            <button type="button" id="backToGestorBtn" class="ghost" style="display:none">Painel do Gestor</button>
-            <button type="button" id="logoutBtn" class="ghost">Sair</button>
-          </div>
+        </div>
+        <div class="status-panel-nav">
+          <button type="button" id="howItWorksBtn" class="ghost">Como funciona</button>
+          <button type="button" id="insightsBtn" class="ghost">Meus Insights</button>
+          <button type="button" id="backToGestorBtn" class="ghost" style="display:none">Painel do Gestor</button>
+          <button type="button" id="logoutBtn" class="ghost">Sair</button>
         </div>
         <div class="status-row">
           <span class="status-label">Cliente</span>
