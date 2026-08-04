@@ -2393,9 +2393,10 @@
     let pauseAlreadyFlagged = false;
 
     const SILENCE_RMS_THRESHOLD = 0.02;
-    // 2s disparava até em pausa natural de respiração/pensamento entre frases.
-    // Uma pausa só começa a soar estranha numa conversa por volta de 4s.
-    const PAUSE_MIN_MS = 4000;
+    // Ajustado a partir de teste real: 2s e depois 4s ainda disparavam em
+    // pausas normais de conversa. 20s é bem mais próximo de um silêncio que
+    // realmente pesa numa negociação.
+    const PAUSE_MIN_MS = 20000;
 
     // --- Alertas ao vivo: avisos curtos e discretos durante a call ---
     const liveAlertsEl = document.getElementById("liveAlerts");
@@ -2794,9 +2795,15 @@
       };
 
       const FATAL_MIC_ERRORS = ["not-allowed", "service-not-allowed", "audio-capture"];
+      // "no-speech" é o navegador dizendo "não ouvi nada por um tempo" — comum
+      // e inofensivo (silêncio natural entre falas), reinicia sozinho. Não é
+      // um erro de verdade, então não mostra nada assustador pra isso.
+      const BENIGN_MIC_ERRORS = ["no-speech"];
 
       r.onerror = (event) => {
-        transcriptStatusEl.textContent = "Erro no microfone: " + event.error;
+        if (!BENIGN_MIC_ERRORS.includes(event.error)) {
+          transcriptStatusEl.textContent = "Erro no microfone: " + event.error;
+        }
         if (FATAL_MIC_ERRORS.includes(event.error)) {
           // Sem isso, o onend abaixo ficaria tentando reiniciar pra sempre
           // mesmo sem chance de sucesso (ex: permissão negada).
@@ -2806,6 +2813,13 @@
           micToggleBtn.textContent = "Ativar microfone";
           teardownAudioAnalyser();
         }
+      };
+
+      r.onstart = () => {
+        // Confirma que voltou a ouvir depois de um restart automático —
+        // sem isso, uma mensagem de erro antiga ficava presa na tela mesmo
+        // com o reconhecimento já funcionando de novo.
+        if (transcribing) transcriptStatusEl.textContent = "Ouvindo...";
       };
 
       r.onend = () => {
