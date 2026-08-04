@@ -45,7 +45,19 @@
   }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 20px 80px; position: relative; }
 
-  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 14px 0;
+    background: rgba(11, 12, 16, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
   .logo {
     font-size: 1.15rem; font-weight: 700; letter-spacing: 1.5px;
     background: linear-gradient(90deg, #eaf2ff, var(--accent-green) 55%, var(--accent-blue));
@@ -152,7 +164,7 @@
     <div class="top-bar">
       <span class="logo">AuraX</span>
       <div style="display:flex; gap:10px;">
-        <a class="btn ghost" href="index.html" style="text-decoration:none; display:inline-block;">Meu AuraX</a>
+        <a class="btn ghost" href="index.html" style="text-decoration:none; display:inline-block;">← Voltar ao AuraX</a>
         <button type="button" class="btn ghost" id="logoutBtn">Sair</button>
       </div>
     </div>
