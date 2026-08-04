@@ -1770,6 +1770,16 @@
       sessionTimerEl.textContent = "";
       updateSessionStatusDisplay();
       renderSummary();
+
+      // O resumo do que acabou de acontecer já fica salvo nos cards da
+      // esquerda e no resumo completo abaixo — a transcrição ao vivo e os
+      // alertas podem voltar pro zero, prontos pra próxima sessão (o
+      // microfone continua ligado se já estava, só some o que já passou).
+      transcriptLogEl.innerHTML = "";
+      liveAlertsEl.innerHTML = "";
+      transcriptFinalCount = 0;
+      transcriptWordCount = 0;
+      updateTranscriptCount();
     });
 
     function maybeSampleSession(expressions, estimates) {
