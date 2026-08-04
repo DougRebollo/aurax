@@ -623,6 +623,19 @@
     margin-right: 4px;
   }
 
+  .speaker-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 999px;
+    margin-right: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .speaker-you { background: rgba(79, 140, 255, 0.18); color: #7ba9ff; }
+  .speaker-other { background: rgba(255, 182, 72, 0.18); color: #ffcf80; }
+
   .history-transcript { margin-top: 8px; }
   .history-transcript summary {
     cursor: pointer;
@@ -718,6 +731,23 @@
   .oratoria-breakdown { flex: 1 1 260px; min-width: 240px; }
   .oratoria-breakdown .bar-label { width: 150px; font-size: 0.8rem; text-transform: none; }
   .oratoria-disclaimer { font-size: 0.72rem; color: #777; margin-top: 10px; }
+
+  .talk-split-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #333;
+  }
+  .talk-split-you { background: linear-gradient(90deg, #4f8cff, #7ba9ff); }
+  .talk-split-other { background: linear-gradient(90deg, #ffb648, #ffcf80); }
+  .talk-split-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: #999;
+    margin-top: 6px;
+  }
   .oratoria-live-badge {
     font-size: 0.62rem;
     font-weight: 700;
@@ -842,9 +872,12 @@
     <div id="transcript-section">
       <div id="transcript-header">
         <h2>Transcrição ao vivo</h2>
-        <button id="micToggleBtn">Ativar microfone</button>
+        <div style="display:flex; gap:6px;">
+          <button type="button" id="calibrateVoiceBtn" class="ghost">Calibrar minha voz</button>
+          <button id="micToggleBtn">Ativar microfone</button>
+        </div>
       </div>
-      <div id="transcript-note">Use fone de ouvido na call — sem isso, o microfone também capta a voz do outro participante pela caixa de som, o que afeta a nota de oratória e os vícios de linguagem contados.</div>
+      <div id="transcript-note">"Você" / "Outro participante" é uma aproximação pelo volume da voz, não identificação real. Calibre sua voz antes da call e use fone de ouvido para o resultado ficar bem mais confiável.</div>
       <div id="transcriptMeta">
         <span id="micPulse" class="mic-pulse hidden"></span>
         <span id="transcriptStatus"></span>
@@ -867,6 +900,9 @@
     </div>
     <svg id="trendChart" viewBox="0 0 640 240"></svg>
     <div id="peakInsights"></div>
+
+    <h3>Dinâmica da conversa</h3>
+    <div id="summaryDynamics"></div>
 
     <h3>Emoções (média da sessão)</h3>
     <div id="summaryEmotions"></div>
@@ -1217,6 +1253,7 @@
     const summaryTranscriptEl = document.getElementById("summaryTranscript");
     const summaryNegotiationEl = document.getElementById("summaryNegotiation");
     const summaryObjectionsEl = document.getElementById("summaryObjections");
+    const summaryDynamicsEl = document.getElementById("summaryDynamics");
     const summaryTipsEl = document.getElementById("summaryTips");
     const summaryOratoriaEl = document.getElementById("summaryOratoria");
     const summaryLanguageEl = document.getElementById("summaryLanguage");
@@ -1368,6 +1405,7 @@
         slangCounts: row.slang_counts || {},
         fillerCounts: row.filler_counts || {},
         objections: row.objections || [],
+        dynamics: row.dynamics,
         tips: row.tips || [],
         transcript: row.transcript || [],
         notes: row.notes || "",
@@ -1468,6 +1506,7 @@
 
               ${h.tips && h.tips.length ? `<div style="margin-top:10px">${renderCoachingTips(h.tips)}</div>` : ""}
               ${h.wpm != null ? `<div class="history-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
+              ${h.dynamics ? `<div class="history-secondary-stats">Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>` : ""}
               ${negotiationTagsHtml ? `<div class="keyword-tags" style="margin-top:8px">${negotiationTagsHtml}</div>` : ""}
               ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
               ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}
@@ -1743,16 +1782,46 @@
     // intelligence): quem falou mais, quantas trocas de turno, maior fala de
     // cada um (em palavras, já que não medimos duração exata por fala) e
     // quanto da sessão foi silêncio.
-    function computeSilencePct() {
-      return sessionTotalSamples ? Math.round((sessionSilentSamples / sessionTotalSamples) * 100) : 0;
+    function computeConversationDynamics(transcript) {
+      if (!transcript.length) return null;
+
+      let wordsYou = 0;
+      let wordsOther = 0;
+      let longestYou = 0;
+      let longestOther = 0;
+      let turnChanges = 0;
+
+      transcript.forEach((line, i) => {
+        const wc = line.text.split(/\s+/).filter(Boolean).length;
+        if (line.speaker === "Outro participante") {
+          wordsOther += wc;
+          longestOther = Math.max(longestOther, wc);
+        } else {
+          wordsYou += wc;
+          longestYou = Math.max(longestYou, wc);
+        }
+        if (i > 0 && line.speaker !== transcript[i - 1].speaker) turnChanges++;
+      });
+
+      const totalWords = wordsYou + wordsOther;
+      const pctYou = totalWords ? Math.round((wordsYou / totalWords) * 100) : 0;
+      const pctOther = 100 - pctYou;
+      const durationMin = sessionTranscript.length
+        ? Math.max(sessionTranscript[sessionTranscript.length - 1].t / 60, 0.05)
+        : 0.05;
+      const turnsPerMinute = (turnChanges / durationMin).toFixed(1);
+      const silencePct = sessionTotalSamples ? Math.round((sessionSilentSamples / sessionTotalSamples) * 100) : 0;
+
+      return { pctYou, pctOther, turnsPerMinute, longestYou, longestOther, silencePct };
     }
 
     // Nota de oratória: combina sinais que já coletamos (ritmo, pausas,
-    // vícios) com dois novos: confiança do reconhecimento de voz do
+    // vícios) com dois novos, medidos só a partir da SUA fala (nunca do
+    // outro participante): confiança do reconhecimento de voz do
     // navegador (uma aproximação de clareza/dicção — não é um teste
     // fonético de verdade) e a variação do volume da voz (fala mais
-    // monótona x mais expressiva). Conta toda a fala detectada na call —
-    // sem fone de ouvido, a voz do outro participante também entra aqui,
+    // monótona x mais expressiva). Com fone de ouvido, isso fica bem mais
+    // confiável, já que o mic só capta a sua própria voz de verdade.
     // por isso o fone continua sendo recomendado pra maior precisão.
     function computeOratoriaScore({ wpm, pauseCount, fillerCounts, wordCount, ownConfidences, ownVolumes }) {
       const subScores = [];
@@ -1891,7 +1960,7 @@
     // Dicas de autoavaliação ao final da sessão — regras simples sobre os
     // dados que já coletamos (nada de IA generativa aqui, é tudo heurística
     // direta a partir do que foi medido nesta mesma sessão).
-    function generateCoachingTips({ silencePct, wpm, pauseCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated }) {
+    function generateCoachingTips({ dynamics, wpm, pauseCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated }) {
       const tips = [];
 
       if (wpm > 170) {
@@ -1904,8 +1973,15 @@
         tips.push({ type: "melhorar", text: `Muitas pausas longas (${pauseCount}) — pode passar hesitação.` });
       }
 
-      if (silencePct >= 15) {
-        tips.push({ type: "melhorar", text: `Silêncio acima do ideal (${silencePct}%) — pode indicar hesitação na condução.` });
+      if (dynamics) {
+        if (dynamics.pctYou >= 75) {
+          tips.push({ type: "melhorar", text: `Você dominou ${dynamics.pctYou}% da conversa — abra mais espaço para o outro participante.` });
+        } else if (dynamics.pctOther >= 35) {
+          tips.push({ type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o outro participante falar.` });
+        }
+        if (dynamics.silencePct >= 15) {
+          tips.push({ type: "melhorar", text: `Silêncio acima do ideal (${dynamics.silencePct}%) — pode indicar hesitação na condução.` });
+        }
       }
 
       const totalSlang = Object.values(slangCounts || {}).reduce((a, b) => a + b, 0);
@@ -1964,6 +2040,7 @@
         summaryTranscriptEl.innerHTML = "";
         summaryNegotiationEl.innerHTML = "";
         summaryObjectionsEl.innerHTML = "";
+        summaryDynamicsEl.innerHTML = "";
         summaryLanguageEl.innerHTML = "";
         summaryOratoriaEl.innerHTML = "";
         summaryTipsEl.innerHTML = "";
@@ -2025,6 +2102,22 @@
             .join("")
         : '<div class="insight-line">Nenhuma objeção identificada nesta sessão.</div>';
 
+      const dynamics = computeConversationDynamics(sessionTranscript);
+      if (dynamics) {
+        summaryDynamicsEl.innerHTML = `
+          <div class="talk-split-bar">
+            <div class="talk-split-you" style="width:${dynamics.pctYou}%"></div>
+            <div class="talk-split-other" style="width:${dynamics.pctOther}%"></div>
+          </div>
+          <div class="talk-split-labels"><span>Você ${dynamics.pctYou}%</span><span>Outro participante ${dynamics.pctOther}%</span></div>
+          <div class="insight-line" style="margin-top:10px">Trocas de turno: ${dynamics.turnsPerMinute}/min</div>
+          <div class="insight-line">Maior fala sua: ${dynamics.longestYou} palavras · do outro: ${dynamics.longestOther} palavras</div>
+          <div class="insight-line">Silêncio na sessão: ${dynamics.silencePct}%</div>
+        `;
+      } else {
+        summaryDynamicsEl.innerHTML = '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
+      }
+
       const fillerSwapHtml = renderLanguageSwapCards(sessionFillerCounts, FILLER_LIBRARY, "filler-swap");
       const slangSwapHtml = renderLanguageSwapCards(sessionSlangCounts, SLANG_LIBRARY, "slang-swap");
       summaryLanguageEl.innerHTML = `
@@ -2037,10 +2130,9 @@
       const avgFocused = average(sessionData.map((d) => d.focused || 0));
       const avgTired = average(sessionData.map((d) => d.tired || 0));
       const avgMotivated = average(sessionData.map((d) => d.motivated || 0));
-      const silencePct = computeSilencePct();
 
       const tips = generateCoachingTips({
-        silencePct,
+        dynamics,
         wpm: wpmSession,
         pauseCount: sessionPauseCount,
         slangCounts: sessionSlangCounts,
@@ -2063,6 +2155,7 @@
         keywordCounts: sessionKeywordCounts,
         client: currentClientName,
         objections: sessionObjections,
+        dynamics,
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         tips,
@@ -2082,10 +2175,13 @@
             .map((w) => `<span class="slang-tag">${w}${SLANG_LIBRARY[w] ? ` → ${SLANG_LIBRARY[w]}` : ""}</span>`)
             .join("")}</div>`
         : "";
+      const speakerTagHtml = line.speaker
+        ? `<span class="speaker-tag ${line.speaker === "Outro participante" ? "speaker-other" : "speaker-you"}">${line.speaker}</span>`
+        : "";
       const flagClass = hasKeywords ? " transcript-flagged" : hasSlang ? " transcript-slang" : "";
       return `
         <div class="transcript-line${flagClass}">
-          <span class="transcript-time">${formatClock(line.t)}</span>${line.text}
+          <span class="transcript-time">${formatClock(line.t)}</span>${speakerTagHtml}${line.text}
           <span class="transcript-expression"><span class="expr-dot" style="background:${color}"></span>${line.expression}</span>
           ${keywordTagsHtml}
           ${slangTagsHtml}
@@ -2120,11 +2216,12 @@
 
       lines.push("");
       lines.push("Transcrição da sessão");
-      lines.push(["tempo_minutos", "texto", "expressao", "palavras_chave"].join(","));
+      lines.push(["tempo_minutos", "falante", "texto", "expressao", "palavras_chave"].join(","));
       sessionTranscript.forEach((line) => {
         lines.push(
           [
             (line.t / 60).toFixed(2),
+            csvEscape(line.speaker || ""),
             csvEscape(line.text),
             csvEscape(line.expression),
             csvEscape((line.keywords || []).join("; ")),
@@ -2151,9 +2248,17 @@
         lines.push([(o.t / 60).toFixed(2), csvEscape(o.phrase), csvEscape(o.result)].join(","));
       });
 
-      const silencePctForCsv = computeSilencePct();
+      const dynamicsForCsv = computeConversationDynamics(sessionTranscript);
       lines.push("");
-      lines.push(["silencio_pct", silencePctForCsv].join(","));
+      lines.push("Dinâmica da conversa");
+      if (dynamicsForCsv) {
+        lines.push(["fala_voce_pct", dynamicsForCsv.pctYou].join(","));
+        lines.push(["fala_outro_pct", dynamicsForCsv.pctOther].join(","));
+        lines.push(["trocas_de_turno_por_min", dynamicsForCsv.turnsPerMinute].join(","));
+        lines.push(["maior_fala_voce_palavras", dynamicsForCsv.longestYou].join(","));
+        lines.push(["maior_fala_outro_palavras", dynamicsForCsv.longestOther].join(","));
+        lines.push(["silencio_pct", dynamicsForCsv.silencePct].join(","));
+      }
 
       lines.push("");
       lines.push("Gírias identificadas");
@@ -2170,7 +2275,7 @@
         .forEach(([word, count]) => lines.push([csvEscape(word), csvEscape(FILLER_LIBRARY[word] || ""), count].join(",")));
 
       const tipsForCsv = generateCoachingTips({
-        silencePct: silencePctForCsv,
+        dynamics: dynamicsForCsv,
         wpm: wpmSession,
         pauseCount: sessionPauseCount,
         slangCounts: sessionSlangCounts,
@@ -2249,6 +2354,7 @@
 
     // --- Transcrição ao vivo (Web Speech API) ---
     const micToggleBtn = document.getElementById("micToggleBtn");
+    const calibrateVoiceBtn = document.getElementById("calibrateVoiceBtn");
     const transcriptStatusEl = document.getElementById("transcriptStatus");
     const transcriptLogEl = document.getElementById("transcriptLog");
     const micPulseEl = document.getElementById("micPulse");
@@ -2303,12 +2409,174 @@
     let recentWordEvents = [];
     let fastPaceAlreadyFlagged = false;
 
-    // Volumes da fala em andamento (janela de uma única frase, até o próximo
-    // resultado final do reconhecimento de voz) — usado pra estimar a nota
-    // de oratória (projeção/monotonia). Sem fone de ouvido, o mic também
-    // capta o outro participante pela caixa de som, então isso conta tudo
-    // que for detectado, não só a sua voz (ver aviso na tela).
+    // --- Distinção de falantes (aproximada, por volume) ---
+    // Não é diarização de verdade — não há como isolar vozes só com um
+    // microfone no navegador quando as duas vozes saem pela mesma caixa de som
+    // e voltam pelo mesmo mic (sem fone). É uma aproximação por agrupamento:
+    // ao longo da call, as falas vão se dividindo em dois grupos que se
+    // ajustam sozinhos (você / outro participante) em vez de comparar com um
+    // número fixo travado no momento da calibração — um limiar fixo quebra
+    // fácil, porque o volume "normal" muda de call pra call (ambiente,
+    // volume da caixa de som etc.), e tudo acaba caindo do lado errado.
     let currentUtteranceVolumes = [];
+    const VOICE_BASELINE_KEY = "aurax_voice_baseline";
+    const CALIBRATION_DURATION_MS = 3000;
+    const CLUSTER_LEARNING_RATE = 0.2;
+    const OTHER_CLUSTER_SEED_RATIO = 0.7; // só marca "outro participante" se soar bem mais baixo que você
+    const OTHER_CLUSTER_CONFIRM_STREAK = 2; // exige 2 falas baixas seguidas antes de confirmar outra voz
+    let ownVoiceBaseline = Number(localStorage.getItem(VOICE_BASELINE_KEY)) || null;
+    let ownClusterAvg = null;
+    let otherClusterAvg = null;
+    let belowSeedThresholdStreak = 0;
+
+    // Se os dois grupos de volume ficarem parecidos demais — ou se nenhum
+    // "outro participante" aparecer depois de várias falas — a distinção de
+    // vozes deixa de ser confiável (normalmente sinal de call sem fone de
+    // ouvido, com o volume da caixa de som alto). Avisa uma vez por sessão.
+    const LOW_SEPARATION_RATIO = 0.75;
+    const NO_OTHER_VOICE_STREAK = 8;
+    let lowSeparationAlertShown = false;
+    let utteranceCountSinceReset = 0;
+
+    function resetSpeakerClusters() {
+      ownClusterAvg = ownVoiceBaseline;
+      otherClusterAvg = null;
+      belowSeedThresholdStreak = 0;
+      lowSeparationAlertShown = false;
+      utteranceCountSinceReset = 0;
+    }
+
+    function maybeWarnLowSeparation() {
+      if (lowSeparationAlertShown) return;
+      if (otherClusterAvg !== null && ownClusterAvg > 0 && otherClusterAvg / ownClusterAvg > LOW_SEPARATION_RATIO) {
+        lowSeparationAlertShown = true;
+        pushLiveAlert("Sua voz e a do outro participante estão com volume parecido — use fone de ouvido pra melhorar a distinção.");
+        return;
+      }
+      if (otherClusterAvg === null && utteranceCountSinceReset >= NO_OTHER_VOICE_STREAK) {
+        lowSeparationAlertShown = true;
+        pushLiveAlert("Não estou distinguindo outra voz até agora — se tiver mais alguém na call, use fone de ouvido pra melhorar a distinção.");
+      }
+    }
+
+    function classifySpeaker(avgVolume) {
+      if (avgVolume === 0) return "Você";
+      utteranceCountSinceReset++;
+
+      if (ownClusterAvg === null) {
+        ownClusterAvg = avgVolume;
+        return "Você";
+      }
+
+      if (otherClusterAvg === null) {
+        if (avgVolume < ownClusterAvg * OTHER_CLUSTER_SEED_RATIO) {
+          belowSeedThresholdStreak++;
+          if (belowSeedThresholdStreak >= OTHER_CLUSTER_CONFIRM_STREAK) {
+            otherClusterAvg = avgVolume;
+            return "Outro participante";
+          }
+          // Só uma fala mais baixa ainda não confirma outra voz — pode ser
+          // só uma variação natural da sua própria fala (ex: trecho mais
+          // calmo de uma frase longa).
+          return "Você";
+        }
+        belowSeedThresholdStreak = 0;
+        ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
+        maybeWarnLowSeparation();
+        return "Você";
+      }
+
+      const distToOwn = Math.abs(avgVolume - ownClusterAvg);
+      const distToOther = Math.abs(avgVolume - otherClusterAvg);
+      let speaker;
+      if (distToOwn <= distToOther) {
+        ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
+        speaker = "Você";
+      } else {
+        otherClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - otherClusterAvg);
+        speaker = "Outro participante";
+      }
+      maybeWarnLowSeparation();
+      return speaker;
+    }
+
+    async function calibrateVoice() {
+      if (calibrateVoiceBtn.disabled) return;
+      const originalLabel = calibrateVoiceBtn.textContent;
+      calibrateVoiceBtn.disabled = true;
+
+      let tempStream = null;
+      let tempContext = null;
+      let readVolume;
+
+      if (analyserNode) {
+        // Transcrição já está ativa — reaproveita a análise em andamento.
+        readVolume = getCurrentVolume;
+      } else {
+        try {
+          tempStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
+          });
+        } catch (err) {
+          calibrateVoiceBtn.textContent = originalLabel;
+          calibrateVoiceBtn.disabled = false;
+          alert("Não foi possível acessar o microfone para calibrar.");
+          return;
+        }
+        tempContext = new (window.AudioContext || window.webkitAudioContext)();
+        const tempSource = tempContext.createMediaStreamSource(tempStream);
+        const tempAnalyser = tempContext.createAnalyser();
+        tempAnalyser.fftSize = 2048;
+        const tempSamples = new Uint8Array(tempAnalyser.fftSize);
+        tempSource.connect(tempAnalyser);
+        readVolume = () => {
+          tempAnalyser.getByteTimeDomainData(tempSamples);
+          let sumSquares = 0;
+          for (let i = 0; i < tempSamples.length; i++) {
+            const normalized = (tempSamples[i] - 128) / 128;
+            sumSquares += normalized * normalized;
+          }
+          return Math.sqrt(sumSquares / tempSamples.length);
+        };
+      }
+
+      const readings = [];
+      calibrateVoiceBtn.textContent = "Fale algumas frases...";
+      const startedAt = Date.now();
+
+      await new Promise((resolve) => {
+        const intervalId = setInterval(() => {
+          const v = readVolume();
+          if (v >= SILENCE_RMS_THRESHOLD) readings.push(v);
+          if (Date.now() - startedAt >= CALIBRATION_DURATION_MS) {
+            clearInterval(intervalId);
+            resolve();
+          }
+        }, 100);
+      });
+
+      if (tempStream) tempStream.getTracks().forEach((t) => t.stop());
+      if (tempContext) tempContext.close();
+
+      if (readings.length >= 3) {
+        // Usa um percentil baixo (não a média) como referência: a fala tem
+        // trechos naturalmente mais baixos, e se a referência for a média
+        // "cheia", esses trechos ficam parecendo outra pessoa falando.
+        const sorted = [...readings].sort((a, b) => a - b);
+        ownVoiceBaseline = sorted[Math.floor(sorted.length * 0.25)];
+        localStorage.setItem(VOICE_BASELINE_KEY, String(ownVoiceBaseline));
+        calibrateVoiceBtn.textContent = "Voz calibrada ✓";
+      } else {
+        calibrateVoiceBtn.textContent = "Não captou sua voz, tente de novo";
+      }
+
+      setTimeout(() => {
+        calibrateVoiceBtn.textContent = originalLabel;
+        calibrateVoiceBtn.disabled = false;
+      }, 2200);
+    }
+
+    calibrateVoiceBtn.addEventListener("click", calibrateVoice);
 
     async function setupAudioAnalyser() {
       // echoCancellation ajuda a reduzir o som da própria caixa de som voltando
@@ -2420,11 +2688,12 @@
       const wordCount = text.split(/\s+/).filter(Boolean).length;
 
       const avgUtteranceVolume = currentUtteranceVolumes.length ? average(currentUtteranceVolumes) : 0;
+      const speaker = classifySpeaker(avgUtteranceVolume);
       currentUtteranceVolumes = [];
 
       transcriptLogEl.insertAdjacentHTML(
         "beforeend",
-        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag, keywords, slang: slangMatches })
+        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag, keywords, speaker, slang: slangMatches })
       );
       transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
       transcriptFinalCount++;
@@ -2443,7 +2712,7 @@
         objectionWindowEnd = Date.now() + OBJECTION_WINDOW_MS;
         objectionWindowSamples = [];
         objectionWindowStartT = sessionActive ? (Date.now() - sessionStartTime) / 1000 : 0;
-        pushLiveAlert(`Possível objeção: "${objectionPhrase}" — observando resposta`);
+        pushLiveAlert(`Possível objeção (${speaker}): "${objectionPhrase}" — observando resposta`);
       }
 
       if (slangMatches.length) {
@@ -2459,6 +2728,7 @@
           text,
           expression: expressionTag,
           keywords,
+          speaker,
           slang: slangMatches,
         });
         sessionWordCount += wordCount;
@@ -2471,10 +2741,12 @@
         fillerMatches.forEach((word) => {
           sessionFillerCounts[word] = (sessionFillerCounts[word] || 0) + 1;
         });
-        // Conta toda fala detectada (sem distinção de falante — ver aviso na
-        // tela sobre usar fone de ouvido pra maior precisão).
-        if (avgUtteranceVolume > 0) sessionVolumes.push(avgUtteranceVolume);
-        if (typeof confidence === "number" && confidence > 0) sessionConfidences.push(confidence);
+        // Só entra na nota de oratória a fala classificada como sua — não faz
+        // sentido avaliar a dicção/projeção de voz do outro participante.
+        if (speaker === "Você") {
+          if (avgUtteranceVolume > 0) sessionVolumes.push(avgUtteranceVolume);
+          if (typeof confidence === "number" && confidence > 0) sessionConfidences.push(confidence);
+        }
         updateLiveOratoria();
       }
     }
@@ -2557,6 +2829,7 @@
         objectionWindowActive = false;
         objectionWindowSamples = [];
         currentUtteranceVolumes = [];
+        resetSpeakerClusters();
         liveAlertsEl.innerHTML = "";
         updateTranscriptCount();
         transcriptStatusEl.textContent = "Ouvindo...";
@@ -2727,15 +3000,17 @@
         consent: true,
       },
       {
-        eyebrow: "Passo 2 de 4 · Oratória",
-        title: "Acompanhe sua nota de oratória ao vivo",
+        eyebrow: "Passo 2 de 4 · Calibração e oratória",
+        title: "Calibre sua voz e acompanhe sua oratória ao vivo",
         body: `
-          <p>Durante a sessão, o card "Nota de oratória" na coluna da esquerda vai atualizando em tempo real — ritmo, pausas, vícios de linguagem, clareza e projeção de voz.</p>
+          <p>Pra distinguir sua voz da voz de quem mais estiver na call, o AuraX precisa saber como o seu microfone capta a SUA voz. O card "Nota de oratória" na coluna da esquerda também vai atualizando em tempo real — ritmo, pausas, vícios de linguagem, clareza e projeção de voz.</p>
           <ul>
-            <li>Dá pra olhar no meio da call e já ajustar o ritmo ou a dicção na hora.</li>
-            <li>Use fone de ouvido: sem ele, o mic também capta a voz de quem mais estiver na call, o que afeta a nota.</li>
+            <li>Clique em "Calibrar agora" e fale uma frase qualquer por 3 segundos.</li>
+            <li>Recalibre se trocar de computador, microfone ou ambiente.</li>
+            <li>Use fone de ouvido na call — deixa a distinção de vozes e a nota de oratória bem mais confiáveis.</li>
           </ul>
         `,
+        action: { label: "Calibrar agora", handler: () => calibrateVoice() },
       },
       {
         eyebrow: "Passo 3 de 4 · Durante a call",
