@@ -735,6 +735,17 @@
   .oratoria-score-label { font-size: 0.65rem; color: #888; margin-top: 2px; }
   .oratoria-breakdown { flex: 1 1 260px; min-width: 240px; }
   .oratoria-breakdown .bar-label { width: 150px; font-size: 0.8rem; text-transform: none; }
+  .oratoria-rank-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid;
+    border-radius: 999px;
+    padding: 3px 11px;
+    margin-bottom: 10px;
+  }
   .oratoria-disclaimer { font-size: 0.72rem; color: #777; margin-top: 10px; }
 
   .talk-split-bar {
@@ -1890,9 +1901,21 @@
     }
 
     function oratoriaScoreColor(score) {
-      if (score >= 75) return "#7ee787";
+      if (score >= 70) return "#7ee787";
       if (score >= 50) return "#ffb648";
       return "#ff6b5b";
+    }
+
+    // Ranking simples pra dar um rótulo à nota, não só o número puro.
+    const ORATORIA_RANK_TIERS = [
+      { min: 90, label: "Excelente" },
+      { min: 70, label: "Bom" },
+      { min: 50, label: "Médio" },
+      { min: 0, label: "Precisa de atenção" },
+    ];
+
+    function oratoriaScoreRank(score) {
+      return ORATORIA_RANK_TIERS.find((tier) => score >= tier.min).label;
     }
 
     // Compara a primeira metade da sessão com a segunda: se o volume da voz
@@ -1953,6 +1976,7 @@
         return '<div class="insight-line">Sem fala suficiente pra calcular a nota de oratória nesta sessão.</div>';
       }
       const color = oratoriaScoreColor(overall);
+      const rank = oratoriaScoreRank(overall);
       const barsHtml = subScores
         .map(
           (s) => `
@@ -1972,7 +1996,10 @@
               <div class="oratoria-score-label">/100</div>
             </div>
           </div>
-          <div class="oratoria-breakdown">${barsHtml}</div>
+          <div class="oratoria-breakdown">
+            <div class="oratoria-rank-badge" style="color:${color}; border-color:${color}">${rank}</div>
+            ${barsHtml}
+          </div>
         </div>
         <div style="margin-top:12px">${insightsHtml}</div>
         <div class="oratoria-disclaimer">Aproximação a partir de ritmo, pausas, vícios de linguagem, confiança do reconhecimento de fala e variação de volume — não é uma avaliação fonoaudiológica.</div>
