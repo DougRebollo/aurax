@@ -97,6 +97,7 @@
   .stat-card { padding: 16px 18px; text-align: center; }
   .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--accent-green); }
   .stat-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .stat-rank { font-size: 0.68rem; font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
 
   .chart-card { padding: 20px 22px; }
   .chart-empty { padding: 20px 0; text-align: center; color: var(--text-dim); font-size: 0.86rem; }
@@ -182,7 +183,7 @@
     <div id="insightsBody" hidden>
       <div class="stat-grid">
         <div class="card stat-card"><div class="stat-value" id="statTotalSessions">0</div><div class="stat-label">Sessões</div></div>
-        <div class="card stat-card"><div class="stat-value" id="statAvgOratoria">—</div><div class="stat-label">Oratória média</div></div>
+        <div class="card stat-card"><div class="stat-value" id="statAvgOratoria">—</div><div class="stat-label">Oratória média</div><div class="stat-rank" id="statAvgOratoriaRank"></div></div>
         <div class="card stat-card"><div class="stat-value" id="statAvgTalk">—</div><div class="stat-label">Fala média sua</div></div>
         <div class="card stat-card"><div class="stat-value" id="statDateRange">—</div><div class="stat-label">Período</div></div>
       </div>
@@ -275,6 +276,18 @@
     function average(arr) {
       if (!arr.length) return 0;
       return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    // Mesmo ranking usado no app principal (index.html).
+    const ORATORIA_RANK_TIERS = [
+      { min: 90, label: "Excelente", color: "#7ee787" },
+      { min: 70, label: "Bom", color: "#7ee787" },
+      { min: 50, label: "Médio", color: "#ffb648" },
+      { min: 0, label: "Precisa de atenção", color: "#ff6b5b" },
+    ];
+
+    function oratoriaScoreRank(score) {
+      return ORATORIA_RANK_TIERS.find((tier) => score >= tier.min);
     }
 
     function formatDateShort(iso) {
@@ -370,9 +383,17 @@
       const oratoriaPoints = chronological
         .filter((s) => s.oratoria_score != null)
         .map((s) => ({ date: s.date, value: s.oratoria_score }));
-      document.getElementById("statAvgOratoria").textContent = oratoriaPoints.length
-        ? Math.round(average(oratoriaPoints.map((p) => p.value)))
-        : "—";
+      const rankEl = document.getElementById("statAvgOratoriaRank");
+      if (oratoriaPoints.length) {
+        const avgScore = Math.round(average(oratoriaPoints.map((p) => p.value)));
+        const rank = oratoriaScoreRank(avgScore);
+        document.getElementById("statAvgOratoria").textContent = avgScore;
+        rankEl.textContent = rank.label;
+        rankEl.style.color = rank.color;
+      } else {
+        document.getElementById("statAvgOratoria").textContent = "—";
+        rankEl.textContent = "";
+      }
       renderLineChart(
         document.getElementById("oratoriaChartWrap"),
         [{ points: oratoriaPoints, color: "#7ee787" }],
