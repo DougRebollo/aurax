@@ -1304,6 +1304,7 @@
     let sessionTranscript = [];
     let sessionWordCount = 0;
     let sessionPauseCount = 0;
+    let sessionActiveListeningCount = 0;
     let sessionKeywordCounts = {};
     let sessionObjections = [];
     let sessionSlangCounts = {};
@@ -1380,6 +1381,7 @@
       sessionTranscript = [];
       sessionWordCount = 0;
       sessionPauseCount = 0;
+      sessionActiveListeningCount = 0;
       sessionKeywordCounts = {};
       sessionObjections = [];
       sessionSlangCounts = {};
@@ -1656,7 +1658,7 @@
     // Dicas de autoavaliação ao final da sessão — regras simples sobre os
     // dados que já coletamos (nada de IA generativa aqui, é tudo heurística
     // direta a partir do que foi medido nesta mesma sessão).
-    function generateCoachingTips({ dynamics, wpm, pauseCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated }) {
+    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated }) {
       const tips = [];
 
       if (wpm > 170) {
@@ -1667,6 +1669,14 @@
 
       if (pauseCount >= 5) {
         tips.push({ key: "muitas_pausas", type: "melhorar", text: `Muitas pausas longas (${pauseCount}) — pode passar hesitação.` });
+      }
+
+      if (activeListeningCount > 0) {
+        tips.push({
+          key: "escuta_ativa_pausas",
+          type: "positivo",
+          text: `${activeListeningCount} pausa${activeListeningCount > 1 ? "s" : ""} bem longa${activeListeningCount > 1 ? "s" : ""} (mais de 25s) — provavelmente foi você dando espaço pro cliente falar, não hesitação.`,
+        });
       }
 
       if (dynamics) {
@@ -1772,7 +1782,8 @@
       const keywordTagsHtml = renderKeywordTags(sessionKeywordCounts);
       summaryNegotiationEl.innerHTML = `
         <div class="insight-line">Ritmo médio de fala: ${wpmSession} palavras/min</div>
-        <div class="insight-line">Pausas longas (mais de 2s): ${sessionPauseCount}</div>
+        <div class="insight-line">Pausas longas (mais de 20s): ${sessionPauseCount}</div>
+        ${sessionActiveListeningCount > 0 ? `<div class="insight-line tip-positive">Momentos de escuta ativa (mais de 25s): ${sessionActiveListeningCount}</div>` : ""}
         <div style="margin-top:8px">${keywordTagsHtml || '<span class="insight-line">Nenhuma palavra-chave de negociação identificada.</span>'}</div>
       `;
 
@@ -1832,6 +1843,7 @@
         dynamics,
         wpm: wpmSession,
         pauseCount: sessionPauseCount,
+        activeListeningCount: sessionActiveListeningCount,
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         objections: sessionObjections,
@@ -1976,6 +1988,7 @@
         dynamics: dynamicsForCsv,
         wpm: wpmSession,
         pauseCount: sessionPauseCount,
+        activeListeningCount: sessionActiveListeningCount,
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         objections: sessionObjections,
@@ -2081,12 +2094,16 @@
     let volumeSampleIntervalId = null;
     let silenceStartTime = null;
     let pauseAlreadyFlagged = false;
+    let activeListeningAlreadyFlagged = false;
 
     const SILENCE_RMS_THRESHOLD = 0.02;
     // Ajustado a partir de teste real: 2s e depois 4s ainda disparavam em
     // pausas normais de conversa. 20s é bem mais próximo de um silêncio que
     // realmente pesa numa negociação.
     const PAUSE_MIN_MS = 20000;
+    // Um silêncio bem mais longo que isso não é hesitação — é você ficando
+    // quieto pra deixar o cliente falar. Vira um sinal positivo, não negativo.
+    const ACTIVE_LISTENING_MIN_MS = 25000;
 
     // --- Alertas ao vivo: avisos curtos e discretos durante a call ---
     const liveAlertsEl = document.getElementById("liveAlerts");
@@ -2354,14 +2371,26 @@
       if (volume < SILENCE_RMS_THRESHOLD) {
         if (silenceStartTime === null) {
           silenceStartTime = Date.now();
-        } else if (!pauseAlreadyFlagged && Date.now() - silenceStartTime > PAUSE_MIN_MS) {
-          pauseAlreadyFlagged = true;
-          if (sessionActive) sessionPauseCount++;
-          pushLiveAlert("Pausa longa detectada");
+        } else {
+          const silenceDuration = Date.now() - silenceStartTime;
+          if (!pauseAlreadyFlagged && silenceDuration > PAUSE_MIN_MS) {
+            pauseAlreadyFlagged = true;
+            if (sessionActive) sessionPauseCount++;
+            pushLiveAlert("Pausa longa detectada");
+          }
+          // Um silêncio que segue crescendo além disso deixa de parecer
+          // hesitação — muito mais provável que seja você dando espaço pro
+          // cliente falar. Vira um segundo aviso, positivo, na mesma pausa.
+          if (!activeListeningAlreadyFlagged && silenceDuration > ACTIVE_LISTENING_MIN_MS) {
+            activeListeningAlreadyFlagged = true;
+            if (sessionActive) sessionActiveListeningCount++;
+            pushLiveAlert("Boa escuta ativa — você deu bastante espaço pro cliente falar.");
+          }
         }
       } else {
         silenceStartTime = null;
         pauseAlreadyFlagged = false;
+        activeListeningAlreadyFlagged = false;
       }
 
       const now = Date.now();
