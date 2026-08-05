@@ -238,7 +238,6 @@
   }
   input[type="text"]:focus { border-color: #4f8cff; }
   input[type="text"]::placeholder { color: #777; }
-  #historyClientFilter { margin-bottom: 12px; }
 
   #emotions {
     margin-top: 16px;
@@ -454,103 +453,6 @@
   }
   #loadingOverlay #status { font-size: 0.8rem; color: #7a8aa8; letter-spacing: 1px; margin: 0; }
 
-  #history-section h2 { font-size: 1.1rem; margin-bottom: 8px; }
-
-  .history-card {
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 14px 16px;
-    margin-bottom: 12px;
-    transition: transform 0.15s ease, border-color 0.15s ease;
-  }
-  .history-card:hover { transform: translateY(-2px); border-color: rgba(79, 140, 255, 0.35); }
-  .history-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .history-card-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: #f2f2f2;
-  }
-  .client-avatar {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #4f8cff, #7ee787);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: #0a0a0a;
-    flex-shrink: 0;
-  }
-  .history-card-meta { font-size: 0.75rem; color: #888; white-space: nowrap; }
-
-  .history-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-  .history-badge {
-    font-size: 0.72rem;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-weight: 600;
-  }
-  .badge-focused { background: rgba(25, 158, 112, 0.15); color: #3ddba0; border: 1px solid rgba(25, 158, 112, 0.4); }
-  .badge-motivated { background: rgba(201, 133, 0, 0.15); color: #ffb648; border: 1px solid rgba(201, 133, 0, 0.4); }
-  .badge-tired { background: rgba(57, 135, 229, 0.15); color: #6fa8f0; border: 1px solid rgba(57, 135, 229, 0.4); }
-
-  .history-secondary-stats { font-size: 0.78rem; color: #999; margin-top: 8px; }
-
-  .history-card { cursor: pointer; }
-  .history-card-title { flex: 1; min-width: 0; }
-  .history-edit-btn {
-    margin-top: 0;
-    padding: 2px 8px;
-    border-radius: 6px;
-    background: none;
-    box-shadow: none;
-    color: #4f8cff;
-    font-size: 0.7rem;
-    font-weight: 600;
-  }
-  .history-edit-btn:hover { background: rgba(79, 140, 255, 0.12); transform: none; box-shadow: none; }
-  .history-delete-btn {
-    margin-top: 0;
-    padding: 2px 8px;
-    border-radius: 6px;
-    background: none;
-    box-shadow: none;
-    color: #ff6b5b;
-    font-size: 0.7rem;
-    font-weight: 600;
-  }
-  .history-delete-btn:hover { background: rgba(255, 107, 91, 0.12); transform: none; box-shadow: none; }
-  input.history-name-input { font-weight: 600; max-width: 220px; }
-  .history-notes {
-    display: block;
-    width: 100%;
-    margin-top: 10px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.03);
-    color: #ddd;
-    font-size: 0.8rem;
-    font-family: inherit;
-    resize: vertical;
-    min-height: 44px;
-    cursor: text;
-  }
-  .history-notes:focus { border-color: #4f8cff; outline: none; }
-  .history-notes::placeholder { color: #666; }
-
   #transcript-section {
     flex: 1 1 320px;
     max-width: 380px;
@@ -640,14 +542,6 @@
   }
   .speaker-you { background: rgba(79, 140, 255, 0.18); color: #7ba9ff; }
   .speaker-other { background: rgba(255, 182, 72, 0.18); color: #ffcf80; }
-
-  .history-transcript { margin-top: 8px; }
-  .history-transcript summary {
-    cursor: pointer;
-    color: #4f8cff;
-    font-size: 0.8rem;
-  }
-  .history-transcript .transcript-line { font-size: 0.8rem; animation: none; }
 
   #voiceMeta {
     font-size: 0.75rem;
@@ -828,6 +722,7 @@
         <div class="status-panel-nav">
           <button type="button" id="howItWorksBtn" class="ghost">Como funciona</button>
           <button type="button" id="insightsBtn" class="ghost">Meus Insights</button>
+          <button type="button" id="sessionsBtn" class="ghost">Minhas Sessões</button>
           <button type="button" id="backToGestorBtn" class="ghost" style="display:none">Painel do Gestor</button>
           <button type="button" id="logoutBtn" class="ghost">Sair</button>
         </div>
@@ -892,23 +787,6 @@
         <div id="estimated-note">Calculadas a partir de sinais indiretos (abertura dos olhos, estabilidade da cabeça, expressão sustentada). Podem não ser precisas.</div>
       </div>
 
-      <div id="history-section" class="card">
-        <h2>Histórico de sessões</h2>
-
-        <div id="historyTrendWrap" style="display:none">
-          <h3>Tendência entre sessões</h3>
-          <div id="trend-legend">
-            <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
-            <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Constância</span>
-            <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
-          </div>
-          <svg id="historyTrendChart" viewBox="0 0 640 200" style="width:100%; height:auto;"></svg>
-        </div>
-
-        <input type="text" id="historyClientFilter" placeholder="Filtrar por cliente..." />
-        <div id="historyList"></div>
-        <button id="clearHistoryBtn" class="ghost">Limpar histórico</button>
-      </div>
     </div>
 
     <div id="transcript-section">
@@ -1394,17 +1272,12 @@
       peakInsightsEl.innerHTML = lines.map((l) => `<div class="insight-line">${l}</div>`).join("");
     }
 
-    // --- Histórico: cada sessão salva na nuvem (Supabase), amarrada ao usuário logado ---
-    const HISTORY_MAX_ENTRIES = 30;
-    const historyListEl = document.getElementById("historyList");
-    const clearHistoryBtn = document.getElementById("clearHistoryBtn");
-    const historyClientFilterEl = document.getElementById("historyClientFilter");
-    const historyTrendWrapEl = document.getElementById("historyTrendWrap");
-    const historyTrendChartEl = document.getElementById("historyTrendChart");
-    let historyFilterText = "";
+    // --- Histórico: cada sessão salva na nuvem (Supabase), amarrada ao usuário
+    // logado. A listagem/edição/ranqueamento em si vive em sessoes.html —
+    // aqui só fica o necessário pra SALVAR a sessão que acabou de terminar.
 
     // Nomes de campo no app (camelCase) não batem 1:1 com as colunas do banco
-    // (snake_case) — essas duas funções fazem a conversão nos dois sentidos.
+    // (snake_case) — essa função faz a conversão na hora de salvar.
     function toDbPatch(patch) {
       const out = { ...patch };
       if ("client" in out) { out.client_name = out.client; delete out.client; }
@@ -1415,43 +1288,6 @@
       return out;
     }
 
-    function fromDbRow(row) {
-      return {
-        id: row.id,
-        date: row.date,
-        duration: row.duration,
-        client: row.client_name,
-        focused: row.focused,
-        tired: row.tired,
-        motivated: row.motivated,
-        wpm: row.wpm,
-        pauses: row.pauses,
-        keywordCounts: row.keyword_counts || {},
-        slangCounts: row.slang_counts || {},
-        fillerCounts: row.filler_counts || {},
-        objections: row.objections || [],
-        dynamics: row.dynamics,
-        oratoriaScore: row.oratoria_score,
-        tips: row.tips || [],
-        transcript: row.transcript || [],
-        notes: row.notes || "",
-      };
-    }
-
-    async function loadHistory() {
-      const { data, error } = await supabaseClient
-        .from("sessions")
-        .select("*")
-        .eq("user_id", currentUserId)
-        .order("date", { ascending: false })
-        .limit(HISTORY_MAX_ENTRIES);
-      if (error) {
-        console.error("Erro ao carregar histórico:", error.message);
-        return [];
-      }
-      return data.map(fromDbRow);
-    }
-
     async function saveHistoryEntry(entry) {
       const { error } = await supabaseClient
         .from("sessions")
@@ -1459,225 +1295,6 @@
       if (error) console.error("Erro ao salvar sessão:", error.message);
     }
 
-    async function updateHistoryEntry(id, patch) {
-      const { error } = await supabaseClient
-        .from("sessions")
-        .update(toDbPatch(patch))
-        .eq("id", id);
-      if (error) console.error("Erro ao atualizar sessão:", error.message);
-    }
-
-    async function deleteHistoryEntry(id) {
-      const { error } = await supabaseClient.from("sessions").delete().eq("id", id);
-      if (error) console.error("Erro ao excluir sessão:", error.message);
-    }
-
-    function formatDateBR(iso) {
-      const d = new Date(iso);
-      return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    }
-
-    async function renderHistory() {
-      const allEntries = await loadHistory();
-      const entries = historyFilterText
-        ? allEntries.filter((h) => (h.client || "").toLowerCase().includes(historyFilterText))
-        : allEntries;
-
-      renderHistoryTrendChart(entries);
-
-      if (!entries.length) {
-        historyListEl.innerHTML = allEntries.length
-          ? '<div class="insight-line">Nenhuma sessão encontrada para esse cliente.</div>'
-          : '<div class="insight-line">Nenhuma sessão salva ainda.</div>';
-        return;
-      }
-      historyListEl.innerHTML = entries
-        .map((h) => {
-          const transcriptHtml = h.transcript && h.transcript.length
-            ? `<details class="history-transcript">
-                 <summary>Ver transcrição (${h.transcript.length} falas)</summary>
-                 ${h.transcript.map(renderTranscriptLineHtml).join("")}
-               </details>`
-            : "";
-          const objectionsHtml = h.objections && h.objections.length
-            ? `<details class="history-transcript">
-                 <summary>Ver objeções (${h.objections.length})</summary>
-                 ${h.objections
-                   .map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`)
-                   .join("")}
-               </details>`
-            : "";
-          const negotiationTagsHtml = renderKeywordTags(h.keywordCounts);
-          const slangTagsHtml = renderSlangTags(h.slangCounts);
-          const fillerTagsHtml = renderKeywordTags(h.fillerCounts);
-          const initials = clientInitials(h.client);
-
-          return `
-            <div class="history-card" data-id="${h.id}">
-              <div class="history-card-header">
-                <div class="history-card-title">
-                  ${initials ? `<span class="client-avatar">${initials}</span>` : ""}
-                  <span class="history-name-display">${h.client ? escapeHtml(h.client) : "Sessão sem cliente"}</span>
-                  <button type="button" class="history-edit-btn">Editar</button>
-                  <button type="button" class="history-delete-btn">Excluir</button>
-                </div>
-                <div class="history-card-meta">${formatDateBR(h.date)} · ${formatDuration(h.duration)}</div>
-              </div>
-
-              <div class="history-badges">
-                <span class="history-badge badge-focused">Constância ${Math.round(h.focused * 100)}%</span>
-                <span class="history-badge badge-motivated">Motivado ${Math.round(h.motivated * 100)}%</span>
-                <span class="history-badge badge-tired">Cansado ${Math.round(h.tired * 100)}%</span>
-              </div>
-
-              ${h.tips && h.tips.length ? `<div style="margin-top:10px">${renderCoachingTips(h.tips)}</div>` : ""}
-              ${h.wpm != null ? `<div class="history-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
-              ${h.dynamics ? `<div class="history-secondary-stats">Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>` : ""}
-              ${negotiationTagsHtml ? `<div class="keyword-tags" style="margin-top:8px">${negotiationTagsHtml}</div>` : ""}
-              ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
-              ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}
-              ${transcriptHtml}
-              ${objectionsHtml}
-              <textarea class="history-notes" placeholder="Anotações sobre esta sessão...">${escapeHtml(h.notes || "")}</textarea>
-            </div>`;
-        })
-        .join("");
-    }
-
-    function clientInitials(name) {
-      if (!name) return "";
-      return name
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((p) => p[0].toUpperCase())
-        .join("");
-    }
-
-    async function startEditingClientName(editBtn) {
-      const card = editBtn.closest(".history-card");
-      const id = card.dataset.id;
-      const { data: row } = await supabaseClient.from("sessions").select("client_name").eq("id", id).single();
-      if (!row) return;
-
-      const nameDisplay = card.querySelector(".history-name-display");
-      const input = document.createElement("input");
-      input.type = "text";
-      input.className = "history-name-input";
-      input.value = row.client_name || "";
-      input.placeholder = "Nome do cliente";
-
-      nameDisplay.replaceWith(input);
-      editBtn.style.display = "none";
-      input.focus();
-      input.select();
-
-      const commit = async () => {
-        await updateHistoryEntry(id, { client: input.value.trim() });
-        renderHistory();
-      };
-
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          input.blur();
-        } else if (e.key === "Escape") {
-          input.value = row.client_name || "";
-          input.blur();
-        }
-      });
-      input.addEventListener("blur", commit, { once: true });
-    }
-
-    // Delegação de eventos: o conteúdo é reconstruído a cada renderHistory(),
-    // então um listener por card se perderia — um listener só na lista resolve.
-    historyListEl.addEventListener("click", (e) => {
-      const editBtn = e.target.closest(".history-edit-btn");
-      if (editBtn) {
-        startEditingClientName(editBtn);
-        return;
-      }
-      const deleteBtn = e.target.closest(".history-delete-btn");
-      if (deleteBtn) {
-        const card = deleteBtn.closest(".history-card");
-        if (confirm("Excluir esta sessão do histórico? Essa ação não pode ser desfeita.")) {
-          deleteHistoryEntry(card.dataset.id).then(() => renderHistory());
-        }
-        return;
-      }
-      if (e.target.closest("input, textarea, details, summary")) return;
-
-      const card = e.target.closest(".history-card");
-      if (!card) return;
-      const transcriptDetails = card.querySelector(".history-transcript");
-      if (transcriptDetails) transcriptDetails.open = !transcriptDetails.open;
-    });
-
-    // blur não borbulha (bubble); precisa ouvir na fase de captura pra delegar.
-    historyListEl.addEventListener(
-      "blur",
-      (e) => {
-        const textarea = e.target.closest(".history-notes");
-        if (!textarea) return;
-        const card = textarea.closest(".history-card");
-        updateHistoryEntry(card.dataset.id, { notes: textarea.value });
-      },
-      true
-    );
-
-    function renderHistoryTrendChart(entries) {
-      if (entries.length < 2) {
-        historyTrendWrapEl.style.display = "none";
-        historyTrendChartEl.innerHTML = "";
-        return;
-      }
-      historyTrendWrapEl.style.display = "block";
-
-      const chronological = [...entries].reverse();
-      const W = 640;
-      const H = 200;
-      const margin = { top: 16, right: 16, bottom: 24, left: 34 };
-      const plotW = W - margin.left - margin.right;
-      const plotH = H - margin.top - margin.bottom;
-      const n = chronological.length;
-      const x = (i) => margin.left + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2);
-      const y = (v) => margin.top + (1 - v) * plotH;
-
-      let svg = "";
-      [0, 0.5, 1].forEach((v) => {
-        const yy = y(v);
-        svg += `<line x1="${margin.left}" y1="${yy}" x2="${W - margin.right}" y2="${yy}" stroke="var(--grid)" stroke-width="1" />`;
-        svg += `<text x="${margin.left - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${Math.round(v * 100)}%</text>`;
-      });
-
-      TREND_SERIES.forEach((series) => {
-        const points = chronological.map((h, i) => `${x(i)},${y(h[series.key] || 0)}`).join(" ");
-        svg += `<polyline points="${points}" fill="none" stroke="${series.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
-        chronological.forEach((h, i) => {
-          svg += `<circle cx="${x(i)}" cy="${y(h[series.key] || 0)}" r="3" fill="${series.color}" stroke="var(--surface)" stroke-width="1.5" />`;
-        });
-      });
-
-      historyTrendChartEl.innerHTML = svg;
-    }
-
-    function escapeHtml(str) {
-      const div = document.createElement("div");
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
-    clearHistoryBtn.addEventListener("click", async () => {
-      if (!confirm("Limpar todo o histórico? Essa ação não pode ser desfeita.")) return;
-      const { error } = await supabaseClient.from("sessions").delete().eq("user_id", currentUserId);
-      if (error) console.error("Erro ao limpar histórico:", error.message);
-      renderHistory();
-    });
-
-    historyClientFilterEl.addEventListener("input", () => {
-      historyFilterText = historyClientFilterEl.value.trim().toLowerCase();
-      renderHistory();
-    });
 
     const SAMPLE_INTERVAL_MS = 3000; // guarda uma leitura a cada 3 segundos
     let sessionActive = false;
@@ -2241,7 +1858,6 @@
         oratoriaScore: oratoriaResult.overall,
         tips,
       });
-      renderHistory();
     }
 
     function renderTranscriptLineHtml(line) {
@@ -3182,11 +2798,11 @@
       },
       {
         eyebrow: "Passo 4 de 4 · Depois da call",
-        title: "Seu histórico e dicas",
+        title: "Suas sessões e dicas",
         body: `
           <ul>
-            <li>Cada sessão finalizada vira um card no histórico, com dicas de melhoria automáticas.</li>
-            <li>Você pode nomear o cliente, adicionar anotações e reabrir qualquer sessão depois.</li>
+            <li>Cada sessão finalizada gera dicas de melhoria automáticas e fica salva.</li>
+            <li>Em <strong>"Minhas Sessões"</strong>, você vê todas ranqueadas pela nota de oratória, pode nomear o cliente e adicionar um comentário.</li>
             <li>Exporte em PDF ou CSV quando quiser revisar ou guardar fora do AuraX.</li>
           </ul>
         `,
@@ -3272,6 +2888,11 @@
       window.location.href = "insights.html";
     });
 
+    document.getElementById("sessionsBtn").addEventListener("click", () => {
+      posthog.capture("sessions_ranking_opened");
+      window.location.href = "sessoes.html";
+    });
+
     function maybeShowOnboarding() {
       if (!localStorage.getItem(ONBOARDING_SEEN_KEY)) {
         showOnboarding();
@@ -3288,7 +2909,6 @@
         document.getElementById("loadingOverlay").classList.add("hidden");
         document.getElementById("container").classList.add("is-live");
         cameraStartTime = Date.now();
-        renderHistory();
         detectLoop();
         maybeShowOnboarding();
       } catch (err) {

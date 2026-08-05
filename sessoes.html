@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AuraX — Minhas Sessões</title>
+<style>
+  :root {
+    --bg-1: #1a2338;
+    --bg-2: #0b0c10;
+    --bg-3: #08080a;
+    --text: #eee;
+    --text-muted: #9aa0ab;
+    --text-dim: #6b7280;
+    --accent-blue: #4f8cff;
+    --accent-green: #7ee787;
+    --accent-teal: #3ddba0;
+    --accent-amber: #ffb648;
+    --accent-red: #e5533d;
+    --accent-purple: #c9a6ff;
+    --card-bg: linear-gradient(160deg, rgba(79, 140, 255, 0.07), rgba(126, 231, 135, 0.025));
+    --card-border: rgba(255, 255, 255, 0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(79, 140, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79, 140, 255, 0.045) 1px, transparent 1px);
+    background-size: 42px 42px;
+    -webkit-mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
+    mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
+    pointer-events: none;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 80px; position: relative; }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 14px 0;
+    background: rgba(11, 12, 16, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .logo {
+    font-size: 1.15rem; font-weight: 700; letter-spacing: 1.5px;
+    background: linear-gradient(90deg, #eaf2ff, var(--accent-green) 55%, var(--accent-blue));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .btn.ghost {
+    padding: 10px 20px;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    border: 1px solid var(--card-border);
+  }
+
+  .panel-head { margin-bottom: 22px; }
+  .panel-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-blue); margin-bottom: 6px; }
+  .panel-head h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .panel-head p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+  input[type="text"] {
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--accent-blue); }
+  input[type="text"]::placeholder { color: #777; }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; }
+  #clientFilter { min-width: 220px; }
+
+  .empty-state { padding: 30px 18px; text-align: center; color: var(--text-dim); font-size: 0.88rem; }
+
+  .insight-line { margin: 4px 0; padding-left: 10px; border-left: 2px solid var(--accent-blue); font-size: 0.85rem; }
+  .tip-positive { border-left-color: var(--accent-green); }
+  .tip-improve { border-left-color: var(--accent-amber); }
+
+  .session-card {
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .session-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .session-card-title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.95rem; color: #f2f2f2; flex: 1; min-width: 0; }
+  .rank-badge {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    border: 1px solid var(--card-border);
+  }
+  .rank-badge.gold { background: rgba(255, 215, 0, 0.14); color: #ffd700; border-color: rgba(255, 215, 0, 0.4); }
+  .rank-badge.silver { background: rgba(192, 192, 192, 0.14); color: #d6d6d6; border-color: rgba(192, 192, 192, 0.4); }
+  .rank-badge.bronze { background: rgba(205, 127, 50, 0.16); color: #e0995e; border-color: rgba(205, 127, 50, 0.45); }
+  .client-avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem; font-weight: 700; color: #0a0a0a; flex-shrink: 0;
+  }
+  .session-card-meta { font-size: 0.75rem; color: #888; white-space: nowrap; }
+  .oratoria-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 999px;
+    border: 1px solid;
+    flex-shrink: 0;
+  }
+
+  .session-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .session-badge { font-size: 0.72rem; padding: 4px 10px; border-radius: 999px; font-weight: 600; }
+  .badge-focused { background: rgba(25, 158, 112, 0.15); color: var(--accent-teal); border: 1px solid rgba(25, 158, 112, 0.4); }
+  .badge-motivated { background: rgba(201, 133, 0, 0.15); color: var(--accent-amber); border: 1px solid rgba(201, 133, 0, 0.4); }
+  .badge-tired { background: rgba(57, 135, 229, 0.15); color: #6fa8f0; border: 1px solid rgba(57, 135, 229, 0.4); }
+
+  .session-secondary-stats { font-size: 0.78rem; color: #999; margin-top: 8px; }
+
+  .name-edit-btn, .delete-btn, .comment-btn {
+    margin-top: 0;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: none;
+    box-shadow: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .name-edit-btn { color: var(--accent-blue); }
+  .name-edit-btn:hover { background: rgba(79, 140, 255, 0.12); }
+  .delete-btn { color: var(--accent-red); }
+  .delete-btn:hover { background: rgba(229, 83, 61, 0.12); }
+  .comment-btn { color: var(--accent-purple); }
+  .comment-btn:hover { background: rgba(179, 136, 255, 0.12); }
+  .comment-btn.has-comment { color: #0a0a0a; background: var(--accent-purple); }
+  input.name-input { font-weight: 600; max-width: 220px; }
+
+  .action-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+
+  .keyword-tags { margin-top: 4px; }
+  .keyword-tag {
+    display: inline-block; font-size: 0.7rem; background: rgba(255, 182, 72, 0.15);
+    color: var(--accent-amber); border-radius: 999px; padding: 2px 9px; margin: 2px 4px 0 0;
+  }
+  .slang-tag {
+    display: inline-block; font-size: 0.7rem; background: rgba(179, 136, 255, 0.15);
+    color: var(--accent-purple); border-radius: 999px; padding: 2px 9px; margin: 2px 4px 0 0;
+  }
+
+  .session-transcript { margin-top: 8px; }
+  .session-transcript summary { cursor: pointer; color: var(--accent-blue); font-size: 0.8rem; }
+  .transcript-line {
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.8rem;
+  }
+  .transcript-flagged { border-left: 2px solid var(--accent-amber); padding-left: 8px; background: rgba(255, 182, 72, 0.06); }
+  .transcript-slang { border-left: 2px solid var(--accent-purple); padding-left: 8px; background: rgba(179, 136, 255, 0.06); }
+  .transcript-time { color: var(--accent-green); margin-right: 8px; font-variant-numeric: tabular-nums; }
+  .transcript-expression { color: #aaa; font-size: 0.78rem; margin-left: 6px; }
+  .expr-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  .speaker-tag {
+    display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 1px 7px;
+    border-radius: 999px; margin-right: 6px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .speaker-you { background: rgba(79, 140, 255, 0.18); color: #7ba9ff; }
+  .speaker-other { background: rgba(255, 182, 72, 0.18); color: #ffcf80; }
+
+  /* Modal de comentário */
+  #commentOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 6, 10, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+  }
+  #commentOverlay.hidden { display: none; }
+  .comment-modal { width: 100%; max-width: 440px; padding: 26px 26px 22px; }
+  .comment-modal h3 { margin: 0 0 4px; font-size: 1.05rem; }
+  .comment-modal .comment-target { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
+  .comment-modal textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    font-size: 0.88rem;
+    font-family: inherit;
+    resize: vertical;
+  }
+  .comment-modal textarea:focus { outline: none; border-color: var(--accent-blue); }
+  .comment-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+  .comment-modal-actions button { padding: 9px 18px; font-size: 0.85rem; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent-blue), #3d6fd6); color: white; }
+
+  #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  #gate p { color: var(--text-muted); font-size: 0.9rem; }
+
+  [hidden] { display: none !important; }
+</style>
+<script>
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  posthog.init('phc_vyVJ7sTb6kpXhAdzVbWcyBCf4epgvTv7UnnuiPqnFCpm', {
+    api_host: 'https://us.i.posthog.com',
+    person_profiles: 'identified_only',
+  });
+</script>
+</head>
+<body>
+  <div id="gate"><p>Carregando...</p></div>
+
+  <div class="wrap" id="app" hidden>
+    <div class="top-bar">
+      <span class="logo">AuraX</span>
+      <div style="display:flex; gap:10px;">
+        <a class="btn ghost" href="index.html" style="text-decoration:none; display:inline-block;">← Voltar ao AuraX</a>
+        <button type="button" class="btn ghost" id="logoutBtn">Sair</button>
+      </div>
+    </div>
+
+    <div class="panel-head">
+      <div class="panel-eyebrow">Ranking</div>
+      <h1>Minhas Sessões</h1>
+      <p>Suas sessões, ranqueadas pela nota de oratória — da melhor pra pior.</p>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="clientFilter" placeholder="Filtrar por cliente..." />
+      <button type="button" class="btn ghost" id="clearAllBtn">Limpar histórico</button>
+    </div>
+
+    <div id="sessionsList"></div>
+  </div>
+
+  <div id="commentOverlay" class="hidden">
+    <div class="card comment-modal">
+      <h3>Comentário da sessão</h3>
+      <div class="comment-target" id="commentTarget"></div>
+      <textarea id="commentTextarea" placeholder="Anotações sobre esta sessão..."></textarea>
+      <div class="comment-modal-actions">
+        <button type="button" class="btn ghost" id="commentCancelBtn">Cancelar</button>
+        <button type="button" class="btn-primary" id="commentSaveBtn">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUserId = null;
+    let allSessions = [];
+    let filterText = "";
+    let activeCommentId = null;
+
+    const SLANG_LIBRARY = {
+      "beleza": "perfeito", "valeu": "obrigado", "sussa": "tranquilo", "da hora": "interessante",
+      "show": "ótimo", "top": "excelente", "galera": "equipe", "de boa": "sem problema",
+      "mano": "", "bagulho": "assunto", "treco": "item", "pô": "",
+    };
+    const FILLER_LIBRARY = {
+      "né": "corte a palavra ou faça uma pausa", "tipo": "por exemplo", "então": "diante disso / dessa forma",
+      "é": "uma pausa silenciosa", "an": "uma pausa silenciosa", "hã": "uma pausa silenciosa",
+      "ahn": "uma pausa silenciosa", "eh": "uma pausa silenciosa", "hum": "uma pausa silenciosa",
+      "assim": "dessa forma", "sabe": "entende / compreende",
+    };
+    const EXPRESSION_COLORS = {
+      Feliz: "#7ee787", Triste: "#4f8cff", Bravo: "#e5533d", "Nervoso/Medo": "#ffb648",
+      Enjoado: "#b388ff", Surpreso: "#ffe066", Focado: "#3ddba0",
+    };
+    const ORATORIA_RANK_TIERS = [
+      { min: 90, label: "Excelente", color: "#7ee787" },
+      { min: 70, label: "Bom", color: "#7ee787" },
+      { min: 50, label: "Médio", color: "#ffb648" },
+      { min: 0, label: "Precisa de atenção", color: "#ff6b5b" },
+    ];
+
+    function oratoriaScoreRank(score) {
+      return ORATORIA_RANK_TIERS.find((tier) => score >= tier.min);
+    }
+
+    function expressionColor(tag) {
+      const label = tag.split("—")[0].trim();
+      return EXPRESSION_COLORS[label] || "#777";
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatDateBR(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function formatDuration(totalSeconds) {
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = Math.floor(totalSeconds % 60);
+      const hh = h > 0 ? `${h}h ` : "";
+      return `${hh}${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+    }
+
+    function formatClock(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = Math.floor(totalSeconds % 60);
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function clientInitials(name) {
+      if (!name) return "";
+      return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
+    }
+
+    function renderKeywordTags(counts) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      return entries.map(([kw, count]) => `<span class="keyword-tag">${kw} × ${count}</span>`).join(" ");
+    }
+
+    function renderSlangTags(counts) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      return entries
+        .map(([word, count]) => {
+          const suggestion = SLANG_LIBRARY[word];
+          return `<span class="slang-tag">${word}${suggestion ? ` → ${suggestion}` : ""} × ${count}</span>`;
+        })
+        .join(" ");
+    }
+
+    function renderCoachingTips(tips) {
+      if (!tips || !tips.length) return "";
+      return tips
+        .map((t) => `<div class="insight-line ${t.type === "positivo" ? "tip-positive" : "tip-improve"}">${t.type === "positivo" ? "✓" : "→"} ${t.text}</div>`)
+        .join("");
+    }
+
+    function renderTranscriptLineHtml(line) {
+      const color = expressionColor(line.expression || "");
+      const hasKeywords = line.keywords && line.keywords.length;
+      const hasSlang = line.slang && line.slang.length;
+      const keywordTagsHtml = hasKeywords
+        ? `<div class="keyword-tags">${line.keywords.map((k) => `<span class="keyword-tag">${k}</span>`).join("")}</div>`
+        : "";
+      const slangTagsHtml = hasSlang
+        ? `<div class="keyword-tags">${line.slang.map((w) => `<span class="slang-tag">${w}${SLANG_LIBRARY[w] ? ` → ${SLANG_LIBRARY[w]}` : ""}</span>`).join("")}</div>`
+        : "";
+      const speakerTagHtml = line.speaker
+        ? `<span class="speaker-tag ${line.speaker === "Outro participante" ? "speaker-other" : "speaker-you"}">${line.speaker}</span>`
+        : "";
+      const flagClass = hasKeywords ? " transcript-flagged" : hasSlang ? " transcript-slang" : "";
+      return `
+        <div class="transcript-line${flagClass}">
+          <span class="transcript-time">${formatClock(line.t)}</span>${speakerTagHtml}${escapeHtml(line.text)}
+          <span class="transcript-expression"><span class="expr-dot" style="background:${color}"></span>${line.expression || ""}</span>
+          ${keywordTagsHtml}
+          ${slangTagsHtml}
+        </div>`;
+    }
+
+    function rankBadgeClass(position) {
+      if (position === 0) return "gold";
+      if (position === 1) return "silver";
+      if (position === 2) return "bronze";
+      return "";
+    }
+
+    function sessionCardHtml(h, position) {
+      const transcriptHtml = h.transcript && h.transcript.length
+        ? `<details class="session-transcript">
+             <summary>Ver transcrição (${h.transcript.length} falas)</summary>
+             ${h.transcript.map(renderTranscriptLineHtml).join("")}
+           </details>`
+        : "";
+      const objectionsHtml = h.objections && h.objections.length
+        ? `<details class="session-transcript">
+             <summary>Ver objeções (${h.objections.length})</summary>
+             ${h.objections.map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`).join("")}
+           </details>`
+        : "";
+      const negotiationTagsHtml = renderKeywordTags(h.keyword_counts);
+      const slangTagsHtml = renderSlangTags(h.slang_counts);
+      const fillerTagsHtml = renderKeywordTags(h.filler_counts);
+      const initials = clientInitials(h.client_name);
+      const rank = h.oratoria_score != null ? oratoriaScoreRank(h.oratoria_score) : null;
+      const oratoriaHtml = rank
+        ? `<span class="oratoria-pill" style="color:${rank.color}; border-color:${rank.color}">${h.oratoria_score} · ${rank.label}</span>`
+        : `<span class="oratoria-pill" style="color:#777; border-color:#444">Sem nota</span>`;
+
+      return `
+        <div class="card session-card" data-id="${h.id}">
+          <div class="session-card-header">
+            <div class="session-card-title">
+              <span class="rank-badge ${rankBadgeClass(position)}">#${position + 1}</span>
+              ${initials ? `<span class="client-avatar">${initials}</span>` : ""}
+              <span class="history-name-display">${h.client_name ? escapeHtml(h.client_name) : "Sessão sem cliente"}</span>
+              <button type="button" class="name-edit-btn">Editar</button>
+            </div>
+            ${oratoriaHtml}
+          </div>
+          <div class="session-card-meta">${formatDateBR(h.date)} · ${formatDuration(h.duration)}</div>
+
+          <div class="session-badges">
+            <span class="session-badge badge-focused">Constância ${Math.round((h.focused || 0) * 100)}%</span>
+            <span class="session-badge badge-motivated">Motivado ${Math.round((h.motivated || 0) * 100)}%</span>
+            <span class="session-badge badge-tired">Cansado ${Math.round((h.tired || 0) * 100)}%</span>
+          </div>
+
+          ${h.tips && h.tips.length ? `<div style="margin-top:10px">${renderCoachingTips(h.tips)}</div>` : ""}
+          ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
+          ${h.dynamics ? `<div class="session-secondary-stats">Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>` : ""}
+          ${negotiationTagsHtml ? `<div class="keyword-tags" style="margin-top:8px">${negotiationTagsHtml}</div>` : ""}
+          ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
+          ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}
+          ${transcriptHtml}
+          ${objectionsHtml}
+
+          <div class="action-row" style="margin-top:12px">
+            <button type="button" class="comment-btn${h.notes ? " has-comment" : ""}">${h.notes ? "💬 Ver comentário" : "💬 Adicionar comentário"}</button>
+            <button type="button" class="delete-btn">Excluir</button>
+          </div>
+        </div>`;
+    }
+
+    async function loadSessions() {
+      const { data, error } = await supabaseClient
+        .from("sessions")
+        .select("*")
+        .eq("user_id", currentUserId)
+        .order("date", { ascending: false });
+      if (error) {
+        console.error("Erro ao carregar sessões:", error.message);
+        return [];
+      }
+      return data;
+    }
+
+    function renderSessionsList() {
+      const listEl = document.getElementById("sessionsList");
+      const filtered = filterText
+        ? allSessions.filter((h) => (h.client_name || "").toLowerCase().includes(filterText))
+        : allSessions;
+
+      if (!filtered.length) {
+        listEl.innerHTML = allSessions.length
+          ? '<div class="empty-state">Nenhuma sessão encontrada para esse cliente.</div>'
+          : '<div class="empty-state">Nenhuma sessão salva ainda.</div>';
+        return;
+      }
+
+      // Ranking: quem tem nota de oratória vem primeiro, do maior pro menor;
+      // sessões sem nota (antes da métrica existir) ficam no fim, por data.
+      const ranked = [...filtered].sort((a, b) => {
+        if (a.oratoria_score == null && b.oratoria_score == null) return new Date(b.date) - new Date(a.date);
+        if (a.oratoria_score == null) return 1;
+        if (b.oratoria_score == null) return -1;
+        return b.oratoria_score - a.oratoria_score;
+      });
+
+      listEl.innerHTML = ranked.map((h, i) => sessionCardHtml(h, i)).join("");
+    }
+
+    async function refreshSessions() {
+      allSessions = await loadSessions();
+      renderSessionsList();
+    }
+
+    document.getElementById("clientFilter").addEventListener("input", (e) => {
+      filterText = e.target.value.trim().toLowerCase();
+      renderSessionsList();
+    });
+
+    document.getElementById("clearAllBtn").addEventListener("click", async () => {
+      if (!confirm("Limpar todo o histórico? Essa ação não pode ser desfeita.")) return;
+      await supabaseClient.from("sessions").delete().eq("user_id", currentUserId);
+      await refreshSessions();
+    });
+
+    async function startEditingClientName(editBtn) {
+      const card = editBtn.closest(".session-card");
+      const id = card.dataset.id;
+      const session = allSessions.find((s) => String(s.id) === String(id));
+      if (!session) return;
+
+      const nameDisplay = card.querySelector(".history-name-display");
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "name-input";
+      input.value = session.client_name || "";
+      input.placeholder = "Nome do cliente";
+
+      nameDisplay.replaceWith(input);
+      editBtn.style.display = "none";
+      input.focus();
+      input.select();
+
+      const commit = async () => {
+        const newName = input.value.trim();
+        await supabaseClient.from("sessions").update({ client_name: newName }).eq("id", id);
+        await refreshSessions();
+      };
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+        else if (e.key === "Escape") { input.value = session.client_name || ""; input.blur(); }
+      });
+      input.addEventListener("blur", commit, { once: true });
+    }
+
+    function openCommentModal(sessionId) {
+      const session = allSessions.find((s) => String(s.id) === String(sessionId));
+      if (!session) return;
+      activeCommentId = sessionId;
+      document.getElementById("commentTarget").textContent =
+        session.client_name ? `Cliente: ${session.client_name}` : formatDateBR(session.date);
+      document.getElementById("commentTextarea").value = session.notes || "";
+      document.getElementById("commentOverlay").classList.remove("hidden");
+      document.getElementById("commentTextarea").focus();
+    }
+
+    function closeCommentModal() {
+      document.getElementById("commentOverlay").classList.add("hidden");
+      activeCommentId = null;
+    }
+
+    document.getElementById("commentCancelBtn").addEventListener("click", closeCommentModal);
+    document.getElementById("commentOverlay").addEventListener("click", (e) => {
+      if (e.target.id === "commentOverlay") closeCommentModal();
+    });
+
+    document.getElementById("commentSaveBtn").addEventListener("click", async () => {
+      if (!activeCommentId) return;
+      const notes = document.getElementById("commentTextarea").value;
+      await supabaseClient.from("sessions").update({ notes }).eq("id", activeCommentId);
+      posthog.capture("session_comment_saved");
+      closeCommentModal();
+      await refreshSessions();
+    });
+
+    document.getElementById("sessionsList").addEventListener("click", (e) => {
+      const editBtn = e.target.closest(".name-edit-btn");
+      if (editBtn) { startEditingClientName(editBtn); return; }
+
+      const deleteBtn = e.target.closest(".delete-btn");
+      if (deleteBtn) {
+        const card = deleteBtn.closest(".session-card");
+        if (confirm("Excluir esta sessão? Essa ação não pode ser desfeita.")) {
+          supabaseClient.from("sessions").delete().eq("id", card.dataset.id).then(refreshSessions);
+        }
+        return;
+      }
+
+      const commentBtn = e.target.closest(".comment-btn");
+      if (commentBtn) {
+        const card = commentBtn.closest(".session-card");
+        openCommentModal(card.dataset.id);
+        return;
+      }
+
+      if (e.target.closest("input, textarea, details, summary")) return;
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = "login.html";
+    });
+
+    async function init() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        window.location.href = "login.html";
+        return;
+      }
+      currentUserId = session.user.id;
+      posthog.identify(currentUserId, { email: session.user.email });
+
+      document.getElementById("gate").hidden = true;
+      document.getElementById("app").hidden = false;
+
+      await refreshSessions();
+    }
+
+    init();
+  </script>
+</body>
+</html>
