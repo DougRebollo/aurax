@@ -95,6 +95,23 @@
 
   .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
   .stat-card { padding: 16px 18px; text-align: center; }
+
+  .focus-card {
+    margin-top: 16px;
+    padding: 22px 24px;
+    background: linear-gradient(160deg, rgba(255, 182, 72, 0.1), rgba(255, 182, 72, 0.02));
+    border-color: rgba(255, 182, 72, 0.3);
+  }
+  .focus-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-amber); margin-bottom: 8px; }
+  .focus-card h2 { font-size: 1.2rem; margin: 0 0 6px; color: #f5f5f5; }
+  .focus-card p { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+  .focus-suggestion {
+    margin-top: 14px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent-amber);
+    font-size: 0.9rem;
+    color: #ddd;
+  }
   .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--accent-green); }
   .stat-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
   .stat-rank { font-size: 0.68rem; font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
@@ -188,6 +205,13 @@
         <div class="card stat-card"><div class="stat-value" id="statDateRange">—</div><div class="stat-label">Período</div></div>
       </div>
 
+      <div class="card focus-card" id="focusCard" hidden>
+        <div class="focus-eyebrow">Analisando seus insights</div>
+        <h2 id="focusTitle"></h2>
+        <p id="focusFrequency"></p>
+        <div class="focus-suggestion" id="focusSuggestion"></div>
+      </div>
+
       <div class="section-title">Evolução da nota de oratória</div>
       <div class="card chart-card">
         <div id="oratoriaChartWrap"></div>
@@ -272,6 +296,20 @@
       cansaco: "Sinais de cansaço",
       boa_energia: "Boa energia/motivação",
       equilibrada: "Sessão equilibrada",
+    };
+
+    // Sugestão prática por trás de cada ponto de melhoria recorrente — o que
+    // fazer a respeito, não só o diagnóstico.
+    const ACTION_SUGGESTIONS = {
+      ritmo_acelerado: "Tente uma respiração antes de frases-chave e faça pausas curtas entre ideias — grave um trecho seu e ouça pra calibrar o ritmo ideal.",
+      muitas_pausas: "Prepare frases-ponte pra usar quando precisar de um segundo pra pensar, em vez de deixar o silêncio se estender.",
+      escuta_ativa_pausas: "Continue assim — dar espaço de verdade pro cliente falar costuma render as melhores informações da conversa.",
+      dominou_conversa: "Troque uma afirmação por uma pergunta aberta a cada poucos minutos, e espere a resposta completa antes de continuar.",
+      silencio_alto: "Um roteiro mental simples da reunião (abertura, descoberta, proposta, próximos passos) reduz a hesitação de não saber o que falar.",
+      muitas_girias: "Grave um trecho seu e ouça de fora — a maioria das gírias é hábito automático que a gente só percebe ouvindo depois.",
+      muitos_vicios: "Escolha 1 vício de cada vez pra focar na próxima call, em vez de tentar cortar todos de uma vez.",
+      objecao_tensa: "Monte um roteiro curto (2-3 frases) pras objeções mais comuns antes da próxima call, pra não precisar improvisar na hora.",
+      cansaco: "Intercalar uma pausa curta entre reuniões consecutivas ajuda a chegar com mais energia na próxima.",
     };
 
     function average(arr) {
@@ -466,6 +504,24 @@
           .join("");
       } else {
         tipsWrap.innerHTML = '<div class="chart-empty">Sem dicas registradas ainda.</div>';
+      }
+
+      // --- Foco da vez: analisa os pontos de melhoria e destaca o mais
+      // recorrente (não os positivos), com uma sugestão prática do que fazer.
+      const focusCardEl = document.getElementById("focusCard");
+      const topImprovement = rankedTips.find(([, info]) => info.type === "melhorar");
+      if (topImprovement) {
+        const [key, info] = topImprovement;
+        const label = TIP_KEY_LABELS[key] || key;
+        const pct = Math.round((info.count / chronological.length) * 100);
+        focusCardEl.hidden = false;
+        document.getElementById("focusTitle").textContent = `Seu principal ponto de melhoria: ${label}`;
+        document.getElementById("focusFrequency").textContent =
+          `Apareceu em ${info.count} de ${chronological.length} sessões (${pct}%).`;
+        document.getElementById("focusSuggestion").textContent =
+          ACTION_SUGGESTIONS[key] || "Vale prestar atenção nisso nas próximas sessões.";
+      } else {
+        focusCardEl.hidden = true;
       }
 
       // --- Vícios de linguagem e gírias recorrentes ---
