@@ -150,6 +150,7 @@
 
   .session-card { padding: 14px 16px; margin-bottom: 10px; }
   .session-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .session-title-row { display: flex; align-items: center; gap: 8px; }
   .session-title { font-weight: 600; font-size: 0.9rem; }
   .session-meta { font-size: 0.75rem; color: var(--text-dim); }
   .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
@@ -159,6 +160,51 @@
   .badge-tired { background: rgba(79, 140, 255, 0.15); color: #7ba9ff; border: 1px solid rgba(79, 140, 255, 0.4); }
   .tip-line { font-size: 0.8rem; margin: 8px 0 0; padding-left: 9px; border-left: 2px solid var(--accent-amber); color: #ddd; }
   .tip-line.positive { border-left-color: var(--accent-green); }
+
+  .rank-badge {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    border: 1px solid var(--card-border);
+  }
+  .rank-badge.gold { background: rgba(255, 215, 0, 0.14); color: #ffd700; border-color: rgba(255, 215, 0, 0.4); }
+  .rank-badge.silver { background: rgba(192, 192, 192, 0.14); color: #d6d6d6; border-color: rgba(192, 192, 192, 0.4); }
+  .rank-badge.bronze { background: rgba(205, 127, 50, 0.16); color: #e0995e; border-color: rgba(205, 127, 50, 0.45); }
+  .oratoria-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 11px;
+    border-radius: 999px;
+    border: 1px solid;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .stat-card { padding: 14px 16px; text-align: center; }
+  .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--accent-green); }
+  .stat-label { font-size: 0.68rem; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  .focus-card {
+    margin-bottom: 22px;
+    padding: 18px 20px;
+    background: linear-gradient(160deg, rgba(255, 182, 72, 0.1), rgba(255, 182, 72, 0.02));
+    border-color: rgba(255, 182, 72, 0.3);
+  }
+  .focus-eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-amber); margin-bottom: 6px; }
+  .focus-card h3 { font-size: 1.05rem; margin: 0 0 4px; color: #f5f5f5; }
+  .focus-card p { margin: 0; color: var(--text-muted); font-size: 0.82rem; }
 
   #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   #gate p { color: var(--text-muted); font-size: 0.9rem; }
@@ -190,6 +236,17 @@
       <h1 id="greeting">Olá</h1>
       <p id="greetingRole" style="display:none"></p>
       <p>Gerencie quem faz parte do seu time no AuraX.</p>
+    </div>
+
+    <div class="stat-grid">
+      <div class="card stat-card"><div class="stat-value" id="statTeamSessions">0</div><div class="stat-label">Sessões do time</div></div>
+      <div class="card stat-card"><div class="stat-value" id="statTeamOratoria">—</div><div class="stat-label">Oratória média do time</div></div>
+    </div>
+
+    <div class="card focus-card" id="teamFocusCard" hidden>
+      <div class="focus-eyebrow">Analisando o time</div>
+      <h3 id="teamFocusTitle"></h3>
+      <p id="teamFocusFrequency"></p>
     </div>
 
     <div class="card add-row">
@@ -233,6 +290,47 @@
       return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
     }
 
+    function average(arr) {
+      if (!arr.length) return 0;
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    const ORATORIA_RANK_TIERS = [
+      { min: 90, label: "Excelente", color: "#7ee787" },
+      { min: 70, label: "Bom", color: "#7ee787" },
+      { min: 50, label: "Médio", color: "#ffb648" },
+      { min: 0, label: "Precisa de atenção", color: "#ff6b5b" },
+    ];
+
+    function oratoriaScoreRank(score) {
+      return ORATORIA_RANK_TIERS.find((tier) => score >= tier.min);
+    }
+
+    function rankBadgeClass(position) {
+      if (position === 0) return "gold";
+      if (position === 1) return "silver";
+      if (position === 2) return "bronze";
+      return "";
+    }
+
+    const TIP_KEY_LABELS = {
+      ritmo_acelerado: "Ritmo de fala acelerado",
+      ritmo_tranquilo: "Ritmo de fala tranquilo",
+      muitas_pausas: "Muitas pausas longas",
+      escuta_ativa_pausas: "Escuta ativa (pausas longas)",
+      dominou_conversa: "Dominou a conversa",
+      boa_escuta: "Boa escuta ativa",
+      silencio_alto: "Silêncio acima do ideal",
+      muitas_girias: "Muitas gírias/informalidades",
+      muitos_vicios: "Muitos vícios de linguagem",
+      poucos_vicios: "Poucos vícios de linguagem",
+      objecao_segura: "Boa recuperação em objeções",
+      objecao_tensa: "Tensão ao responder objeções",
+      cansaco: "Sinais de cansaço",
+      boa_energia: "Boa energia/motivação",
+      equilibrada: "Sessão equilibrada",
+    };
+
     function personCardHtml(person) {
       return `
         <div class="card person-card" data-id="${person.id}">
@@ -272,7 +370,51 @@
       }
 
       renderFilterTabs();
+      await renderTeamSummary();
       await renderSessions();
+    }
+
+    // Visão agregada do time inteiro (você + liderados), independente do
+    // filtro selecionado abaixo — é o resumo "sempre visível" no topo.
+    async function renderTeamSummary() {
+      const allPeople = [{ id: currentUserId, name: "Você" }].concat(teamMembers);
+      const targetIds = allPeople.map((p) => p.id);
+
+      const { data, error } = await supabaseClient
+        .from("sessions")
+        .select("oratoria_score, tips")
+        .in("user_id", targetIds);
+
+      if (error || !data) return;
+
+      document.getElementById("statTeamSessions").textContent = data.length;
+
+      const scored = data.filter((s) => s.oratoria_score != null);
+      document.getElementById("statTeamOratoria").textContent = scored.length
+        ? Math.round(average(scored.map((s) => s.oratoria_score)))
+        : "—";
+
+      const tipCounts = {};
+      data.forEach((s) => {
+        (s.tips || []).forEach((t) => {
+          if (!t || !t.key) return;
+          if (!tipCounts[t.key]) tipCounts[t.key] = { type: t.type, count: 0 };
+          tipCounts[t.key].count += 1;
+        });
+      });
+      const rankedTips = Object.entries(tipCounts).sort((a, b) => b[1].count - a[1].count);
+      const topImprovement = rankedTips.find(([, info]) => info.type === "melhorar");
+      const focusCardEl = document.getElementById("teamFocusCard");
+      if (topImprovement && data.length) {
+        const [key, info] = topImprovement;
+        const label = TIP_KEY_LABELS[key] || key;
+        const pct = Math.round((info.count / data.length) * 100);
+        focusCardEl.hidden = false;
+        document.getElementById("teamFocusTitle").textContent = `Principal ponto de melhoria do time: ${label}`;
+        document.getElementById("teamFocusFrequency").textContent = `Apareceu em ${info.count} de ${data.length} sessões do time (${pct}%).`;
+      } else {
+        focusCardEl.hidden = true;
+      }
     }
 
     function renderFilterTabs() {
@@ -292,7 +434,7 @@
       });
     }
 
-    function sessionCardHtml(personName, row) {
+    function sessionCardHtml(personName, row, position) {
       const tips = (row.tips || []).slice(0, 2);
       const tipsHtml = tips
         .map(
@@ -300,13 +442,24 @@
             `<div class="tip-line ${t.type === "positivo" ? "positive" : ""}">${t.type === "positivo" ? "✓" : "→"} ${t.text}</div>`
         )
         .join("");
+      const rank = row.oratoria_score != null ? oratoriaScoreRank(row.oratoria_score) : null;
+      const oratoriaHtml = rank
+        ? `<span class="oratoria-pill" style="color:${rank.color}; border-color:${rank.color}">${row.oratoria_score} · ${rank.label}</span>`
+        : `<span class="oratoria-pill" style="color:#777; border-color:#444">Sem nota</span>`;
+      const rankBadgeHtml = typeof position === "number"
+        ? `<span class="rank-badge ${rankBadgeClass(position)}">#${position + 1}</span>`
+        : "";
       return `
         <div class="card session-card">
           <div class="session-head">
-            <div>
-              <div class="session-title">${personName}${row.client_name ? " — Cliente: " + row.client_name : ""}</div>
-              <div class="session-meta">${formatDateBR(row.date)} · ${formatDurationShort(row.duration)}</div>
+            <div class="session-title-row">
+              ${rankBadgeHtml}
+              <div>
+                <div class="session-title">${personName}${row.client_name ? " — Cliente: " + row.client_name : ""}</div>
+                <div class="session-meta">${formatDateBR(row.date)} · ${formatDurationShort(row.duration)}</div>
+              </div>
             </div>
+            ${oratoriaHtml}
           </div>
           <div class="badges">
             <span class="badge badge-focused">Constância ${Math.round((row.focused || 0) * 100)}%</span>
@@ -341,7 +494,18 @@
       const nameById = {};
       allPeople.forEach((p) => { nameById[p.id] = p.name; });
 
-      listEl.innerHTML = data.map((row) => sessionCardHtml(nameById[row.user_id] || "Alguém do time", row)).join("");
+      // Ranking: quem tem nota de oratória vem primeiro, do maior pro menor;
+      // sessões sem nota (antes da métrica existir) ficam no fim, por data.
+      const ranked = [...data].sort((a, b) => {
+        if (a.oratoria_score == null && b.oratoria_score == null) return new Date(b.date) - new Date(a.date);
+        if (a.oratoria_score == null) return 1;
+        if (b.oratoria_score == null) return -1;
+        return b.oratoria_score - a.oratoria_score;
+      });
+
+      listEl.innerHTML = ranked
+        .map((row, i) => sessionCardHtml(nameById[row.user_id] || "Alguém do time", row, i))
+        .join("");
     }
 
     function showFeedback(text, type) {
