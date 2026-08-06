@@ -1411,17 +1411,19 @@
       renderSummary();
       posthog.capture("session_ended", { duration_seconds: durationSeconds });
 
-      // O resumo do que acabou de acontecer já fica salvo nos cards da
-      // esquerda e no resumo completo abaixo — a transcrição ao vivo, os
-      // alertas e o nome do cliente podem voltar pro zero, prontos pra
-      // próxima sessão (o microfone continua ligado se já estava, só some
-      // o que já passou).
+      // O resumo do que acabou de acontecer já fica salvo (Supabase +
+      // "Minhas Sessões"/"Meus Insights", com nota de oratória, dicas e
+      // vícios de linguagem) — então a tela em si já pode voltar pro zero,
+      // pronta pra próxima sessão, em vez de esperar o próximo "Iniciar".
       transcriptLogEl.innerHTML = "";
       liveAlertsEl.innerHTML = "";
       transcriptFinalCount = 0;
       transcriptWordCount = 0;
       updateTranscriptCount();
       clientNameInputEl.value = "";
+      summarySection.style.display = "none";
+      leftSummaryCardsEl.style.display = "none";
+      summaryOratoriaEl.innerHTML = '<div class="insight-line">Fale um pouco pra começar a ver sua nota aqui.</div>';
     });
 
     function maybeSampleSession(expressions, estimates) {
