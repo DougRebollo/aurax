@@ -2163,9 +2163,16 @@
     const CLUSTER_LEARNING_RATE = 0.2;
     const OTHER_CLUSTER_SEED_RATIO = 0.7; // só marca "outro participante" se soar bem mais baixo que você
     const OTHER_CLUSTER_CONFIRM_STREAK = 2; // exige 2 falas baixas seguidas antes de confirmar outra voz
+    // Sua própria voz varia de volume entre frases — se comparar cada fala só
+    // pela distância "crua" até a média de cada cluster, uma fala num volume
+    // de meio-termo troca de dono ao acaso, mesmo com os clusters separados.
+    // Essa margem dá um viés de continuidade: só troca de quem está falando
+    // se a outra opção for claramente mais próxima, não só um pouco.
+    const SPEAKER_SWITCH_MARGIN = 1.5;
     let ownVoiceBaseline = Number(localStorage.getItem(VOICE_BASELINE_KEY)) || null;
     let ownClusterAvg = null;
     let otherClusterAvg = null;
+    let lastSpeaker = null;
     let belowSeedThresholdStreak = 0;
 
     // Se os dois grupos de volume ficarem parecidos demais — ou se nenhum
@@ -2180,6 +2187,7 @@
     function resetSpeakerClusters() {
       ownClusterAvg = ownVoiceBaseline;
       otherClusterAvg = null;
+      lastSpeaker = null;
       belowSeedThresholdStreak = 0;
       lowSeparationAlertShown = false;
       utteranceCountSinceReset = 0;
@@ -2204,6 +2212,7 @@
 
       if (ownClusterAvg === null) {
         ownClusterAvg = avgVolume;
+        lastSpeaker = "Você";
         return "Você";
       }
 
@@ -2212,6 +2221,7 @@
           belowSeedThresholdStreak++;
           if (belowSeedThresholdStreak >= OTHER_CLUSTER_CONFIRM_STREAK) {
             otherClusterAvg = avgVolume;
+            lastSpeaker = "Outro participante";
             return "Outro participante";
           }
           // Só uma fala mais baixa ainda não confirma outra voz — pode ser
@@ -2221,6 +2231,7 @@
         }
         belowSeedThresholdStreak = 0;
         ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
+        lastSpeaker = "Você";
         maybeWarnLowSeparation();
         return "Você";
       }
@@ -2228,13 +2239,20 @@
       const distToOwn = Math.abs(avgVolume - ownClusterAvg);
       const distToOther = Math.abs(avgVolume - otherClusterAvg);
       let speaker;
-      if (distToOwn <= distToOther) {
-        ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
+      if (lastSpeaker === "Você" && distToOwn <= distToOther * SPEAKER_SWITCH_MARGIN) {
         speaker = "Você";
+      } else if (lastSpeaker === "Outro participante" && distToOther <= distToOwn * SPEAKER_SWITCH_MARGIN) {
+        speaker = "Outro participante";
+      } else {
+        speaker = distToOwn <= distToOther ? "Você" : "Outro participante";
+      }
+
+      if (speaker === "Você") {
+        ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
       } else {
         otherClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - otherClusterAvg);
-        speaker = "Outro participante";
       }
+      lastSpeaker = speaker;
       maybeWarnLowSeparation();
       return speaker;
     }
