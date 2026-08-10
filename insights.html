@@ -227,6 +227,11 @@
         <div id="emotionChartWrap"></div>
       </div>
 
+      <div class="section-title">Vícios de linguagem ao longo do tempo</div>
+      <div class="card chart-card">
+        <div id="fillerTrendWrap"></div>
+      </div>
+
       <div class="section-title">Equilíbrio de conversa</div>
       <div class="card chart-card" id="talkBalanceWrap"></div>
 
@@ -293,6 +298,8 @@
       poucos_vicios: "Poucos vícios de linguagem",
       objecao_segura: "Boa recuperação em objeções",
       objecao_tensa: "Tensão ao responder objeções",
+      poucas_perguntas_abertas: "Poucas perguntas abertas",
+      boas_perguntas_abertas: "Boa proporção de perguntas abertas",
       cansaco: "Sinais de cansaço",
       boa_energia: "Boa energia/motivação",
       equilibrada: "Sessão equilibrada",
@@ -309,6 +316,7 @@
       muitas_girias: "Grave um trecho seu e ouça de fora — a maioria das gírias é hábito automático que a gente só percebe ouvindo depois.",
       muitos_vicios: "Escolha 1 vício de cada vez pra focar na próxima call, em vez de tentar cortar todos de uma vez.",
       objecao_tensa: "Monte um roteiro curto (2-3 frases) pras objeções mais comuns antes da próxima call, pra não precisar improvisar na hora.",
+      poucas_perguntas_abertas: "Troque uma pergunta fechada por uma aberta a cada poucos minutos — comece com \"o que\", \"como\" ou \"por que\" pra deixar o cliente elaborar a resposta.",
       cansaco: "Intercalar uma pausa curta entre reuniões consecutivas ajuda a chegar com mais energia na próxima.",
     };
 
@@ -455,6 +463,27 @@
           { points: motivatedPoints, color: "#c98500" },
         ],
         { maxY: 1 }
+      );
+
+      // --- Vícios de linguagem ao longo do tempo ---
+      // Não temos a contagem de palavras salva direto, mas dá pra aproximar
+      // multiplicando o ritmo (palavras/min) pela duração da sessão — a mesma
+      // conta usada na nota de oratória pra achar a taxa de vícios.
+      const fillerTrendPoints = chronological
+        .map((s) => {
+          const words = (s.wpm || 0) * ((s.duration || 0) / 60);
+          if (!words) return null;
+          const totalFiller = Object.values(s.filler_counts || {}).reduce((a, b) => a + b, 0);
+          return { date: s.date, value: (totalFiller / words) * 100 };
+        })
+        .filter(Boolean);
+      const fillerMaxY = fillerTrendPoints.length
+        ? Math.max(10, Math.ceil(Math.max(...fillerTrendPoints.map((p) => p.value)) / 5) * 5)
+        : 10;
+      renderLineChart(
+        document.getElementById("fillerTrendWrap"),
+        [{ points: fillerTrendPoints, color: "#c9a6ff" }],
+        { maxY: fillerMaxY }
       );
 
       // --- Equilíbrio de conversa ---

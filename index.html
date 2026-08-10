@@ -941,6 +941,24 @@
       return OBJECTION_PHRASES.find((p) => lower.includes(p)) || null;
     }
 
+    // Pergunta aberta ("o que", "como"...) abre espaço pro cliente falar;
+    // fechada ("você pode", "faz sentido"...) tende a gerar só sim/não.
+    // Só classifica como pergunta quando o reconhecimento de voz colocou um
+    // "?" no fim — sem isso, palavras como "quando"/"como" aparecem demais em
+    // frases que não são perguntas (são conjunções, não interrogação).
+    const OPEN_QUESTION_STARTERS = [
+      "o que", "que", "como", "por que", "porque", "qual", "quais",
+      "quando", "onde", "quem", "quanto", "quantos", "quantas",
+    ];
+
+    function classifyQuestion(text) {
+      const trimmed = text.trim();
+      if (!trimmed.endsWith("?")) return null;
+      const lower = trimmed.toLowerCase();
+      const isOpen = OPEN_QUESTION_STARTERS.some((w) => lower.startsWith(w + " ") || lower === `${w}?`);
+      return isOpen ? "aberta" : "fechada";
+    }
+
     function tokenizeWords(text) {
       return text
         .toLowerCase()
@@ -1285,6 +1303,8 @@
       if ("slangCounts" in out) { out.slang_counts = out.slangCounts; delete out.slangCounts; }
       if ("fillerCounts" in out) { out.filler_counts = out.fillerCounts; delete out.fillerCounts; }
       if ("oratoriaScore" in out) { out.oratoria_score = out.oratoriaScore; delete out.oratoriaScore; }
+      if ("openQuestions" in out) { out.open_questions = out.openQuestions; delete out.openQuestions; }
+      if ("closedQuestions" in out) { out.closed_questions = out.closedQuestions; delete out.closedQuestions; }
       return out;
     }
 
@@ -1313,6 +1333,8 @@
     let sessionTotalSamples = 0;
     let sessionConfidences = [];
     let sessionVolumes = [];
+    let sessionOpenQuestions = 0;
+    let sessionClosedQuestions = 0;
 
     // --- Objeção + resposta: acompanha a expressão por um tempo depois de uma
     // frase-gatilho de objeção, pra resumir como foi a reação na resposta.
@@ -1390,6 +1412,8 @@
       sessionTotalSamples = 0;
       sessionConfidences = [];
       sessionVolumes = [];
+      sessionOpenQuestions = 0;
+      sessionClosedQuestions = 0;
       currentClientName = clientNameInputEl.value.trim();
       startSessionBtn.style.display = "none";
       endSessionBtn.style.display = "inline-block";
@@ -1662,7 +1686,7 @@
     // Dicas de autoavaliação ao final da sessão — regras simples sobre os
     // dados que já coletamos (nada de IA generativa aqui, é tudo heurística
     // direta a partir do que foi medido nesta mesma sessão).
-    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated }) {
+    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated, openQuestions, closedQuestions }) {
       const tips = [];
 
       if (wpm > 170) {
@@ -1713,6 +1737,24 @@
           tips.push({ key: "objecao_segura", type: "positivo", text: "Boa recuperação em objeções — manteve o foco na maioria das respostas." });
         } else if (tense > 0) {
           tips.push({ key: "objecao_tensa", type: "melhorar", text: `Sinais de tensão ao responder objeções (${tense} de ${objections.length}) — treinar essas respostas pode ajudar.` });
+        }
+      }
+
+      const totalQuestions = (openQuestions || 0) + (closedQuestions || 0);
+      if (totalQuestions >= 3) {
+        const openRatio = openQuestions / totalQuestions;
+        if (openRatio < 0.3) {
+          tips.push({
+            key: "poucas_perguntas_abertas",
+            type: "melhorar",
+            text: `Só ${openQuestions} de ${totalQuestions} perguntas foram abertas — perguntas abertas ("o que", "como") abrem mais espaço pro cliente falar.`,
+          });
+        } else if (openRatio >= 0.5) {
+          tips.push({
+            key: "boas_perguntas_abertas",
+            type: "positivo",
+            text: `Boa proporção de perguntas abertas (${openQuestions} de ${totalQuestions}) — ajuda a entender melhor a necessidade do cliente.`,
+          });
         }
       }
 
@@ -1825,6 +1867,7 @@
           <div class="insight-line" style="margin-top:10px">Trocas de turno: ${dynamics.turnsPerMinute}/min</div>
           <div class="insight-line">Maior fala sua: ${dynamics.longestYou} palavras · do outro: ${dynamics.longestOther} palavras</div>
           <div class="insight-line">Silêncio na sessão: ${dynamics.silencePct}%</div>
+          <div class="insight-line">Suas perguntas: ${sessionOpenQuestions} aberta${sessionOpenQuestions === 1 ? "" : "s"} · ${sessionClosedQuestions} fechada${sessionClosedQuestions === 1 ? "" : "s"}</div>
         `;
       } else {
         summaryDynamicsEl.innerHTML = '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
@@ -1853,6 +1896,8 @@
         objections: sessionObjections,
         avgTired,
         avgMotivated,
+        openQuestions: sessionOpenQuestions,
+        closedQuestions: sessionClosedQuestions,
       });
       summaryTipsEl.innerHTML = renderCoachingTips(tips);
 
@@ -1872,6 +1917,8 @@
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         oratoriaScore: oratoriaResult.overall,
+        openQuestions: sessionOpenQuestions,
+        closedQuestions: sessionClosedQuestions,
         tips,
       });
     }
@@ -2561,6 +2608,9 @@
         if (speaker === "Você") {
           if (avgUtteranceVolume > 0) sessionVolumes.push(avgUtteranceVolume);
           if (typeof confidence === "number" && confidence > 0) sessionConfidences.push(confidence);
+          const questionType = classifyQuestion(text);
+          if (questionType === "aberta") sessionOpenQuestions++;
+          else if (questionType === "fechada") sessionClosedQuestions++;
         }
         updateLiveOratoria();
       }

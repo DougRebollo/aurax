@@ -473,6 +473,7 @@
           ${h.tips && h.tips.length ? `<div style="margin-top:10px">${renderCoachingTips(h.tips)}</div>` : ""}
           ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
           ${h.dynamics ? `<div class="session-secondary-stats">Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>` : ""}
+          ${h.open_questions != null || h.closed_questions != null ? `<div class="session-secondary-stats">Perguntas: ${h.open_questions || 0} abertas · ${h.closed_questions || 0} fechadas</div>` : ""}
           ${negotiationTagsHtml ? `<div class="keyword-tags" style="margin-top:8px">${negotiationTagsHtml}</div>` : ""}
           ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
           ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}
