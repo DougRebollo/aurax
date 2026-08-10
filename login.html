@@ -100,6 +100,20 @@
   .message.error { display: block; background: rgba(229, 83, 61, 0.12); color: #ff8a76; border: 1px solid rgba(229, 83, 61, 0.3); }
   .message.success { display: block; background: rgba(126, 231, 135, 0.1); color: #7ee787; border: 1px solid rgba(126, 231, 135, 0.3); }
   #nameField { display: none; }
+  .role-toggle { display: flex; gap: 8px; }
+  .role-option {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: #999;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .role-option.selected { background: rgba(79, 140, 255, 0.18); border-color: #4f8cff; color: #eaf2ff; }
 </style>
 <script>
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -118,6 +132,12 @@
       <div id="nameField">
         <label for="nameInput">Nome</label>
         <input type="text" id="nameInput" placeholder="Seu nome" />
+
+        <label>Você é gestor ou funcionário?</label>
+        <div class="role-toggle" id="roleToggle">
+          <button type="button" class="role-option selected" data-role="funcionario">Funcionário</button>
+          <button type="button" class="role-option" data-role="gestor">Gestor</button>
+        </div>
 
         <label for="cargoInput">Cargo <span style="color:#666">(opcional)</span></label>
         <input type="text" id="cargoInput" placeholder="Ex: Gerente Comercial" />
@@ -150,10 +170,12 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let mode = "login"; // ou "signup"
+    let selectedRole = "funcionario";
 
     const form = document.getElementById("authForm");
     const nameField = document.getElementById("nameField");
     const nameInput = document.getElementById("nameInput");
+    const roleToggle = document.getElementById("roleToggle");
     const cargoInput = document.getElementById("cargoInput");
     const empresaInput = document.getElementById("empresaInput");
     const emailInput = document.getElementById("emailInput");
@@ -173,6 +195,14 @@
       messageBox.className = "message";
       messageBox.textContent = "";
     }
+
+    roleToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".role-option");
+      if (!btn) return;
+      roleToggle.querySelectorAll(".role-option").forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      selectedRole = btn.dataset.role;
+    });
 
     toggleModeBtn.addEventListener("click", () => {
       mode = mode === "login" ? "signup" : "login";
@@ -225,7 +255,7 @@
           const { data, error } = await supabaseClient.auth.signUp({
             email,
             password,
-            options: { data: { name, cargo, empresa } },
+            options: { data: { name, cargo, empresa, role: selectedRole } },
           });
           if (error) throw error;
 
