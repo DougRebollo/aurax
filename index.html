@@ -2955,7 +2955,8 @@
     });
 
     function maybeShowOnboarding() {
-      if (!localStorage.getItem(ONBOARDING_SEEN_KEY)) {
+      const forceOnboarding = new URLSearchParams(location.search).get("onboarding") === "1";
+      if (forceOnboarding || !localStorage.getItem(ONBOARDING_SEEN_KEY)) {
         showOnboarding();
       }
     }

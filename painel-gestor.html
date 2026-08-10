@@ -43,7 +43,8 @@
   }
   .wrap { max-width: 980px; margin: 0 auto; padding: 24px 20px 80px; position: relative; }
 
-  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+  .top-bar-nav { display: flex; gap: 10px; flex-wrap: wrap; }
   .logo {
     font-size: 1.15rem; font-weight: 700; letter-spacing: 1.5px;
     background: linear-gradient(90deg, #eaf2ff, var(--accent-green) 55%, var(--accent-blue));
@@ -225,7 +226,10 @@
   <div class="wrap" id="app" hidden>
     <div class="top-bar">
       <span class="logo">AuraX</span>
-      <div style="display:flex; gap:10px;">
+      <div class="top-bar-nav">
+        <button type="button" class="btn ghost" id="howItWorksBtn">Como funciona</button>
+        <button type="button" class="btn ghost" id="insightsBtn">Meus Insights</button>
+        <button type="button" class="btn ghost" id="sessionsBtn">Minhas Sessões</button>
         <a class="btn ghost" href="index.html" style="text-decoration:none; display:inline-block;">Meu AuraX</a>
         <button type="button" class="btn ghost" id="logoutBtn">Sair</button>
       </div>
@@ -586,6 +590,17 @@
     document.getElementById("logoutBtn").addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
       window.location.href = "login.html";
+    });
+    document.getElementById("howItWorksBtn").addEventListener("click", () => {
+      window.location.href = "index.html?onboarding=1";
+    });
+    document.getElementById("insightsBtn").addEventListener("click", () => {
+      posthog.capture("insights_opened");
+      window.location.href = "insights.html";
+    });
+    document.getElementById("sessionsBtn").addEventListener("click", () => {
+      posthog.capture("sessions_ranking_opened");
+      window.location.href = "sessoes.html";
     });
 
     async function init() {
