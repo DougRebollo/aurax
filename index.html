@@ -2162,7 +2162,14 @@
     const CALIBRATION_DURATION_MS = 3000;
     const CLUSTER_LEARNING_RATE = 0.2;
     const OTHER_CLUSTER_SEED_RATIO = 0.7; // só marca "outro participante" se soar bem mais baixo que você
-    const OTHER_CLUSTER_CONFIRM_STREAK = 2; // exige 2 falas baixas seguidas antes de confirmar outra voz
+    const OTHER_CLUSTER_CONFIRM_STREAK = 4; // exige 4 falas baixas seguidas antes de confirmar outra voz
+    // A calibração (3s "declamando" frases) tende a sair um pouco mais alta
+    // que o tom relaxado de conversa real — sem isso, suas próprias falas
+    // mais naturais pareceriam "mais baixas que o calibrado" e confirmariam
+    // uma outra voz que não existe. Essa taxa deixa a referência da sua
+    // própria voz se ajustar pro volume real da call, mesmo enquanto uma
+    // fala ainda está "abaixo do limiar" mas não confirmada como outra voz.
+    const OWN_BASELINE_SELF_CORRECT_RATE = 0.05;
     // Sua própria voz varia de volume entre frases — se comparar cada fala só
     // pela distância "crua" até a média de cada cluster, uma fala num volume
     // de meio-termo troca de dono ao acaso, mesmo com os clusters separados.
@@ -2180,7 +2187,7 @@
     // vozes deixa de ser confiável (normalmente sinal de call sem fone de
     // ouvido, com o volume da caixa de som alto). Avisa uma vez por sessão.
     const LOW_SEPARATION_RATIO = 0.75;
-    const NO_OTHER_VOICE_STREAK = 8;
+    const NO_OTHER_VOICE_STREAK = 14; // maior que antes pq confirmar outra voz agora exige mais evidência
     let lowSeparationAlertShown = false;
     let utteranceCountSinceReset = 0;
 
@@ -2226,7 +2233,10 @@
           }
           // Só uma fala mais baixa ainda não confirma outra voz — pode ser
           // só uma variação natural da sua própria fala (ex: trecho mais
-          // calmo de uma frase longa).
+          // calmo de uma frase longa). Ainda assim, puxa a referência da sua
+          // voz um pouco pra baixo — se for realmente você, isso evita que a
+          // mesma calibração "alta" continue gerando falsos positivos.
+          ownClusterAvg += OWN_BASELINE_SELF_CORRECT_RATE * (avgVolume - ownClusterAvg);
           return "Você";
         }
         belowSeedThresholdStreak = 0;
