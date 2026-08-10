@@ -285,6 +285,32 @@
     flex-shrink: 0;
   }
 
+  .team-size-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0 0;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(79, 140, 255, 0.22), rgba(126, 231, 135, 0.16));
+    border: 1px solid rgba(126, 231, 135, 0.4);
+    color: #eaf2ff;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .enterprise-note {
+    margin: 20px 0 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(255, 182, 72, 0.08);
+    border: 1px solid rgba(255, 182, 72, 0.3);
+    font-size: 0.83rem;
+    color: #ddd;
+    text-align: left;
+  }
+  .enterprise-note a { color: #ffb648; font-weight: 700; text-decoration: none; }
+  .enterprise-note a:hover { text-decoration: underline; }
+
   /* Final CTA */
   .final-cta { text-align: center; }
   .final-cta h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); margin: 0 0 14px; color: #f5f5f5; }
@@ -565,6 +591,7 @@
       <div class="card pricing-card">
         <div class="plan-name">Plano Profissional</div>
         <div class="price"><sup>R$</sup> 219<span class="period">/mês</span></div>
+        <div class="team-size-badge">👥 1 gestor + 5 colaboradores — equipe de 6 pessoas</div>
         <ul class="price-list">
           <li>Leitura facial e estimativas em tempo real</li>
           <li>Transcrição ao vivo com distinção de falantes</li>
@@ -575,6 +602,7 @@
           <li>Suporte direto via WhatsApp</li>
         </ul>
         <a class="btn big" id="pricingCta" href="#" target="_blank" rel="noopener" style="width:100%">Falar com o time comercial</a>
+        <div class="enterprise-note">Equipe com mais de 6 pessoas? <a id="enterpriseSalesLink" href="#" target="_blank" rel="noopener">Fale com o comercial</a> e montamos um plano sob medida.</div>
       </div>
     </section>
 
@@ -601,6 +629,12 @@
       el.href = whatsappUrl;
       el.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: id }));
     });
+
+    const ENTERPRISE_MESSAGE = "Olá! Minha equipe tem mais de 6 pessoas e preciso de um plano sob medida pro AuraX.";
+    const enterpriseWhatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(ENTERPRISE_MESSAGE)}`;
+    const enterpriseSalesLink = document.getElementById("enterpriseSalesLink");
+    enterpriseSalesLink.href = enterpriseWhatsappUrl;
+    enterpriseSalesLink.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: "enterpriseSalesLink" }));
 
     const ORBIT_ITEMS = [
       { title: "Leitura Facial", sub: "Foco, motivação e cansaço em tempo real" },
