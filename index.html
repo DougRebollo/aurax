@@ -91,6 +91,35 @@
   .corner-bl { bottom: 10px; left: 10px; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
   .corner-br { bottom: 10px; right: 10px; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
 
+  #fillerBubbleLayer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .filler-bubble {
+    position: absolute;
+    bottom: 18%;
+    transform: translateX(-50%);
+    background: rgba(255, 182, 72, 0.16);
+    border: 1px solid rgba(255, 182, 72, 0.5);
+    color: #ffd9a0;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 5px 14px;
+    border-radius: 999px;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    white-space: nowrap;
+    animation: fillerFloat 4s ease-out forwards;
+  }
+  @keyframes fillerFloat {
+    0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.85); }
+    12% { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-110px) scale(1.05); }
+  }
+
   .live-badge {
     position: absolute;
     top: 12px;
@@ -769,6 +798,7 @@
           <span class="corner corner-br"></span>
         </div>
         <div class="live-badge"><span class="live-dot"></span>AO VIVO</div>
+        <div id="fillerBubbleLayer"></div>
         <button id="switchCam" style="display:none">Trocar câmera</button>
       </div>
 
@@ -1022,6 +1052,18 @@
 
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
+    const fillerBubbleLayerEl = document.getElementById("fillerBubbleLayer");
+
+    // Balãozinho flutuante quando você fala um vício de linguagem — feedback
+    // visual imediato, some sozinho depois da animação (4s).
+    function showFillerBubble(word) {
+      const bubble = document.createElement("span");
+      bubble.className = "filler-bubble";
+      bubble.textContent = `"${word}"`;
+      bubble.style.left = `${25 + Math.random() * 50}%`;
+      fillerBubbleLayerEl.appendChild(bubble);
+      setTimeout(() => bubble.remove(), 4000);
+    }
     const statusEl = document.getElementById("status");
     const dominantEl = document.getElementById("dominant");
     const emotionsEl = document.getElementById("emotions");
@@ -2552,6 +2594,10 @@
       const avgUtteranceVolume = currentUtteranceVolumes.length ? average(currentUtteranceVolumes) : 0;
       const speaker = classifySpeaker(avgUtteranceVolume);
       currentUtteranceVolumes = [];
+
+      if (speaker === "Você" && fillerMatches.length) {
+        fillerMatches.forEach((word, i) => setTimeout(() => showFillerBubble(word), i * 250));
+      }
 
       transcriptLogEl.insertAdjacentHTML(
         "beforeend",
