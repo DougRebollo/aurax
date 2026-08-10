@@ -207,6 +207,8 @@
   .focus-card h3 { font-size: 1.05rem; margin: 0 0 4px; color: #f5f5f5; }
   .focus-card p { margin: 0; color: var(--text-muted); font-size: 0.82rem; }
 
+  .team-limit-notice p { margin: 0 0 12px; }
+
   #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   #gate p { color: var(--text-muted); font-size: 0.9rem; }
 
@@ -259,6 +261,12 @@
     </div>
     <div class="add-feedback" id="addFeedback"></div>
 
+    <div class="card focus-card team-limit-notice" id="teamLimitNotice" hidden>
+      <div class="focus-eyebrow">Limite do plano</div>
+      <p>Seu plano atual permite até 5 pessoas no time, além de você. Pra adicionar mais gente, fale com nosso time comercial e a gente monta um plano sob medida.</p>
+      <a class="btn ghost" id="salesContactBtn" target="_blank" rel="noopener" style="text-decoration:none; display:inline-block;">Fale com Vendas</a>
+    </div>
+
     <div class="section-title">Seu time</div>
     <div class="team-strip" id="teamStrip"></div>
 
@@ -276,6 +284,23 @@
     let currentUserId = null;
     let teamMembers = []; // [{ id, name }]
     let selectedFilter = "todos";
+
+    // Plano padrão: gestor + 5 pessoas no time. Acima disso é fluxo manual
+    // com o comercial (plano sob medida), não self-service.
+    const MAX_TEAM_MEMBERS = 5;
+    const SALES_WHATSAPP_NUMBER = "5551984026354";
+    const SALES_WHATSAPP_MESSAGE = "Olá! Meu time no AuraX já bateu o limite de 5 pessoas e preciso de mais licenças.";
+    const salesWhatsappUrl = `https://wa.me/${SALES_WHATSAPP_NUMBER}?text=${encodeURIComponent(SALES_WHATSAPP_MESSAGE)}`;
+
+    function updateTeamLimitUI() {
+      const atLimit = teamMembers.length >= MAX_TEAM_MEMBERS;
+      document.getElementById("teamLimitNotice").hidden = !atLimit;
+      document.getElementById("addEmailInput").disabled = atLimit;
+      document.getElementById("addBtn").disabled = atLimit;
+      const salesBtn = document.getElementById("salesContactBtn");
+      salesBtn.href = salesWhatsappUrl;
+      salesBtn.onclick = () => posthog.capture("sales_contact_click", { reason: "team_limit" });
+    }
 
     function formatDateBR(iso) {
       const d = new Date(iso);
@@ -375,6 +400,7 @@
         teamMembers = data.map((p) => ({ id: p.id, name: p.name }));
       }
 
+      updateTeamLimitUI();
       renderFilterTabs();
       await renderTeamSummary();
       await renderSessions();
@@ -525,6 +551,11 @@
       const email = input.value.trim();
       if (!email) return;
 
+      if (teamMembers.length >= MAX_TEAM_MEMBERS) {
+        showFeedback(`Seu plano permite até ${MAX_TEAM_MEMBERS} pessoas no time — fale com vendas pra aumentar esse limite.`, "error");
+        return;
+      }
+
       const addBtn = document.getElementById("addBtn");
       addBtn.disabled = true;
       showFeedback("", "");
@@ -555,11 +586,21 @@
           return;
         }
 
-        const { error: updateError } = await supabaseClient
+        const { data: updated, error: updateError } = await supabaseClient
           .from("profiles")
           .update({ manager_id: currentUserId })
-          .eq("id", found.id);
+          .eq("id", found.id)
+          .select();
         if (updateError) throw updateError;
+
+        // RLS bloqueia silenciosamente (sem erro, só 0 linhas) se o limite
+        // do plano já tiver sido atingido nesse meio-tempo — sem checar
+        // `updated.length`, isso apareceria como sucesso falso pro gestor.
+        if (!updated || !updated.length) {
+          showFeedback(`Seu plano permite até ${MAX_TEAM_MEMBERS} pessoas no time — fale com vendas pra aumentar esse limite.`, "error");
+          await loadTeam();
+          return;
+        }
 
         posthog.capture("team_member_added");
         showFeedback(`${found.name} foi adicionado(a) ao seu time.`, "success");
