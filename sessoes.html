@@ -42,7 +42,7 @@
     mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
     pointer-events: none;
   }
-  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 80px; position: relative; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 80px; position: relative; }
 
   .top-bar {
     display: flex;
@@ -107,34 +107,38 @@
 
   .empty-state { padding: 30px 18px; text-align: center; color: var(--text-dim); font-size: 0.88rem; }
 
+  .month-group { margin-bottom: 30px; }
+  .month-heading {
+    display: flex; align-items: baseline; gap: 10px;
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; color: #f2f2f2;
+  }
+  .month-count { font-size: 0.78rem; font-weight: 500; color: var(--text-dim); }
+  .month-row {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 2px 2px 14px;
+    scroll-snap-type: x proximity;
+  }
+  .month-row::-webkit-scrollbar { height: 8px; }
+  .month-row::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 999px; }
+  .month-row::-webkit-scrollbar-track { background: transparent; }
+
   .insight-line { margin: 4px 0; padding-left: 10px; border-left: 2px solid var(--accent-blue); font-size: 0.85rem; }
   .tip-positive { border-left-color: var(--accent-green); }
   .tip-improve { border-left-color: var(--accent-amber); }
 
   .session-card {
     padding: 16px 18px;
-    margin-bottom: 14px;
     position: relative;
+    flex: 0 0 320px;
+    width: 320px;
+    scroll-snap-align: start;
+    overflow-y: auto;
+    max-height: 70vh;
   }
   .session-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
   .session-card-title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.95rem; color: #f2f2f2; flex: 1; min-width: 0; }
-  .rank-badge {
-    flex-shrink: 0;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.78rem;
-    font-weight: 800;
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--text-muted);
-    border: 1px solid var(--card-border);
-  }
-  .rank-badge.gold { background: rgba(255, 215, 0, 0.14); color: #ffd700; border-color: rgba(255, 215, 0, 0.4); }
-  .rank-badge.silver { background: rgba(192, 192, 192, 0.14); color: #d6d6d6; border-color: rgba(192, 192, 192, 0.4); }
-  .rank-badge.bronze { background: rgba(205, 127, 50, 0.16); color: #e0995e; border-color: rgba(205, 127, 50, 0.45); }
   .client-avatar {
     width: 26px; height: 26px; border-radius: 50%;
     background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
@@ -271,9 +275,9 @@
     </div>
 
     <div class="panel-head">
-      <div class="panel-eyebrow">Ranking</div>
+      <div class="panel-eyebrow">Histórico</div>
       <h1>Minhas Sessões</h1>
-      <p>Suas sessões, ranqueadas pela nota de oratória — da melhor pra pior.</p>
+      <p>Suas sessões, organizadas por mês — as mais recentes primeiro.</p>
     </div>
 
     <div class="toolbar">
@@ -415,14 +419,18 @@
         </div>`;
     }
 
-    function rankBadgeClass(position) {
-      if (position === 0) return "gold";
-      if (position === 1) return "silver";
-      if (position === 2) return "bronze";
-      return "";
+    function monthKey(dateStr) {
+      const d = new Date(dateStr);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     }
 
-    function sessionCardHtml(h, position) {
+    function monthLabel(dateStr) {
+      const d = new Date(dateStr);
+      const label = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      return label.charAt(0).toUpperCase() + label.slice(1);
+    }
+
+    function sessionCardHtml(h) {
       const transcriptHtml = h.transcript && h.transcript.length
         ? `<details class="session-transcript">
              <summary>Ver transcrição (${h.transcript.length} falas)</summary>
@@ -448,7 +456,6 @@
         <div class="card session-card" data-id="${h.id}">
           <div class="session-card-header">
             <div class="session-card-title">
-              <span class="rank-badge ${rankBadgeClass(position)}">#${position + 1}</span>
               ${initials ? `<span class="client-avatar">${initials}</span>` : ""}
               <span class="history-name-display">${h.client_name ? escapeHtml(h.client_name) : "Sessão sem cliente"}</span>
               <button type="button" class="name-edit-btn">Editar</button>
@@ -505,16 +512,28 @@
         return;
       }
 
-      // Ranking: quem tem nota de oratória vem primeiro, do maior pro menor;
-      // sessões sem nota (antes da métrica existir) ficam no fim, por data.
-      const ranked = [...filtered].sort((a, b) => {
-        if (a.oratoria_score == null && b.oratoria_score == null) return new Date(b.date) - new Date(a.date);
-        if (a.oratoria_score == null) return 1;
-        if (b.oratoria_score == null) return -1;
-        return b.oratoria_score - a.oratoria_score;
-      });
+      const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      listEl.innerHTML = ranked.map((h, i) => sessionCardHtml(h, i)).join("");
+      const groups = [];
+      const groupIndexByKey = new Map();
+      for (const session of sorted) {
+        const key = monthKey(session.date);
+        if (!groupIndexByKey.has(key)) {
+          groupIndexByKey.set(key, groups.length);
+          groups.push({ key, label: monthLabel(session.date), sessions: [] });
+        }
+        groups[groupIndexByKey.get(key)].sessions.push(session);
+      }
+
+      listEl.innerHTML = groups
+        .map(
+          (g) => `
+            <div class="month-group">
+              <div class="month-heading">${g.label}<span class="month-count">${g.sessions.length} sessão${g.sessions.length > 1 ? "ões" : ""}</span></div>
+              <div class="month-row">${g.sessions.map((h) => sessionCardHtml(h)).join("")}</div>
+            </div>`
+        )
+        .join("");
     }
 
     async function refreshSessions() {
