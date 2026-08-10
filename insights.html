@@ -351,12 +351,13 @@
       }
       const W = 900;
       const H = height;
-      const margin = { top: 16, right: 16, bottom: 28, left: 38 };
+      const margin = { top: 26, right: 16, bottom: 28, left: 38 };
       const plotW = W - margin.left - margin.right;
       const plotH = H - margin.top - margin.bottom;
       const n = points.length;
       const x = (i) => margin.left + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2);
       const y = (v) => margin.top + (1 - v / maxY) * plotH;
+      const formatValue = (v) => (maxY === 1 ? `${Math.round(v * 100)}%` : `${Math.round(v)}`);
 
       let svg = "";
       [0, 0.5, 1].forEach((v) => {
@@ -370,7 +371,12 @@
         const linePoints = s.points.map((p, i) => `${x(i)},${y(p.value)}`).join(" ");
         svg += `<polyline points="${linePoints}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
         s.points.forEach((p, i) => {
-          svg += `<circle cx="${x(i)}" cy="${y(p.value)}" r="3" fill="${s.color}" stroke="#0d0e13" stroke-width="1.5" />`;
+          const cx = x(i);
+          const cy = y(p.value);
+          // Sobe o rótulo quando o ponto está perto do topo, pra não cortar no viewBox.
+          const labelY = cy - 8 < 10 ? cy + 15 : cy - 8;
+          svg += `<circle cx="${cx}" cy="${cy}" r="3" fill="${s.color}" stroke="#0d0e13" stroke-width="1.5" />`;
+          svg += `<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${s.color}" stroke="#0d0e13" stroke-width="3" paint-order="stroke" stroke-linejoin="round">${formatValue(p.value)}</text>`;
         });
       });
 
