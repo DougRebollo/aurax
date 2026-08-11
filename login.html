@@ -232,6 +232,14 @@
         .eq("id", user.id)
         .single();
 
+      // Pagamento pendente bloqueia a conta inteira (gestor e time) — nunca
+      // deixa passar pra tela de gravação ou pro painel antes de confirmar.
+      const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: user.id });
+      if (accountStatus === "pendente_pagamento") {
+        window.location.href = "pagamento-pendente.html";
+        return;
+      }
+
       if (profile && profile.role === "gestor") {
         window.location.href = "painel-gestor.html";
       } else {

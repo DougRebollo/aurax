@@ -44,6 +44,17 @@
     color: transparent;
   }
   #status { margin-bottom: 12px; font-size: 0.9rem; color: #aaa; text-align: center; }
+  #accountBlockedBanner {
+    max-width: 640px;
+    margin: 0 auto 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(229, 83, 61, 0.12);
+    border: 1px solid rgba(229, 83, 61, 0.35);
+    color: #ff9a86;
+    font-size: 0.85rem;
+    text-align: center;
+  }
   #container {
     position: relative;
     width: 100%;
@@ -742,6 +753,9 @@
   </div>
 
   <h1>AuraX</h1>
+  <div id="accountBlockedBanner" hidden>
+    ⚠️ Assinatura pausada — pagamento falhou ou foi cancelado. Seus dados antigos continuam disponíveis, mas não é possível gravar novas sessões até reativar.
+  </div>
   <div id="stage">
     <div id="statusColumn">
       <div id="status-panel">
@@ -3104,6 +3118,21 @@
       currentUserRole = profile ? profile.role : "funcionario";
       if (currentUserRole === "gestor") {
         document.getElementById("backToGestorBtn").style.display = "inline-block";
+      }
+
+      // Pagamento pendente bloqueia a conta inteira — nunca deixa chegar na
+      // tela de gravação antes de confirmar via webhook do Stripe. Já
+      // "bloqueada" (assinatura cancelada/cobrança falhou) ainda pode ver
+      // os dados antigos, só não grava sessão nova (reforçado no banco).
+      const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
+      if (accountStatus === "pendente_pagamento") {
+        window.location.href = "pagamento-pendente.html";
+        return;
+      }
+      if (accountStatus === "bloqueada") {
+        document.getElementById("accountBlockedBanner").hidden = false;
+        startSessionBtn.disabled = true;
+        micToggleBtn.disabled = true;
       }
 
       posthog.identify(currentUserId, { email: session.user.email, role: currentUserRole });

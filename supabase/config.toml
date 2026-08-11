@@ -1,0 +1,11 @@
+# Config das Edge Functions do AuraX. Precisa do Supabase CLI instalado e
+# `supabase link` feito no projeto antes de rodar `supabase functions deploy`.
+
+[functions.stripe-webhook]
+# O Stripe chama esse endpoint sem token de usuário do Supabase — sem isso,
+# toda chamada do Stripe seria rejeitada com 401 antes mesmo de chegar no
+# código da função.
+verify_jwt = false
+
+[functions.create-checkout-session]
+verify_jwt = true

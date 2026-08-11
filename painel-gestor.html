@@ -209,6 +209,15 @@
 
   .team-limit-notice p { margin: 0 0 12px; }
 
+  .account-blocked-banner {
+    margin-bottom: 22px;
+    padding: 14px 18px;
+    background: rgba(229, 83, 61, 0.1);
+    border-color: rgba(229, 83, 61, 0.35);
+    color: #ff9a86;
+    font-size: 0.85rem;
+  }
+
   #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   #gate p { color: var(--text-muted); font-size: 0.9rem; }
 
@@ -235,6 +244,10 @@
         <a class="btn ghost" href="index.html" style="text-decoration:none; display:inline-block;">Meu AuraX</a>
         <button type="button" class="btn ghost" id="logoutBtn">Sair</button>
       </div>
+    </div>
+
+    <div class="card account-blocked-banner" id="accountBlockedBanner" hidden>
+      ⚠️ Assinatura pausada — pagamento falhou ou foi cancelado. Os dados do time continuam disponíveis, mas ninguém consegue gravar sessão nova até reativar.
     </div>
 
     <div class="panel-head">
@@ -665,6 +678,16 @@
       }
 
       currentUserId = profile.id;
+
+      const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
+      if (accountStatus === "pendente_pagamento") {
+        window.location.href = "pagamento-pendente.html";
+        return;
+      }
+      if (accountStatus === "bloqueada") {
+        document.getElementById("accountBlockedBanner").hidden = false;
+      }
+
       posthog.identify(currentUserId, { email: profile.email, role: "gestor" });
       document.getElementById("greeting").textContent = `Olá, ${profile.name}`;
       if (profile.cargo || profile.empresa) {

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AuraX — Finalize seu pagamento</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(ellipse 1200px 800px at 50% -10%, #1a2338 0%, #0b0c10 55%, #08080a 100%);
+    color: #eee;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    width: 100%;
+    max-width: 440px;
+    background: linear-gradient(160deg, rgba(79, 140, 255, 0.08), rgba(126, 231, 135, 0.03));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    padding: 36px 32px;
+    text-align: center;
+  }
+  .logo {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+    background: linear-gradient(90deg, #eaf2ff, #7ee787 55%, #4f8cff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .icon { font-size: 2.2rem; margin-bottom: 8px; }
+  h1 { font-size: 1.2rem; margin: 0 0 10px; }
+  p { font-size: 0.88rem; color: #aaa; line-height: 1.5; margin: 0 0 22px; }
+  button, a.btn {
+    display: inline-block;
+    width: 100%;
+    padding: 13px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, #4f8cff, #3d6fd6);
+    color: white;
+    font-size: 0.92rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    box-sizing: border-box;
+  }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .ghost {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ccc;
+  }
+  .message { margin-top: 16px; font-size: 0.8rem; padding: 10px 12px; border-radius: 10px; display: none; }
+  .message.error { display: block; background: rgba(229, 83, 61, 0.12); color: #ff8a76; border: 1px solid rgba(229, 83, 61, 0.3); }
+  .message.info { display: block; background: rgba(79, 140, 255, 0.1); color: #9dc0ff; border: 1px solid rgba(79, 140, 255, 0.3); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">AuraX</div>
+
+    <div id="gestorView" hidden>
+      <div class="icon">💳</div>
+      <h1>Finalize seu pagamento</h1>
+      <p>Sua conta foi criada, mas o acesso às sessões só é liberado depois que a assinatura for confirmada.</p>
+      <button type="button" id="checkoutBtn">Ir para o pagamento</button>
+      <button type="button" class="ghost" id="logoutBtn">Sair</button>
+      <div class="message" id="gestorMessage"></div>
+    </div>
+
+    <div id="funcionarioView" hidden>
+      <div class="icon">⏳</div>
+      <h1>Aguardando confirmação do pagamento</h1>
+      <p>O gestor da sua conta ainda não confirmou o pagamento da assinatura do AuraX. Fale com ele pra liberar o acesso do time.</p>
+      <button type="button" class="ghost" id="logoutBtn2">Sair</button>
+    </div>
+
+    <div id="checkingView">
+      <p>Carregando...</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    function showMessage(elId, text, type) {
+      const el = document.getElementById(elId);
+      el.textContent = text;
+      el.className = `message ${type}`;
+    }
+
+    async function redirectIfAlreadyActive(profile) {
+      const isGestor = !profile.manager_id;
+      const { data } = await supabaseClient.rpc("effective_account_status", { uid: profile.id });
+      if (data === "ativa") {
+        window.location.href = isGestor ? "painel-gestor.html" : "index.html";
+        return true;
+      }
+      return false;
+    }
+
+    async function pollUntilActive(profileId, isGestor) {
+      showMessage("gestorMessage", "Confirmando seu pagamento... isso pode levar alguns segundos.", "info");
+      for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const { data } = await supabaseClient.rpc("effective_account_status", { uid: profileId });
+        if (data === "ativa") {
+          window.location.href = isGestor ? "painel-gestor.html" : "index.html";
+          return;
+        }
+      }
+      showMessage(
+        "gestorMessage",
+        "Ainda não recebemos a confirmação do pagamento. Se você já pagou, aguarde mais um instante e atualize a página.",
+        "error"
+      );
+    }
+
+    async function startCheckout() {
+      const checkoutBtn = document.getElementById("checkoutBtn");
+      checkoutBtn.disabled = true;
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        const body = await res.json();
+        if (!res.ok || !body.url) throw new Error(body.error || "Não foi possível iniciar o checkout.");
+        window.location.href = body.url;
+      } catch (err) {
+        showMessage("gestorMessage", err.message || "Não foi possível iniciar o checkout agora.", "error");
+        checkoutBtn.disabled = false;
+      }
+    }
+
+    async function init() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const { data: profile, error } = await supabaseClient
+        .from("profiles")
+        .select("id, manager_id")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error || !profile) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const alreadyActive = await redirectIfAlreadyActive(profile);
+      if (alreadyActive) return;
+
+      document.getElementById("checkingView").hidden = true;
+      const isGestor = !profile.manager_id;
+
+      if (isGestor) {
+        document.getElementById("gestorView").hidden = false;
+        document.getElementById("checkoutBtn").addEventListener("click", startCheckout);
+        document.getElementById("logoutBtn").addEventListener("click", async () => {
+          await supabaseClient.auth.signOut();
+          window.location.href = "login.html";
+        });
+        const params = new URLSearchParams(location.search);
+        if (params.get("checkout") === "success") {
+          pollUntilActive(profile.id, true);
+        }
+      } else {
+        document.getElementById("funcionarioView").hidden = false;
+        document.getElementById("logoutBtn2").addEventListener("click", async () => {
+          await supabaseClient.auth.signOut();
+          window.location.href = "login.html";
+        });
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
