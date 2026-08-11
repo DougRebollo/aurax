@@ -822,47 +822,6 @@
         <div id="sessionTimer"></div>
       </div>
 
-      <div id="reminderPanel" style="margin-top:16px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 16px;background:rgba(255,255,255,0.02);">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;" id="reminderToggle">
-          <div style="display:flex;align-items:center;gap:9px;">
-            <span id="reminderDot" style="width:9px;height:9px;border-radius:50%;background:#ffb648;flex-shrink:0;"></span>
-            <span style="font-size:0.9rem;font-weight:600;">Lembretes de call</span>
-          </div>
-          <span id="reminderChevron" style="color:#8b93a3;font-size:0.8rem;">▸</span>
-        </div>
-        <div id="reminderBody" style="display:none;margin-top:14px;">
-          <p id="reminderStatus" style="font-size:0.82rem;color:#8b93a3;margin:0 0 12px;">O AuraX pode te lembrar de ligar antes das suas calls. Você decide se abre — ele nunca entra sozinho.</p>
-          <button id="reminderPermBtn" style="font-size:0.82rem;padding:8px 14px;">Ativar notificações</button>
-          <button id="reminderTestBtn" style="font-size:0.82rem;padding:8px 14px;margin-left:6px;">Testar</button>
-
-          <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
-            <div>
-              <label style="display:block;font-size:0.74rem;color:#8b93a3;margin-bottom:5px;">Nome (opcional)</label>
-              <input type="text" id="reminderName" placeholder="Ex.: Call Sulcredi" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#eef1f6;border-radius:8px;padding:8px 10px;font-size:0.85rem;width:180px;">
-            </div>
-            <div>
-              <label style="display:block;font-size:0.74rem;color:#8b93a3;margin-bottom:5px;">Horário</label>
-              <input type="time" id="reminderTime" value="09:00" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:#eef1f6;border-radius:8px;padding:8px 10px;font-size:0.85rem;">
-            </div>
-          </div>
-          <div style="margin-top:10px;">
-            <label style="display:block;font-size:0.74rem;color:#8b93a3;margin-bottom:6px;">Repetir nestes dias (deixe vazio para uma vez só)</label>
-            <div id="reminderDays" style="display:flex;gap:6px;">
-              <div class="rday" data-d="1" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#8b93a3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.78rem;user-select:none;">S</div>
-              <div class="rday" data-d="2" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#8b93a3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.78rem;user-select:none;">T</div>
-              <div class="rday" data-d="3" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#8b93a3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.78rem;user-select:none;">Q</div>
-              <div class="rday" data-d="4" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#8b93a3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.78rem;user-select:none;">Q</div>
-              <div class="rday" data-d="5" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#8b93a3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.78rem;user-select:none;">S</div>
-              <div class="rday" data-d="6" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#8b93a3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.78rem;user-select:none;">S</div>
-              <div class="rday" data-d="0" style="width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#8b93a3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.78rem;user-select:none;">D</div>
-            </div>
-          </div>
-          <button id="reminderAddBtn" style="font-size:0.82rem;padding:8px 14px;margin-top:14px;">Adicionar lembrete</button>
-          <ul id="reminderList" style="list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px;"></ul>
-          <p style="font-size:0.76rem;color:#5b6272;margin:12px 0 0;">Mantenha a aba do AuraX aberta para os lembretes dispararem.</p>
-        </div>
-      </div>
-
       <div id="dominant"></div>
       <div id="emotions"></div>
 
@@ -1261,146 +1220,6 @@
     let currentClientName = "";
     const startSessionBtn = document.getElementById("startSessionBtn");
     const endSessionBtn = document.getElementById("endSessionBtn");
-
-    // ===== Lembretes de call (autocontido) =====
-    const REMINDER_KEY = "aurax_reminders_v1";
-    const reminderSelectedDays = new Set();
-
-    if ("serviceWorker" in navigator) {
-      const swCode = "self.addEventListener('notificationclick',function(e){e.notification.close();e.waitUntil(clients.matchAll({type:'window'}).then(function(cs){for(var i=0;i<cs.length;i++){if('focus'in cs[i])return cs[i].focus();}if(clients.openWindow)return clients.openWindow('index.html');}));});";
-      try {
-        const swBlob = new Blob([swCode], { type: "application/javascript" });
-        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function(){});
-      } catch (e) {}
-    }
-
-    function reminderNotify(title, body) {
-      if (!("Notification" in window) || Notification.permission !== "granted") return;
-      const opts = { body: body, tag: "aurax-reminder", requireInteraction: true };
-      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-        navigator.serviceWorker.ready.then(function(reg){ reg.showNotification(title, opts); }).catch(function(){
-          try { new Notification(title, opts); } catch (e) {}
-        });
-      } else {
-        try {
-          const n = new Notification(title, opts);
-          n.onclick = function(){ window.focus(); n.close(); };
-        } catch (e) {}
-      }
-    }
-
-    function reminderRefreshPerm() {
-      const dot = document.getElementById("reminderDot");
-      const status = document.getElementById("reminderStatus");
-      const btn = document.getElementById("reminderPermBtn");
-      if (!dot) return;
-      if (!("Notification" in window)) {
-        dot.style.background = "#ff8a76"; status.textContent = "Seu navegador não suporta notificações."; btn.disabled = true; return;
-      }
-      const p = Notification.permission;
-      if (p === "granted") { dot.style.background = "#7ee787"; status.textContent = "Ativo — você será lembrado antes das calls."; btn.disabled = true; btn.textContent = "Ativado"; }
-      else if (p === "denied") { dot.style.background = "#ff8a76"; status.textContent = "Bloqueado. Libere nas configurações do navegador."; btn.disabled = true; }
-      else { dot.style.background = "#ffb648"; status.textContent = "O AuraX pode te lembrar de ligar antes das suas calls. Você decide se abre — ele nunca entra sozinho."; btn.disabled = false; }
-    }
-
-    function reminderLoad() { try { return JSON.parse(localStorage.getItem(REMINDER_KEY)) || []; } catch (e) { return []; } }
-    function reminderSave(a) { localStorage.setItem(REMINDER_KEY, JSON.stringify(a)); }
-
-    const REMINDER_DAY_NAMES = { "0":"dom","1":"seg","2":"ter","3":"qua","4":"qui","5":"sex","6":"sáb" };
-
-    function reminderRender() {
-      const list = document.getElementById("reminderList");
-      if (!list) return;
-      const items = reminderLoad();
-      list.innerHTML = "";
-      items.forEach(function(r){
-        const li = document.createElement("li");
-        li.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:9px;";
-        const daysLabel = (r.days && r.days.length) ? r.days.map(function(d){ return REMINDER_DAY_NAMES[d]; }).join(", ") : "uma vez";
-        const info = document.createElement("div");
-        info.innerHTML = "<b style='font-size:0.9rem;'>" + r.time + "</b><span style='display:block;font-size:0.76rem;color:#8b93a3;margin-top:2px;'>" + (r.name ? r.name + " · " : "") + daysLabel + "</span>";
-        const del = document.createElement("button");
-        del.textContent = "Remover"; del.style.cssText = "font-size:0.76rem;padding:5px 9px;";
-        del.onclick = function(){ reminderSave(reminderLoad().filter(function(x){ return x.id !== r.id; })); reminderRender(); };
-        li.appendChild(info); li.appendChild(del);
-        list.appendChild(li);
-      });
-    }
-
-    function reminderCheck() {
-      if (!("Notification" in window) || Notification.permission !== "granted") return;
-      const now = new Date();
-      const hhmm = now.toTimeString().slice(0,5);
-      const dow = now.getDay().toString();
-      const stamp = now.toDateString() + hhmm;
-      const items = reminderLoad();
-      let changed = false;
-      const keep = [];
-      items.forEach(function(r){
-        let fire = false;
-        if (r.time === hhmm && r.lastFired !== stamp) {
-          const recurring = r.days && r.days.length;
-          if (!recurring || r.days.indexOf(dow) !== -1) fire = true;
-        }
-        if (fire) {
-          reminderNotify(r.name || "Hora da call", "Abrir o AuraX para acompanhar sua performance?");
-          r.lastFired = stamp;
-          changed = true;
-          if (!(r.days && r.days.length)) return; // avulso: não mantém
-        }
-        keep.push(r);
-      });
-      if (changed) { reminderSave(keep); reminderRender(); }
-    }
-
-    (function initReminders(){
-      const toggle = document.getElementById("reminderToggle");
-      const body = document.getElementById("reminderBody");
-      const chevron = document.getElementById("reminderChevron");
-      if (toggle) {
-        toggle.addEventListener("click", function(){
-          const open = body.style.display !== "none";
-          body.style.display = open ? "none" : "block";
-          chevron.textContent = open ? "▸" : "▾";
-        });
-      }
-      document.querySelectorAll(".rday").forEach(function(d){
-        d.addEventListener("click", function(){
-          const day = d.dataset.d;
-          if (reminderSelectedDays.has(day)) { reminderSelectedDays.delete(day); d.style.background = "rgba(255,255,255,0.04)"; d.style.color = "#8b93a3"; d.style.borderColor = "rgba(255,255,255,0.12)"; }
-          else { reminderSelectedDays.add(day); d.style.background = "#4f8cff"; d.style.color = "#06101f"; d.style.borderColor = "#4f8cff"; }
-        });
-      });
-      const permBtn = document.getElementById("reminderPermBtn");
-      if (permBtn) permBtn.addEventListener("click", function(){
-        Notification.requestPermission().then(function(res){
-          reminderRefreshPerm();
-          if (res === "granted") reminderNotify("AuraX pronto", "Vou te lembrar das suas calls a partir de agora.");
-        });
-      });
-      const testBtn = document.getElementById("reminderTestBtn");
-      if (testBtn) testBtn.addEventListener("click", function(){
-        if (Notification.permission !== "granted") { alert("Ative as notificações primeiro."); return; }
-        reminderNotify("Exemplo de lembrete", "Sua call vai começar. Abrir o AuraX?");
-      });
-      const addBtn = document.getElementById("reminderAddBtn");
-      if (addBtn) addBtn.addEventListener("click", function(){
-        const time = document.getElementById("reminderTime").value;
-        if (!time) { alert("Escolha um horário."); return; }
-        const items = reminderLoad();
-        items.push({ id: Date.now().toString(), name: document.getElementById("reminderName").value.trim(), time: time, days: Array.from(reminderSelectedDays), lastFired: null });
-        reminderSave(items);
-        document.getElementById("reminderName").value = "";
-        reminderSelectedDays.clear();
-        document.querySelectorAll(".rday").forEach(function(d){ d.style.background = "rgba(255,255,255,0.04)"; d.style.color = "#8b93a3"; d.style.borderColor = "rgba(255,255,255,0.12)"; });
-        reminderRender();
-      });
-      reminderRefreshPerm();
-      reminderRender();
-      setInterval(reminderCheck, 20000);
-      reminderCheck();
-    })();
-    // ===== fim lembretes =====
     const sessionTimerEl = document.getElementById("sessionTimer");
     const summarySection = document.getElementById("summary-section");
     const leftSummaryCardsEl = document.getElementById("leftSummaryCards");
@@ -1686,10 +1505,6 @@
       leftSummaryCardsEl.style.display = "none";
       summaryOratoriaEl.innerHTML = '<div class="insight-line">Fale um pouco pra começar a ver sua nota aqui.</div>';
 
-      // Lembrete leve pós-call: reforça o hábito de voltar pra ver os insights.
-      if (typeof reminderNotify === "function" && "Notification" in window && Notification.permission === "granted") {
-        setTimeout(function(){ reminderNotify("Sessão salva no AuraX", "Dê uma olhada nos seus insights e na nota desta call."); }, 1500);
-      }
     });
 
     function maybeSampleSession(expressions, estimates) {
