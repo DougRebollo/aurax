@@ -65,6 +65,7 @@
     color: white;
     font-size: 0.95rem;
     font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
     text-decoration: none;
     box-shadow: 0 4px 20px rgba(79, 140, 255, 0.4);
@@ -298,18 +299,16 @@
     font-size: 0.85rem;
     font-weight: 700;
   }
-  .enterprise-note {
-    margin: 20px 0 0;
-    padding: 14px 16px;
-    border-radius: 12px;
-    background: rgba(255, 182, 72, 0.08);
-    border: 1px solid rgba(255, 182, 72, 0.3);
-    font-size: 0.83rem;
-    color: #ddd;
-    text-align: left;
+  .enterprise-card {
+    margin-top: 22px;
+    padding: 28px 32px;
+    background: rgba(255, 182, 72, 0.05);
+    border-color: rgba(255, 182, 72, 0.25);
   }
-  .enterprise-note a { color: #ffb648; font-weight: 700; text-decoration: none; }
-  .enterprise-note a:hover { text-decoration: underline; }
+  .enterprise-card::before { background: radial-gradient(circle at 50% 0%, rgba(255, 182, 72, 0.12), transparent 60%); }
+  .enterprise-card .plan-name { color: var(--accent-amber, #ffb648); }
+  .enterprise-card h3 { font-size: 1.15rem; margin: 0 0 8px; color: #f5f5f5; }
+  .enterprise-card p { font-size: 0.88rem; color: #bbb; margin: 0 0 20px; }
 
   /* Final CTA */
   .final-cta { text-align: center; }
@@ -601,8 +600,14 @@
           <li>Exportação em PDF e CSV</li>
           <li>Suporte direto via WhatsApp</li>
         </ul>
-        <a class="btn big" id="pricingCta" href="#" target="_blank" rel="noopener" style="width:100%">Falar com o time comercial</a>
-        <div class="enterprise-note">Equipe com mais de 6 pessoas? <a id="enterpriseSalesLink" href="#" target="_blank" rel="noopener">Fale com o comercial</a> e montamos um plano sob medida.</div>
+        <button type="button" class="btn big" id="contractPlanBtn" style="width:100%">Contratar plano</button>
+      </div>
+
+      <div class="card pricing-card enterprise-card">
+        <div class="plan-name">Equipe maior</div>
+        <h3>Precisa de mais de 6 pessoas?</h3>
+        <p>Fora do plano padrão — nosso time comercial monta uma proposta sob medida pro tamanho do seu time.</p>
+        <a class="btn big ghost" id="enterpriseSalesLink" href="#" target="_blank" rel="noopener" style="width:100%">Falar com o time comercial</a>
       </div>
     </section>
 
@@ -624,10 +629,15 @@
     const WHATSAPP_MESSAGE = "Olá! Quero falar com o time comercial sobre o AuraX.";
     const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 
-    ["navCta", "heroCta", "pricingCta", "finalCta"].forEach((id) => {
+    ["navCta", "heroCta", "finalCta"].forEach((id) => {
       const el = document.getElementById(id);
       el.href = whatsappUrl;
       el.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: id }));
+    });
+
+    // Ainda sem checkout — só registra a intenção até o Stripe entrar amanhã.
+    document.getElementById("contractPlanBtn").addEventListener("click", () => {
+      posthog.capture("contract_plan_click");
     });
 
     const ENTERPRISE_MESSAGE = "Olá! Minha equipe tem mais de 6 pessoas e preciso de um plano sob medida pro AuraX.";
