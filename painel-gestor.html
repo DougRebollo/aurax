@@ -813,12 +813,15 @@
     function verificarProximasCalls() {
       const agora = Date.now();
       eventosComCall.forEach(function (ev) {
-        if (avisosJaDisparados.has(ev.id)) return;
+        // Marca o disparo por ID + horário. Se a call for reagendada, o horário
+        // muda e ela é tratada como um aviso novo (não fica "presa" no ID antigo).
+        const chave = ev.id + "@" + ev.inicio.getTime();
+        if (avisosJaDisparados.has(chave)) return;
         const minutos = (ev.inicio.getTime() - agora) / 60000;
         // Janela de aviso: entre 0 e 5 minutos antes do início.
         if (minutos > 0 && minutos <= 5) {
           dispararAviso(ev.titulo, Math.max(1, Math.round(minutos)));
-          avisosJaDisparados.add(ev.id);
+          avisosJaDisparados.add(chave);
         }
       });
     }
