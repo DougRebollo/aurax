@@ -750,6 +750,7 @@
 
         box.textContent = "Seus próximos eventos:";
         list.innerHTML = "";
+        eventosComCall = []; // reinicia a lista que o verificador usa
         eventos.forEach(function (ev) {
           const inicio = ev.start.dateTime || ev.start.date;
           const dt = new Date(inicio);
@@ -761,6 +762,11 @@
             || (ev.conferenceData && ev.conferenceData.entryPoints)
             || /zoom|meet|teams/i.test((ev.location || "") + " " + (ev.description || "")));
 
+          // Guarda os que têm videochamada e horário exato, pro aviso de 5 min.
+          if (temCall && ev.start.dateTime) {
+            eventosComCall.push({ id: ev.id, titulo: ev.summary || "sua call", inicio: dt });
+          }
+
           const div = document.createElement("div");
           div.style.cssText = "padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;";
           div.innerHTML =
@@ -769,10 +775,65 @@
             + (temCall ? " · <span style='color:#7ee787;'>📹 videochamada</span>" : "") + "</div>";
           list.appendChild(div);
         });
+
+        // Com a agenda lida, garante que o verificador de avisos está rodando.
+        iniciarVerificadorDeAvisos();
       } catch (err) {
         box.textContent = "Erro ao acessar a agenda. Tente recarregar a página.";
       }
     }
+
+    // ===== Aviso 5 min antes da call (início) =====
+    let eventosComCall = [];
+    const avisosJaDisparados = new Set(); // não repete o aviso da mesma call
+    let verificadorLigado = false;
+
+    // Service Worker inline: faz o clique na notificação abrir/focar o AuraX.
+    if ("serviceWorker" in navigator) {
+      const swCode = "self.addEventListener('notificationclick',function(e){e.notification.close();var url=(e.notification.data&&e.notification.data.url)||'login.html';e.waitUntil(clients.matchAll({type:'window'}).then(function(cs){for(var i=0;i<cs.length;i++){if('focus'in cs[i])return cs[i].focus();}if(clients.openWindow)return clients.openWindow(url);}));});";
+      try {
+        const swBlob = new Blob([swCode], { type: "application/javascript" });
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function(){});
+      } catch (e) {}
+    }
+
+    function dispararAviso(titulo, minutosRestantes) {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      const corpo = "Começa em " + minutosRestantes + " min. Abrir o AuraX para acompanhar sua performance?";
+      const opts = { body: corpo, tag: "aurax-call", requireInteraction: true, data: { url: "login.html" } };
+      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(function (reg) { reg.showNotification("📹 " + titulo, opts); }).catch(function () {
+          try { new Notification("📹 " + titulo, opts); } catch (e) {}
+        });
+      } else {
+        try { new Notification("📹 " + titulo, opts); } catch (e) {}
+      }
+    }
+
+    function verificarProximasCalls() {
+      const agora = Date.now();
+      eventosComCall.forEach(function (ev) {
+        if (avisosJaDisparados.has(ev.id)) return;
+        const minutos = (ev.inicio.getTime() - agora) / 60000;
+        // Janela de aviso: entre 0 e 5 minutos antes do início.
+        if (minutos > 0 && minutos <= 5) {
+          dispararAviso(ev.titulo, Math.max(1, Math.round(minutos)));
+          avisosJaDisparados.add(ev.id);
+        }
+      });
+    }
+
+    function iniciarVerificadorDeAvisos() {
+      if (verificadorLigado) return;
+      verificadorLigado = true;
+      // Pede permissão de notificação uma vez (se ainda não decidiu).
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+      verificarProximasCalls();
+      setInterval(verificarProximasCalls, 30000); // checa a cada 30s
+    }
+    // ===== Aviso 5 min antes da call (fim) =====
     // ===== Leitura da Agenda Google (fim) =====
 
     init();
