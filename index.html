@@ -3193,7 +3193,8 @@
       el.style.display = "block";
     }
 
-    document.getElementById("cpRoleToggle").addEventListener("click", (e) => {
+    function cpBindModalEvents() {
+      document.getElementById("cpRoleToggle").addEventListener("click", (e) => {
       const btn = e.target.closest(".cp-role");
       if (!btn) return;
       cpSelectedRole = btn.dataset.role;
@@ -3258,9 +3259,22 @@
         saveBtn.textContent = "Salvar e continuar";
       }
     });
+    } // fim cpBindModalEvents
+
     // ===== fim modal =====
 
-    requireAuthThenInit();
+    // O HTML do modal fica no fim do body (depois deste script). Só depois que
+    // a página inteira carregar a gente liga os eventos do modal e então checa
+    // a sessão — nessa ordem, pra o modal já estar pronto se for preciso mostrar.
+    function bootstrap() {
+      cpBindModalEvents();
+      requireAuthThenInit();
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", bootstrap);
+    } else {
+      bootstrap();
+    }
   </script>
 
   <!-- ===== Modal Complete seu cadastro (início) ===== -->
