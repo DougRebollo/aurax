@@ -55,6 +55,29 @@
     font-size: 0.85rem;
     text-align: center;
   }
+  #profileIncompleteBanner {
+    max-width: 640px;
+    margin: 0 auto 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(255, 182, 72, 0.12);
+    border: 1px solid rgba(255, 182, 72, 0.4);
+    color: #ffce7a;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  #profileIncompleteBanner button {
+    margin-left: 8px;
+    background: rgba(255, 182, 72, 0.2);
+    border: 1px solid rgba(255, 182, 72, 0.5);
+    color: #ffce7a;
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
   #container {
     position: relative;
     width: 100%;
@@ -756,6 +779,10 @@
   <div id="accountBlockedBanner" hidden>
     ⚠️ Assinatura pausada — pagamento falhou ou foi cancelado. Seus dados antigos continuam disponíveis, mas não é possível gravar novas sessões até reativar.
   </div>
+  <div id="profileIncompleteBanner" hidden>
+    ⚠️ Complete seu cadastro para usar o AuraX.
+    <button type="button" id="bannerUpdateBtn">Atualizar cadastro</button>
+  </div>
   <div id="stage">
     <div id="statusColumn">
       <div id="status-panel">
@@ -766,6 +793,7 @@
           <button type="button" id="howItWorksBtn" class="ghost">Como funciona</button>
           <button type="button" id="insightsBtn" class="ghost">Meus Insights</button>
           <button type="button" id="sessionsBtn" class="ghost">Minhas Sessões</button>
+          <button type="button" id="updateProfileBtn" class="ghost">Atualizar cadastro</button>
           <button type="button" id="backToGestorBtn" class="ghost" style="display:none">Painel do Gestor</button>
           <button type="button" id="logoutBtn" class="ghost">Sair</button>
         </div>
@@ -3121,14 +3149,18 @@
         document.getElementById("backToGestorBtn").style.display = "inline-block";
       }
 
-      // Perfil incompleto (cargo OU empresa vazios) → completar antes de seguir.
-      // Acontece principalmente em quem entrou via Google (não passou pelo
-      // formulário de cadastro que pede esses dados).
+      // Perfil incompleto (cargo OU empresa vazios): a pessoa entra e explora,
+      // mas o banner amarelo aparece e "Iniciar sessão" fica travado até ela
+      // completar o cadastro (bloqueio suave). O botão "Atualizar cadastro"
+      // e o do banner abrem o formulário.
       const cargoVazio = !profile || !profile.cargo || profile.cargo.trim() === "";
       const empresaVazia = !profile || !profile.empresa || profile.empresa.trim() === "";
-      if (cargoVazio || empresaVazia) {
-        showCompleteProfileModal(session, profile);
-        return; // trava aqui; init() só roda depois que salvar o modal
+      profileIsIncomplete = cargoVazio || empresaVazia;
+      cpSession = session;
+      cpProfile = profile;
+      if (profileIsIncomplete) {
+        document.getElementById("profileIncompleteBanner").hidden = false;
+        startSessionBtn.disabled = true;
       }
 
       // Pagamento pendente bloqueia a conta inteira — nunca deixa chegar na
@@ -3163,6 +3195,8 @@
     // ===== Modal Complete seu cadastro (lógica) =====
     let cpSelectedRole = "funcionario";
     let cpSession = null;
+    let cpProfile = null;
+    let profileIsIncomplete = false;
 
     function showCompleteProfileModal(session, profile) {
       cpSession = session;
@@ -3194,6 +3228,13 @@
     }
 
     function cpBindModalEvents() {
+      // Botões que abrem o formulário de cadastro (banner amarelo + menu)
+      const openModal = () => showCompleteProfileModal(cpSession, cpProfile);
+      const b1 = document.getElementById("bannerUpdateBtn");
+      const b2 = document.getElementById("updateProfileBtn");
+      if (b1) b1.addEventListener("click", openModal);
+      if (b2) b2.addEventListener("click", openModal);
+
       document.getElementById("cpRoleToggle").addEventListener("click", (e) => {
       const btn = e.target.closest(".cp-role");
       if (!btn) return;
@@ -3222,39 +3263,49 @@
       saveBtn.disabled = true;
       saveBtn.textContent = "Salvando...";
       try {
-        const { error } = await supabaseClient
+        const { data: updated, error } = await supabaseClient
           .from("profiles")
           .update({ name: nome, cargo: cargo, empresa: empresa, role: cpSelectedRole })
-          .eq("id", currentUserId);
+          .eq("id", currentUserId)
+          .select();
         if (error) throw error;
+        // Se nenhuma linha voltou, o update foi bloqueado (provável RLS) —
+        // não grava de verdade. Avisa em vez de fingir que salvou.
+        if (!updated || updated.length === 0) {
+          throw new Error("RLS_NO_ROWS");
+        }
 
         posthog.capture("profile_completed", { role: cpSelectedRole });
 
-        // Se virou gestor, leva direto pro painel dele.
+        // Cadastro completo: fecha o modal, esconde o alerta amarelo e libera
+        // o "Iniciar sessão". Sem redirect forçado — a pessoa fica onde está.
+        document.getElementById("completeProfileOverlay").style.display = "none";
+        document.getElementById("profileIncompleteBanner").hidden = true;
+        profileIsIncomplete = false;
+        currentUserRole = cpSelectedRole;
+        cpProfile = updated[0];
+
+        // Se é gestor, deixa o atalho pro painel visível (não força ir pra lá).
         if (cpSelectedRole === "gestor") {
-          window.location.href = "painel-gestor.html";
-          return;
+          document.getElementById("backToGestorBtn").style.display = "inline-block";
         }
 
-        // Funcionário: fecha o modal e segue pro app normalmente.
-        document.getElementById("completeProfileOverlay").style.display = "none";
-        currentUserRole = "funcionario";
-
-        // Continua o fluxo que estava travado (pagamento + init).
+        // Libera a gravação só se a conta não estiver bloqueada por pagamento.
         const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
         if (accountStatus === "pendente_pagamento") {
           window.location.href = "pagamento-pendente.html";
           return;
         }
-        if (accountStatus === "bloqueada") {
-          document.getElementById("accountBlockedBanner").hidden = false;
-          startSessionBtn.disabled = true;
-          micToggleBtn.disabled = true;
+        if (accountStatus !== "bloqueada") {
+          startSessionBtn.disabled = false;
         }
         posthog.identify(currentUserId, { email: cpSession.user.email, role: currentUserRole });
-        init();
       } catch (err) {
-        cpShowError("Não foi possível salvar. Tente de novo.");
+        if (err && err.message === "RLS_NO_ROWS") {
+          cpShowError("O salvamento foi bloqueado por permissão do banco (RLS). Precisamos ajustar a policy no Supabase.");
+        } else {
+          cpShowError("Não foi possível salvar. Tente de novo.");
+        }
         saveBtn.disabled = false;
         saveBtn.textContent = "Salvar e continuar";
       }
