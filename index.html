@@ -3113,12 +3113,22 @@
 
       const { data: profile } = await supabaseClient
         .from("profiles")
-        .select("role")
+        .select("role, name, cargo, empresa")
         .eq("id", currentUserId)
         .single();
       currentUserRole = profile ? profile.role : "funcionario";
       if (currentUserRole === "gestor") {
         document.getElementById("backToGestorBtn").style.display = "inline-block";
+      }
+
+      // Perfil incompleto (cargo OU empresa vazios) → completar antes de seguir.
+      // Acontece principalmente em quem entrou via Google (não passou pelo
+      // formulário de cadastro que pede esses dados).
+      const cargoVazio = !profile || !profile.cargo || profile.cargo.trim() === "";
+      const empresaVazia = !profile || !profile.empresa || profile.empresa.trim() === "";
+      if (cargoVazio || empresaVazia) {
+        showCompleteProfileModal(session, profile);
+        return; // trava aqui; init() só roda depois que salvar o modal
       }
 
       // Pagamento pendente bloqueia a conta inteira — nunca deixa chegar na
@@ -3150,7 +3160,135 @@
       window.location.href = "login.html";
     });
 
+    // ===== Modal Complete seu cadastro (lógica) =====
+    let cpSelectedRole = "funcionario";
+    let cpSession = null;
+
+    function showCompleteProfileModal(session, profile) {
+      cpSession = session;
+      const overlay = document.getElementById("completeProfileOverlay");
+      // Pré-preenche o nome com o que já veio (Google manda o nome)
+      const nomeExistente = (profile && profile.name && profile.name !== "EMPTY")
+        ? profile.name
+        : (session.user.user_metadata && (session.user.user_metadata.full_name || session.user.user_metadata.name)) || "";
+      document.getElementById("cpName").value = nomeExistente;
+      // Se já houver algo em cargo/empresa, aproveita
+      if (profile && profile.cargo && profile.cargo !== "EMPTY") document.getElementById("cpCargo").value = profile.cargo;
+      if (profile && profile.empresa && profile.empresa !== "EMPTY") document.getElementById("cpEmpresa").value = profile.empresa;
+      // Papel inicial reflete o que já existe
+      cpSelectedRole = (profile && profile.role) ? profile.role : "funcionario";
+      document.querySelectorAll("#cpRoleToggle .cp-role").forEach((b) => {
+        const sel = b.dataset.role === cpSelectedRole;
+        b.classList.toggle("selected", sel);
+        b.style.background = sel ? "rgba(79,140,255,0.18)" : "rgba(255,255,255,0.05)";
+        b.style.borderColor = sel ? "#4f8cff" : "rgba(255,255,255,0.15)";
+        b.style.color = sel ? "#eaf2ff" : "#999";
+      });
+      overlay.style.display = "flex";
+    }
+
+    function cpShowError(msg) {
+      const el = document.getElementById("cpMessage");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    document.getElementById("cpRoleToggle").addEventListener("click", (e) => {
+      const btn = e.target.closest(".cp-role");
+      if (!btn) return;
+      cpSelectedRole = btn.dataset.role;
+      document.querySelectorAll("#cpRoleToggle .cp-role").forEach((b) => {
+        const sel = b === btn;
+        b.classList.toggle("selected", sel);
+        b.style.background = sel ? "rgba(79,140,255,0.18)" : "rgba(255,255,255,0.05)";
+        b.style.borderColor = sel ? "#4f8cff" : "rgba(255,255,255,0.15)";
+        b.style.color = sel ? "#eaf2ff" : "#999";
+      });
+    });
+
+    document.getElementById("cpSaveBtn").addEventListener("click", async () => {
+      const nome = document.getElementById("cpName").value.trim();
+      const cargo = document.getElementById("cpCargo").value.trim();
+      const empresa = document.getElementById("cpEmpresa").value.trim();
+      const saveBtn = document.getElementById("cpSaveBtn");
+      document.getElementById("cpMessage").style.display = "none";
+
+      if (!nome || !cargo || !empresa) {
+        cpShowError("Preencha nome, cargo e empresa para continuar.");
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Salvando...";
+      try {
+        const { error } = await supabaseClient
+          .from("profiles")
+          .update({ name: nome, cargo: cargo, empresa: empresa, role: cpSelectedRole })
+          .eq("id", currentUserId);
+        if (error) throw error;
+
+        posthog.capture("profile_completed", { role: cpSelectedRole });
+
+        // Se virou gestor, leva direto pro painel dele.
+        if (cpSelectedRole === "gestor") {
+          window.location.href = "painel-gestor.html";
+          return;
+        }
+
+        // Funcionário: fecha o modal e segue pro app normalmente.
+        document.getElementById("completeProfileOverlay").style.display = "none";
+        currentUserRole = "funcionario";
+
+        // Continua o fluxo que estava travado (pagamento + init).
+        const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
+        if (accountStatus === "pendente_pagamento") {
+          window.location.href = "pagamento-pendente.html";
+          return;
+        }
+        if (accountStatus === "bloqueada") {
+          document.getElementById("accountBlockedBanner").hidden = false;
+          startSessionBtn.disabled = true;
+          micToggleBtn.disabled = true;
+        }
+        posthog.identify(currentUserId, { email: cpSession.user.email, role: currentUserRole });
+        init();
+      } catch (err) {
+        cpShowError("Não foi possível salvar. Tente de novo.");
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Salvar e continuar";
+      }
+    });
+    // ===== fim modal =====
+
     requireAuthThenInit();
   </script>
+
+  <!-- ===== Modal Complete seu cadastro (início) ===== -->
+  <div id="completeProfileOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(5,6,10,0.82);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
+    <div style="width:100%;max-width:400px;background:linear-gradient(160deg,rgba(79,140,255,0.1),rgba(126,231,135,0.04));border:1px solid rgba(255,255,255,0.1);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);padding:30px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <h2 style="margin:0 0 4px;font-size:1.3rem;font-weight:800;color:#eef1f6;">Complete seu cadastro</h2>
+      <p style="margin:0 0 22px;font-size:0.85rem;color:#8b93a3;">Só mais alguns dados pra personalizar sua experiência no AuraX.</p>
+
+      <label style="display:block;font-size:0.78rem;color:#aaa;margin:0 0 6px;">Nome</label>
+      <input type="text" id="cpName" placeholder="Seu nome" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#eee;font-size:0.9rem;outline:none;font-family:inherit;" />
+
+      <label style="display:block;font-size:0.78rem;color:#aaa;margin:16px 0 6px;">Você é gestor ou funcionário?</label>
+      <div id="cpRoleToggle" style="display:flex;gap:8px;">
+        <button type="button" class="cp-role selected" data-role="funcionario" style="flex:1;padding:9px 12px;border-radius:10px;border:1px solid #4f8cff;background:rgba(79,140,255,0.18);color:#eaf2ff;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;">Funcionário</button>
+        <button type="button" class="cp-role" data-role="gestor" style="flex:1;padding:9px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#999;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;">Gestor</button>
+      </div>
+
+      <label style="display:block;font-size:0.78rem;color:#aaa;margin:16px 0 6px;">Cargo</label>
+      <input type="text" id="cpCargo" placeholder="Ex: Gerente Comercial" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#eee;font-size:0.9rem;outline:none;font-family:inherit;" />
+
+      <label style="display:block;font-size:0.78rem;color:#aaa;margin:16px 0 6px;">Empresa</label>
+      <input type="text" id="cpEmpresa" placeholder="Ex: Registro Rural" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#eee;font-size:0.9rem;outline:none;font-family:inherit;" />
+
+      <button type="button" id="cpSaveBtn" style="width:100%;margin-top:24px;padding:12px;border-radius:999px;border:none;background:linear-gradient(135deg,#4f8cff,#3d6fd6);color:white;font-size:0.92rem;font-weight:600;cursor:pointer;font-family:inherit;">Salvar e continuar</button>
+
+      <div id="cpMessage" style="margin-top:14px;font-size:0.8rem;padding:10px 12px;border-radius:10px;display:none;background:rgba(229,83,61,0.12);color:#ff8a76;border:1px solid rgba(229,83,61,0.3);"></div>
+    </div>
+  </div>
+  <!-- ===== Modal Complete seu cadastro (fim) ===== -->
 </body>
 </html>
