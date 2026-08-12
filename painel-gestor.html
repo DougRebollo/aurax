@@ -800,13 +800,21 @@
     function dispararAviso(titulo, minutosRestantes) {
       if (!("Notification" in window) || Notification.permission !== "granted") return;
       const corpo = "Começa em " + minutosRestantes + " min. Abrir o AuraX para acompanhar sua performance?";
-      const opts = { body: corpo, tag: "aurax-call", requireInteraction: true, data: { url: "login.html" } };
-      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-        navigator.serviceWorker.ready.then(function (reg) { reg.showNotification("📹 " + titulo, opts); }).catch(function () {
-          try { new Notification("📹 " + titulo, opts); } catch (e) {}
-        });
-      } else {
-        try { new Notification("📹 " + titulo, opts); } catch (e) {}
+      // Usa a notificação direta do navegador (funciona de forma confiável).
+      // O clique leva pra tela de login/gravação do AuraX.
+      try {
+        const n = new Notification("📹 " + titulo, { body: corpo, tag: "aurax-call", requireInteraction: true });
+        n.onclick = function () {
+          window.open("login.html", "_blank");
+          n.close();
+        };
+      } catch (e) {
+        // Plano B: se por algum motivo falhar, tenta via Service Worker.
+        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+          navigator.serviceWorker.ready.then(function (reg) {
+            reg.showNotification("📹 " + titulo, { body: corpo, tag: "aurax-call", requireInteraction: true, data: { url: "login.html" } });
+          }).catch(function () {});
+        }
       }
     }
 
