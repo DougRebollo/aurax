@@ -350,6 +350,15 @@
           provider: "google",
           options: {
             redirectTo: "https://dougrebollo.github.io/aurax/login.html",
+            // Pede permissão de leitura da agenda, além do login básico.
+            scopes: "https://www.googleapis.com/auth/calendar.readonly",
+            // access_type=offline + prompt=consent garantem que o Google
+            // devolva o token de acesso à agenda (provider_token) de forma
+            // consistente, mesmo em logins seguintes.
+            queryParams: {
+              access_type: "offline",
+              prompt: "consent",
+            },
           },
         });
         if (error) throw error;
