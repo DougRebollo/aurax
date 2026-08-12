@@ -280,6 +280,10 @@
       <a class="btn ghost" id="salesContactBtn" target="_blank" rel="noopener" style="text-decoration:none; display:inline-block;">Fale com Vendas</a>
     </div>
 
+    <div class="section-title">Próximas calls (sua Agenda Google)</div>
+    <div id="agendaBox" style="margin-bottom:8px;font-size:0.9rem;color:#8b93a3;">Carregando sua agenda...</div>
+    <div id="agendaList" style="display:grid;gap:8px;"></div>
+
     <div class="section-title">Seu time</div>
     <div class="team-strip" id="teamStrip"></div>
 
@@ -699,7 +703,77 @@
       document.getElementById("app").hidden = false;
 
       await loadTeam();
+      await loadAgenda(session);
     }
+
+    // ===== Leitura da Agenda Google (início) =====
+    async function loadAgenda(session) {
+      const box = document.getElementById("agendaBox");
+      const list = document.getElementById("agendaList");
+
+      // O token de acesso ao Google vem na sessão do Supabase como
+      // provider_token. Ele é a chave que autoriza ler a agenda.
+      const token = session && session.provider_token;
+      if (!token) {
+        box.textContent = "Para ver sua agenda, saia e entre de novo com o Google (autorizando o acesso à agenda).";
+        return;
+      }
+
+      try {
+        // Busca os próximos eventos, do agora em diante, ordenados por horário.
+        const agora = new Date().toISOString();
+        const url = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+          + "?timeMin=" + encodeURIComponent(agora)
+          + "&maxResults=10&singleEvents=true&orderBy=startTime";
+
+        const resp = await fetch(url, {
+          headers: { Authorization: "Bearer " + token },
+        });
+
+        if (!resp.ok) {
+          // 401 = token expirou; 403 = falta permissão
+          if (resp.status === 401) {
+            box.textContent = "Sua autorização da agenda expirou. Saia e entre de novo com o Google.";
+          } else {
+            box.textContent = "Não consegui ler sua agenda agora (erro " + resp.status + ").";
+          }
+          return;
+        }
+
+        const data = await resp.json();
+        const eventos = (data.items || []).filter(function (e) { return e.start; });
+
+        if (eventos.length === 0) {
+          box.textContent = "Nenhuma call ou evento próximo na sua agenda.";
+          return;
+        }
+
+        box.textContent = "Seus próximos eventos:";
+        list.innerHTML = "";
+        eventos.forEach(function (ev) {
+          const inicio = ev.start.dateTime || ev.start.date;
+          const dt = new Date(inicio);
+          const quando = dt.toLocaleString("pt-BR", {
+            day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+          });
+          // Detecta se o evento tem link de videochamada (Meet/Zoom/Teams)
+          const temCall = !!(ev.hangoutLink
+            || (ev.conferenceData && ev.conferenceData.entryPoints)
+            || /zoom|meet|teams/i.test((ev.location || "") + " " + (ev.description || "")));
+
+          const div = document.createElement("div");
+          div.style.cssText = "padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;";
+          div.innerHTML =
+            "<div style='font-weight:600;font-size:0.92rem;'>" + (ev.summary || "(sem título)") + "</div>"
+            + "<div style='font-size:0.8rem;color:#8b93a3;margin-top:2px;'>" + quando
+            + (temCall ? " · <span style='color:#7ee787;'>📹 videochamada</span>" : "") + "</div>";
+          list.appendChild(div);
+        });
+      } catch (err) {
+        box.textContent = "Erro ao acessar a agenda. Tente recarregar a página.";
+      }
+    }
+    // ===== Leitura da Agenda Google (fim) =====
 
     init();
   </script>
