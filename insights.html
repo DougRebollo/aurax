@@ -96,6 +96,31 @@
   .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
   .stat-card { padding: 16px 18px; text-align: center; }
 
+  /* Anel de oratória média (mesmo visual da tela de gravação) */
+  .stat-card-ring { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .orat-ring {
+    flex-shrink: 0;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), rgba(255, 255, 255, 0.08) 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .orat-ring-inner {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: #0d0e13;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .orat-ring-value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+  .orat-ring-label { font-size: 0.6rem; color: #888; margin-top: 2px; }
+
   .focus-card {
     margin-top: 16px;
     padding: 22px 24px;
@@ -200,7 +225,16 @@
     <div id="insightsBody" hidden>
       <div class="stat-grid">
         <div class="card stat-card"><div class="stat-value" id="statTotalSessions">0</div><div class="stat-label">Sessões</div></div>
-        <div class="card stat-card"><div class="stat-value" id="statAvgOratoria">—</div><div class="stat-label">Oratória média</div><div class="stat-rank" id="statAvgOratoriaRank"></div></div>
+        <div class="card stat-card stat-card-ring">
+          <div class="orat-ring" id="oratRing" style="--score:0; --score-color:#8b93a3">
+            <div class="orat-ring-inner">
+              <div class="orat-ring-value" id="statAvgOratoria">—</div>
+              <div class="orat-ring-label">/100</div>
+            </div>
+          </div>
+          <div class="stat-label">Oratória média</div>
+          <div class="stat-rank" id="statAvgOratoriaRank"></div>
+        </div>
         <div class="card stat-card"><div class="stat-value" id="statAvgTalk">—</div><div class="stat-label">Fala média sua</div></div>
         <div class="card stat-card"><div class="stat-value" id="statDateRange">—</div><div class="stat-label">Período</div></div>
       </div>
@@ -235,7 +269,7 @@
       <div class="section-title">Equilíbrio de conversa</div>
       <div class="card chart-card" id="talkBalanceWrap"></div>
 
-      <div class="section-title">Principais pontos de melhoria</div>
+      <div class="section-title">Principais Pontos</div>
       <div class="card chart-card" id="tipsFreqWrap"></div>
 
       <div class="section-title">Vícios de linguagem recorrentes</div>
@@ -441,6 +475,10 @@
         const avgScore = Math.round(average(oratoriaPoints.map((p) => p.value)));
         const rank = oratoriaScoreRank(avgScore);
         document.getElementById("statAvgOratoria").textContent = avgScore;
+        document.getElementById("statAvgOratoria").style.color = rank.color;
+        const ring = document.getElementById("oratRing");
+        ring.style.setProperty("--score", avgScore);
+        ring.style.setProperty("--score-color", rank.color);
         rankEl.textContent = rank.label;
         rankEl.style.color = rank.color;
       } else {
