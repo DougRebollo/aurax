@@ -422,6 +422,15 @@
   #sessionTimer { margin-top: 8px; font-size: 1rem; color: #7ee787; }
   #summary-section h2 { font-size: 1.1rem; margin-bottom: 4px; }
   #summaryDuration { font-size: 0.85rem; color: #aaa; margin-bottom: 12px; }
+  #saveErrorBanner {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(229, 83, 61, 0.12);
+    border: 1px solid rgba(229, 83, 61, 0.35);
+    color: #ff9a86;
+    font-size: 0.85rem;
+  }
   #summary-section h3 { font-size: 0.9rem; margin: 16px 0 4px; color: #ccc; }
 
   :root {
@@ -854,6 +863,7 @@
 
   <div id="summary-section" class="card" style="display:none">
     <h2>Resumo da sessão</h2>
+    <div id="saveErrorBanner" hidden></div>
     <div id="summaryDuration"></div>
 
     <h3>Como evoluiu ao longo da sessão</h3>
@@ -1364,11 +1374,46 @@
       return out;
     }
 
+    const SESSION_BACKUP_KEY = "aurax_unsaved_session_backup";
+
+    // Sessões de negociação de verdade podem passar de 1h — o token de login
+    // pode expirar no meio da call (o navegador fica em segundo plano
+    // enquanto a reunião roda em outro app/janela, e o refresh automático às
+    // vezes não dá tempo). Antes, uma falha aqui só ia pro console — o
+    // usuário terminava a call achando que salvou e a sessão inteira sumia
+    // sem aviso nenhum. Agora: tenta de novo depois de renovar a sessão, e
+    // se mesmo assim falhar, avisa na tela e guarda uma cópia local.
     async function saveHistoryEntry(entry) {
-      const { error } = await supabaseClient
-        .from("sessions")
-        .insert({ ...toDbPatch(entry), user_id: currentUserId });
-      if (error) console.error("Erro ao salvar sessão:", error.message);
+      const payload = { ...toDbPatch(entry), user_id: currentUserId };
+
+      let { error } = await supabaseClient.from("sessions").insert(payload);
+      if (error) {
+        console.error("Erro ao salvar sessão (1ª tentativa):", error.message);
+        await supabaseClient.auth.refreshSession();
+        ({ error } = await supabaseClient.from("sessions").insert(payload));
+      }
+
+      if (error) {
+        console.error("Erro ao salvar sessão (2ª tentativa):", error.message);
+        try {
+          localStorage.setItem(SESSION_BACKUP_KEY, JSON.stringify(payload));
+        } catch (storageErr) {
+          console.error("Não foi possível nem guardar backup local:", storageErr);
+        }
+        const banner = document.getElementById("saveErrorBanner");
+        if (banner) {
+          banner.hidden = false;
+          banner.textContent =
+            "⚠️ Não foi possível salvar essa sessão agora (pode ter sido a conexão ou o login expirar numa call longa). Guardamos uma cópia no seu navegador — mande print desta tela e avise o suporte antes de fechar a aba.";
+        }
+        posthog.capture("session_save_failed", { error: error.message });
+      } else {
+        try {
+          localStorage.removeItem(SESSION_BACKUP_KEY);
+        } catch (storageErr) {
+          // sem problema — só não limpou o backup de uma falha anterior
+        }
+      }
     }
 
 
@@ -1476,6 +1521,7 @@
       summarySection.style.display = "none";
       leftSummaryCardsEl.style.display = "none";
       summaryOratoriaEl.innerHTML = '<div class="insight-line">Fale um pouco pra começar a ver sua nota aqui.</div>';
+      document.getElementById("saveErrorBanner").hidden = true;
       sessionTimerEl.textContent = "Sessão em andamento: 00m 00s";
       updateSessionStatusDisplay();
       posthog.capture("session_started");
@@ -3137,7 +3183,31 @@
 
       posthog.identify(currentUserId, { email: session.user.email, role: currentUserRole });
 
+      await recoverUnsavedSessionBackup();
+
       init();
+    }
+
+    // Se uma sessão anterior falhou ao salvar (ex: login expirou no meio de
+    // uma call longa), a cópia local fica guardada — tenta reenviar assim
+    // que o app carrega de novo, antes de começar qualquer coisa nova.
+    async function recoverUnsavedSessionBackup() {
+      let backup;
+      try {
+        const raw = localStorage.getItem(SESSION_BACKUP_KEY);
+        if (!raw) return;
+        backup = JSON.parse(raw);
+      } catch (err) {
+        return;
+      }
+      if (!backup || backup.user_id !== currentUserId) return;
+
+      const { error } = await supabaseClient.from("sessions").insert(backup);
+      if (!error) {
+        localStorage.removeItem(SESSION_BACKUP_KEY);
+        posthog.capture("session_save_recovered");
+        pushLiveAlert("Uma sessão anterior que não tinha salvo foi recuperada e salva agora.");
+      }
     }
 
     document.getElementById("backToGestorBtn").addEventListener("click", () => {
