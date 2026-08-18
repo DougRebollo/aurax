@@ -1404,17 +1404,40 @@
 
     const SESSION_BACKUP_KEY = "aurax_unsaved_session_backup";
 
+    // Colunas mais novas que podem ainda não existir no banco em produção
+    // (migração pendente) — um insert com QUALQUER coluna desconhecida falha
+    // por inteiro (a sessão inteira: transcrição, nota de oratória, dicas...
+    // tudo se perde por causa de UM campo novo). Se o erro for exatamente
+    // "coluna não encontrada", tenta de novo sem essas colunas em vez de
+    // perder a sessão toda.
+    const OPTIONAL_NEW_COLUMNS = ["open_questions", "closed_questions"];
+
+    function isMissingColumnError(error) {
+      return !!error && error.code === "PGRST204";
+    }
+
     // Sessões de negociação de verdade podem passar de 1h — o token de login
     // pode expirar no meio da call (o navegador fica em segundo plano
     // enquanto a reunião roda em outro app/janela, e o refresh automático às
     // vezes não dá tempo). Antes, uma falha aqui só ia pro console — o
     // usuário terminava a call achando que salvou e a sessão inteira sumia
-    // sem aviso nenhum. Agora: tenta de novo depois de renovar a sessão, e
-    // se mesmo assim falhar, avisa na tela e guarda uma cópia local.
+    // sem aviso nenhum. Agora: tenta de novo sem colunas novas desconhecidas,
+    // depois com a sessão renovada, e se mesmo assim falhar, avisa na tela e
+    // guarda uma cópia local.
     async function saveHistoryEntry(entry) {
-      const payload = { ...toDbPatch(entry), user_id: currentUserId };
+      let payload = { ...toDbPatch(entry), user_id: currentUserId };
 
       let { error } = await supabaseClient.from("sessions").insert(payload);
+
+      if (isMissingColumnError(error)) {
+        console.error("Coluna nova ainda não existe no banco — tentando salvar sem ela:", error.message);
+        const trimmed = { ...payload };
+        OPTIONAL_NEW_COLUMNS.forEach((col) => delete trimmed[col]);
+        payload = trimmed;
+        ({ error } = await supabaseClient.from("sessions").insert(payload));
+        if (!error) posthog.capture("session_saved_without_new_columns");
+      }
+
       if (error) {
         console.error("Erro ao salvar sessão (1ª tentativa):", error.message);
         await supabaseClient.auth.refreshSession();
