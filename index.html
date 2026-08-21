@@ -2379,11 +2379,31 @@
     // Essa margem dá um viés de continuidade: só troca de quem está falando
     // se a outra opção for claramente mais próxima, não só um pouco.
     const SPEAKER_SWITCH_MARGIN = 1.5;
+    // Só que essa mesma resistência, se um trecho seu (mais baixo/recostado,
+    // por exemplo) já tiver sido classificado errado como "outro", também
+    // atrapalha a volta — em vez de se corrigir na fala seguinte, fica preso
+    // no rótulo errado por minutos. Por isso a margem enfraquece com o tempo:
+    // nos primeiros 45s no mesmo rótulo, resistência cheia (segura contra
+    // ruído fala-a-fala); depois disso, cai ao longo de mais 60s até quase
+    // nenhuma resistência — se estiver preso errado, tem bastante chance de
+    // se corrigir sozinho em ~1-2min em vez de ficar preso a call inteira.
+    const SPEAKER_SWITCH_MARGIN_MIN = 1.05;
+    const STREAK_DECAY_START_MS = 45000;
+    const STREAK_DECAY_DURATION_MS = 60000;
     let ownVoiceBaseline = Number(localStorage.getItem(VOICE_BASELINE_KEY)) || null;
     let ownClusterAvg = null;
     let otherClusterAvg = null;
     let lastSpeaker = null;
+    let lastSpeakerSince = 0;
     let belowSeedThresholdStreak = 0;
+
+    function currentSwitchMargin() {
+      if (!lastSpeakerSince) return SPEAKER_SWITCH_MARGIN;
+      const elapsed = Date.now() - lastSpeakerSince;
+      if (elapsed <= STREAK_DECAY_START_MS) return SPEAKER_SWITCH_MARGIN;
+      const progress = Math.min(1, (elapsed - STREAK_DECAY_START_MS) / STREAK_DECAY_DURATION_MS);
+      return SPEAKER_SWITCH_MARGIN - (SPEAKER_SWITCH_MARGIN - SPEAKER_SWITCH_MARGIN_MIN) * progress;
+    }
 
     // Se os dois grupos de volume ficarem parecidos demais — ou se nenhum
     // "outro participante" aparecer depois de várias falas — a distinção de
@@ -2398,9 +2418,15 @@
       ownClusterAvg = ownVoiceBaseline;
       otherClusterAvg = null;
       lastSpeaker = null;
+      lastSpeakerSince = 0;
       belowSeedThresholdStreak = 0;
       lowSeparationAlertShown = false;
       utteranceCountSinceReset = 0;
+    }
+
+    function setLastSpeaker(speaker) {
+      if (speaker !== lastSpeaker) lastSpeakerSince = Date.now();
+      lastSpeaker = speaker;
     }
 
     function maybeWarnLowSeparation() {
@@ -2422,7 +2448,7 @@
 
       if (ownClusterAvg === null) {
         ownClusterAvg = avgVolume;
-        lastSpeaker = "Você";
+        setLastSpeaker("Você");
         return "Você";
       }
 
@@ -2431,7 +2457,7 @@
           belowSeedThresholdStreak++;
           if (belowSeedThresholdStreak >= OTHER_CLUSTER_CONFIRM_STREAK) {
             otherClusterAvg = avgVolume;
-            lastSpeaker = "Outro participante";
+            setLastSpeaker("Outro participante");
             return "Outro participante";
           }
           // Só uma fala mais baixa ainda não confirma outra voz — pode ser
@@ -2444,17 +2470,18 @@
         }
         belowSeedThresholdStreak = 0;
         ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
-        lastSpeaker = "Você";
+        setLastSpeaker("Você");
         maybeWarnLowSeparation();
         return "Você";
       }
 
       const distToOwn = Math.abs(avgVolume - ownClusterAvg);
       const distToOther = Math.abs(avgVolume - otherClusterAvg);
+      const switchMargin = currentSwitchMargin();
       let speaker;
-      if (lastSpeaker === "Você" && distToOwn <= distToOther * SPEAKER_SWITCH_MARGIN) {
+      if (lastSpeaker === "Você" && distToOwn <= distToOther * switchMargin) {
         speaker = "Você";
-      } else if (lastSpeaker === "Outro participante" && distToOther <= distToOwn * SPEAKER_SWITCH_MARGIN) {
+      } else if (lastSpeaker === "Outro participante" && distToOther <= distToOwn * switchMargin) {
         speaker = "Outro participante";
       } else {
         speaker = distToOwn <= distToOther ? "Você" : "Outro participante";
@@ -2465,7 +2492,7 @@
       } else {
         otherClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - otherClusterAvg);
       }
-      lastSpeaker = speaker;
+      setLastSpeaker(speaker);
       maybeWarnLowSeparation();
       return speaker;
     }
