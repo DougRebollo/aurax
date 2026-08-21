@@ -1397,6 +1397,7 @@
       if ("slangCounts" in out) { out.slang_counts = out.slangCounts; delete out.slangCounts; }
       if ("fillerCounts" in out) { out.filler_counts = out.fillerCounts; delete out.fillerCounts; }
       if ("oratoriaScore" in out) { out.oratoria_score = out.oratoriaScore; delete out.oratoriaScore; }
+      if ("oratoriaSubscores" in out) { out.oratoria_subscores = out.oratoriaSubscores; delete out.oratoriaSubscores; }
       if ("openQuestions" in out) { out.open_questions = out.openQuestions; delete out.openQuestions; }
       if ("closedQuestions" in out) { out.closed_questions = out.closedQuestions; delete out.closedQuestions; }
       return out;
@@ -1410,7 +1411,7 @@
     // tudo se perde por causa de UM campo novo). Se o erro for exatamente
     // "coluna não encontrada", tenta de novo sem essas colunas em vez de
     // perder a sessão toda.
-    const OPTIONAL_NEW_COLUMNS = ["open_questions", "closed_questions"];
+    const OPTIONAL_NEW_COLUMNS = ["open_questions", "closed_questions", "oratoria_subscores"];
 
     function isMissingColumnError(error) {
       return !!error && error.code === "PGRST204";
@@ -2071,6 +2072,7 @@
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         oratoriaScore: oratoriaResult.overall,
+        oratoriaSubscores: oratoriaResult.subScores,
         openQuestions: sessionOpenQuestions,
         closedQuestions: sessionClosedQuestions,
         tips,
