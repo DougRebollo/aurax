@@ -1428,21 +1428,21 @@
     async function saveHistoryEntry(entry) {
       let payload = { ...toDbPatch(entry), user_id: currentUserId };
 
-      let { error } = await supabaseClient.from("sessions").insert(payload);
+      let { data, error } = await supabaseClient.from("sessions").insert(payload).select("id");
 
       if (isMissingColumnError(error)) {
         console.error("Coluna nova ainda não existe no banco — tentando salvar sem ela:", error.message);
         const trimmed = { ...payload };
         OPTIONAL_NEW_COLUMNS.forEach((col) => delete trimmed[col]);
         payload = trimmed;
-        ({ error } = await supabaseClient.from("sessions").insert(payload));
+        ({ data, error } = await supabaseClient.from("sessions").insert(payload).select("id"));
         if (!error) posthog.capture("session_saved_without_new_columns");
       }
 
       if (error) {
         console.error("Erro ao salvar sessão (1ª tentativa):", error.message);
         await supabaseClient.auth.refreshSession();
-        ({ error } = await supabaseClient.from("sessions").insert(payload));
+        ({ data, error } = await supabaseClient.from("sessions").insert(payload).select("id"));
       }
 
       if (error) {
@@ -1465,6 +1465,37 @@
         } catch (storageErr) {
           // sem problema — só não limpou o backup de uma falha anterior
         }
+        // Dispara em segundo plano — o resumo por IA (objetivo/objeção/
+        // próximo passo) não pode atrasar nem travar o fim da sessão. Se
+        // falhar, a sessão continua salva normal, só sem esse resumo extra.
+        const insertedId = data && data[0] && data[0].id;
+        if (insertedId) requestAiSummary(insertedId);
+      }
+    }
+
+    // Única chamada de IA generativa de verdade no AuraX (o resto é regra
+    // escrita) — pede pra Edge Function gerar objetivo/objeção/próximo passo
+    // a partir da transcrição já salva, e ela mesma atualiza a sessão.
+    async function requestAiSummary(sessionId) {
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/summarize-session`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionId }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error("Resumo por IA não gerado:", body.error || res.status);
+          return;
+        }
+        posthog.capture("ai_summary_generated");
+      } catch (err) {
+        console.error("Erro pedindo resumo por IA:", err);
       }
     }
 

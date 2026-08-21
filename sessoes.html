@@ -325,6 +325,26 @@
   .bar-pct { width: 42px; text-align: right; font-variant-numeric: tabular-nums; font-size: 0.8rem; }
   .oratoria-disclaimer { font-size: 0.72rem; color: #777; margin-top: 12px; }
 
+  .ai-summary-card {
+    padding: 18px 20px;
+    border-radius: 12px;
+    background: linear-gradient(160deg, rgba(179, 136, 255, 0.1), rgba(179, 136, 255, 0.02));
+    border: 1px solid rgba(179, 136, 255, 0.3);
+    margin-bottom: 22px;
+  }
+  .ai-summary-eyebrow {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--accent-purple);
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+  .ai-summary-row { display: flex; gap: 10px; font-size: 0.86rem; margin-top: 8px; }
+  .ai-summary-row:first-of-type { margin-top: 0; }
+  .ai-summary-row b { flex-shrink: 0; width: 96px; color: #ddd; font-weight: 700; }
+  .ai-summary-row span { color: var(--text-muted); }
+
   #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   #gate p { color: var(--text-muted); font-size: 0.9rem; }
 
@@ -644,7 +664,18 @@
         `
         : '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
 
+      const aiSummaryHtml = h.ai_summary
+        ? `
+          <div class="ai-summary-card">
+            <div class="ai-summary-eyebrow">Resumo por IA</div>
+            <div class="ai-summary-row"><b>Objetivo</b><span>${escapeHtml(h.ai_summary.objetivo)}</span></div>
+            <div class="ai-summary-row"><b>Objeção</b><span>${escapeHtml(h.ai_summary.objecao)}</span></div>
+            <div class="ai-summary-row"><b>Próximo passo</b><span>${escapeHtml(h.ai_summary.proximo_passo)}</span></div>
+          </div>`
+        : "";
+
       const bodyHtml = `
+        ${aiSummaryHtml}
         <div class="detail-section-title">Nota de oratória</div>
         ${renderOratoriaDetail(h)}
 
