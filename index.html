@@ -734,22 +734,6 @@
   .saved-card .focus-next { text-align: left; margin: 16px 0 4px; }
   .saved-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
   .saved-actions .btn { text-decoration: none; display: inline-block; }
-  .tl-wrap { margin-top: 12px; }
-  .tl-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-  .tl-label { width: 54px; font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); flex-shrink: 0; }
-  .tl-track { position: relative; flex: 1; height: 14px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
-  .tl-bar { position: absolute; top: 0; bottom: 0; min-width: 2px; }
-  .tl-bar.you { background: var(--accent); }
-  .tl-bar.client { background: var(--warn); }
-  .tl-axis { display: flex; justify-content: space-between; margin: 3px 0 0 64px; font-size: 0.68rem; color: var(--ink-faint); font-family: var(--mono); }
-  .tl-note { font-size: 0.72rem; color: var(--ink-faint); margin-top: 8px; }
-  #talkIndicator { display: none; gap: 12px; align-items: center; font-size: 0.74rem; color: var(--ink-dim); margin: 4px 0; }
-  #talkIndicator.on { display: flex; }
-  #talkIndicator .who { display: inline-flex; align-items: center; gap: 5px; }
-  #talkIndicator .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); transition: background 0.15s; }
-  #talkIndicator .who.you.active .dot { background: var(--accent); }
-  #talkIndicator .who.client.active .dot { background: var(--warn); }
-  .client-turn { margin: 6px 0; padding: 6px 10px; border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 6px; font-size: 0.78rem; color: var(--ink-dim); }
   .talk-split-labels {
     display: flex;
     justify-content: space-between;
@@ -961,12 +945,10 @@
         <h2>Transcrição ao vivo</h2>
         <div style="display:flex; gap:6px;">
           <button type="button" id="calibrateVoiceBtn" class="ghost">Calibrar minha voz</button>
-          <button type="button" id="captureClientBtn" class="ghost" title="Escolha a aba da call e marque 'Compartilhar áudio da aba'. Só medimos o volume — nada é gravado.">Separar áudio do cliente</button>
           <button id="micToggleBtn">Ativar microfone</button>
         </div>
       </div>
-      <div id="transcript-note">Para separar bem o que você e o cliente falam: use fone de ouvido, ative o microfone e clique em "Separar áudio do cliente" (escolha a aba da call e marque "Compartilhar áudio da aba"). Só medimos o volume — nenhum áudio do cliente é gravado ou enviado. Sem isso, "Você" / "Outro participante" é só uma aproximação pelo volume.</div>
-      <div id="talkIndicator"><span class="who you" id="indYou"><span class="dot"></span>Você falando</span><span class="who client" id="indClient"><span class="dot"></span>Cliente falando</span></div>
+      <div id="transcript-note">"Você" / "Outro participante" é uma aproximação pelo volume da voz, não identificação real. Calibre sua voz antes da call e use fone de ouvido para o resultado ficar bem mais confiável.</div>
       <div id="transcriptMeta">
         <span id="micPulse" class="mic-pulse hidden"></span>
         <span id="transcriptStatus"></span>
@@ -1693,8 +1675,6 @@
       sessionFillerCounts = {};
       sessionSilentSamples = 0;
       sessionTotalSamples = 0;
-      resetTalkTrack();
-      sessionEndTime = 0;
       sessionConfidences = [];
       sessionVolumes = [];
       sessionOpenQuestions = 0;
@@ -1761,7 +1741,6 @@
     endSessionBtn.addEventListener("click", () => {
       const durationSeconds = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 1000) : 0;
       sessionActive = false;
-      sessionEndTime = Date.now();
       startSessionBtn.style.display = "inline-block";
       endSessionBtn.style.display = "none";
       sessionTimerEl.textContent = "";
@@ -1805,11 +1784,6 @@
     // cada um (em palavras, já que não medimos duração exata por fala) e
     // quanto da sessão foi silêncio.
     function computeConversationDynamics(transcript) {
-      if (sessionClientCaptured) {
-        const durationSec = sessionStartTime ? ((sessionEndTime || Date.now()) - sessionStartTime) / 1000 : 0;
-        const audio = computeAudioDynamics(durationSec);
-        if (audio) return audio;
-      }
       if (!transcript.length) return null;
 
       let wordsYou = 0;
@@ -2068,17 +2042,9 @@
         } else if (dynamics.pctOther >= 35) {
           tips.push({ key: "boa_escuta", type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o outro participante falar.` });
         }
-        // O silêncio do SEU mic costuma ser o cliente falando (escuta), não
+        // De fone, o silêncio do SEU mic é o cliente falando (escuta), não
         // hesitação — o aviso só faz sentido quando a divisão é por palavras.
-        if (dynamics.basis === "audio" && !dynamics.micBleed) {
-          if (dynamics.interruptions >= 3) {
-            tips.push({ key: "falou_por_cima", type: "melhorar", text: `Você começou a falar no meio da fala do cliente ${dynamics.interruptions} vezes — espere ele terminar antes de responder.` });
-          }
-          if (dynamics.longestYou >= 120) {
-            tips.push({ key: "monologo_longo", type: "melhorar", text: `Sua fala mais longa durou ${formatSecShort(dynamics.longestYou)} sem parar — quebre com uma pergunta para o cliente participar.` });
-          }
-        }
-        if (dynamics.basis === "palavras" && dynamics.silencePct >= 15) {
+        if (dynamics.basis !== "tempo" && dynamics.silencePct >= 15) {
           tips.push({ key: "silencio_alto", type: "melhorar", text: `Silêncio acima do ideal (${dynamics.silencePct}%) — pode indicar hesitação na condução.` });
         }
       }
@@ -2225,26 +2191,15 @@
 
       const dynamics = computeConversationDynamics(sessionTranscript);
       if (dynamics) {
-        const isAudio = dynamics.basis === "audio";
-        const isTime = dynamics.basis === "tempo";
-        const youLabel = isAudio ? `Você ${dynamics.pctYou}% (${formatSecShort(dynamics.youSeconds)})` : `Você ${dynamics.pctYou}%${isTime ? " do tempo" : ""}`;
-        const otherLabel = isAudio ? `Cliente ${dynamics.pctOther}% (${formatSecShort(dynamics.clientSeconds)})` : `${isTime ? "Outro participante / silêncio" : "Outro participante"} ${dynamics.pctOther}%`;
-        const detailsHtml = isAudio
-          ? `${renderTalkTimelineHtml(dynamics.timeline)}
-          <div class="insight-line" style="margin-top:10px">Trocas de turno: ${dynamics.turnsPerMinute}/min</div>
-          <div class="insight-line">Fala mais longa — sua: ${formatSecShort(dynamics.longestYou)} · do cliente: ${formatSecShort(dynamics.longestOther)}</div>
-          ${dynamics.avgResponseSec != null ? `<div class="insight-line">Tempo típico para responder ao cliente: ${dynamics.avgResponseSec}s</div>` : ""}
-          ${dynamics.micBleed ? `<div class="tl-note">⚠️ Seu microfone ficou ativo enquanto o cliente falava — provavelmente sem fone de ouvido. A parte "Você" pode estar inflada.</div>` : `<div class="insight-line">Vezes que você falou por cima do cliente: ${dynamics.interruptions}</div>`}`
-          : isTime ? "" : `<div class="insight-line" style="margin-top:10px">Trocas de turno: ${dynamics.turnsPerMinute}/min</div>
-          <div class="insight-line">Maior fala sua: ${dynamics.longestYou} palavras · do outro: ${dynamics.longestOther} palavras</div>
-          <div class="insight-line">Silêncio na sessão: ${dynamics.silencePct}%</div>`;
         summaryDynamicsEl.innerHTML = `
           <div class="talk-split-bar">
             <div class="talk-split-you" style="width:${dynamics.pctYou}%"></div>
             <div class="talk-split-other" style="width:${dynamics.pctOther}%"></div>
           </div>
-          <div class="talk-split-labels"><span>${youLabel}</span><span>${otherLabel}</span></div>
-          ${detailsHtml}
+          <div class="talk-split-labels"><span>Você ${dynamics.pctYou}%${dynamics.basis === "tempo" ? " do tempo" : ""}</span><span>${dynamics.basis === "tempo" ? "Outro participante / silêncio" : "Outro participante"} ${dynamics.pctOther}%</span></div>
+          ${dynamics.basis === "tempo" ? "" : `<div class="insight-line" style="margin-top:10px">Trocas de turno: ${dynamics.turnsPerMinute}/min</div>
+          <div class="insight-line">Maior fala sua: ${dynamics.longestYou} palavras · do outro: ${dynamics.longestOther} palavras</div>
+          <div class="insight-line">Silêncio na sessão: ${dynamics.silencePct}%</div>`}
           <div class="insight-line">Suas perguntas: ${sessionOpenQuestions} aberta${sessionOpenQuestions === 1 ? "" : "s"} · ${sessionClosedQuestions} fechada${sessionClosedQuestions === 1 ? "" : "s"}</div>
         `;
       } else {
@@ -2434,9 +2389,8 @@
         lines.push(["fala_voce_pct", dynamicsForCsv.pctYou].join(","));
         lines.push(["fala_outro_pct", dynamicsForCsv.pctOther].join(","));
         lines.push(["trocas_de_turno_por_min", dynamicsForCsv.turnsPerMinute].join(","));
-        const longestUnit = dynamicsForCsv.basis === "audio" ? "segundos" : "palavras";
-        lines.push([`maior_fala_voce_${longestUnit}`, dynamicsForCsv.longestYou].join(","));
-        lines.push([`maior_fala_outro_${longestUnit}`, dynamicsForCsv.longestOther].join(","));
+        lines.push(["maior_fala_voce_palavras", dynamicsForCsv.longestYou].join(","));
+        lines.push(["maior_fala_outro_palavras", dynamicsForCsv.longestOther].join(","));
         lines.push(["silencio_pct", dynamicsForCsv.silencePct].join(","));
       }
 
@@ -2706,7 +2660,7 @@
     }
 
     function classifySpeaker(avgVolume) {
-      if (avgVolume === 0 || remoteCapturing) return "Você"; // áudio do cliente vem por outro canal
+      if (avgVolume === 0) return "Você";
       utteranceCountSinceReset++;
 
       if (ownClusterAvg === null) {
@@ -2838,246 +2792,6 @@
 
     calibrateVoiceBtn.addEventListener("click", calibrateVoice);
 
-
-    // ===== Áudio do cliente (aba da call) =====
-    // O microfone só capta a SUA voz (de fone). Pra saber quando o cliente
-    // fala, pedimos pro navegador compartilhar o áudio da aba da call e só
-    // medimos o volume dele a cada 200ms — nada é gravado, transcrito ou
-    // enviado. Com os dois canais separados, "Você" x "Cliente" deixa de ser
-    // um palpite e vira medida: tempo de fala, trocas, monólogos, etc.
-    const captureClientBtn = document.getElementById("captureClientBtn");
-    const talkIndicatorEl = document.getElementById("talkIndicator");
-    const indYouEl = document.getElementById("indYou");
-    const indClientEl = document.getElementById("indClient");
-    const REMOTE_RMS_THRESHOLD = 0.008;
-    const ACTIVITY_HANGOVER_SAMPLES = 4;   // 4 x 200ms: segura o "falando" entre sílabas
-    const TURN_MERGE_GAP_S = 1.5;          // pausas menores que isso fazem parte da mesma fala
-    const CLIENT_MARKER_MIN_S = 4;         // só avisa na transcrição falas de 4s+
-
-    let remoteStream = null;
-    let remoteContext = null;
-    let remoteAnalyser = null;
-    let remoteSamples = null;
-    let remoteCapturing = false;
-    let sessionClientCaptured = false;
-    let sessionEndTime = 0;
-    let youHang = 0;
-    let clientHang = 0;
-    let lastYouActiveAt = Date.now();
-    let lastClientActiveAt = Date.now();
-    let talkTrack = { you: [], client: [] };   // intervalos [início, fim] em segundos desde o início da sessão
-    let announcedClientTurns = 0;
-
-    function resetTalkTrack() {
-      talkTrack = { you: [], client: [] };
-      announcedClientTurns = 0;
-      youHang = 0;
-      clientHang = 0;
-      lastYouActiveAt = lastClientActiveAt = Date.now();
-      sessionClientCaptured = remoteCapturing;
-    }
-
-    function getRemoteVolume() {
-      if (!remoteAnalyser) return 0;
-      remoteAnalyser.getByteTimeDomainData(remoteSamples);
-      let sumSquares = 0;
-      for (let i = 0; i < remoteSamples.length; i++) {
-        const normalized = (remoteSamples[i] - 128) / 128;
-        sumSquares += normalized * normalized;
-      }
-      return Math.sqrt(sumSquares / remoteSamples.length);
-    }
-
-    function extendTrack(arr, t) {
-      const last = arr[arr.length - 1];
-      if (last && t - last[1] <= TURN_MERGE_GAP_S) last[1] = t;
-      else arr.push([t, t]);
-    }
-
-    function formatSecShort(totalSeconds) {
-      const s = Math.round(totalSeconds);
-      if (s < 60) return `${s}s`;
-      return `${Math.floor(s / 60)}min${String(s % 60).padStart(2, "0")}`;
-    }
-
-    // Roda a cada amostra de volume (200ms). Mantém os dois "canais" com um
-    // pequeno atraso de saída (hangover) pra não picotar a fala em sílabas.
-    function updateTalkTrack(micVolume, remoteVolume) {
-      const youNow = micVolume >= SILENCE_RMS_THRESHOLD;
-      const clientNow = remoteCapturing && remoteVolume >= REMOTE_RMS_THRESHOLD;
-      youHang = youNow ? ACTIVITY_HANGOVER_SAMPLES : Math.max(0, youHang - 1);
-      clientHang = clientNow ? ACTIVITY_HANGOVER_SAMPLES : Math.max(0, clientHang - 1);
-      const youActive = youHang > 0;
-      const clientActive = remoteCapturing && clientHang > 0;
-
-      if (remoteCapturing) {
-        indYouEl.classList.toggle("active", youActive);
-        indClientEl.classList.toggle("active", clientActive);
-      }
-
-      if (sessionActive && remoteCapturing) {
-        const t = (Date.now() - sessionStartTime) / 1000;
-        if (youActive) extendTrack(talkTrack.you, t);
-        if (clientActive) extendTrack(talkTrack.client, t);
-
-        // Marca na transcrição ao vivo quando uma fala longa do cliente termina.
-        const i = talkTrack.client.length - 1;
-        if (i >= announcedClientTurns) {
-          const last = talkTrack.client[i];
-          if (t - last[1] > TURN_MERGE_GAP_S) {
-            announcedClientTurns = i + 1;
-            if (last[1] - last[0] >= CLIENT_MARKER_MIN_S) {
-              transcriptLogEl.insertAdjacentHTML(
-                "beforeend",
-                `<div class="client-turn">🎧 Cliente falou por ${formatSecShort(last[1] - last[0])} <span style="color:var(--ink-faint)">· ${formatClock(last[0])}</span></div>`
-              );
-              transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
-            }
-          }
-        }
-      }
-      return { youActive, clientActive };
-    }
-
-    async function startClientCapture() {
-      if (remoteCapturing) return;
-      if (!analyserNode) {
-        transcriptStatusEl.textContent = "Ative o microfone antes de separar o áudio do cliente.";
-        return;
-      }
-      let ds;
-      try {
-        ds = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-          selfBrowserSurface: "exclude",
-          systemAudio: "include",
-        });
-      } catch (err) {
-        transcriptStatusEl.textContent = "Captura cancelada. Escolha a aba da call e marque \"Compartilhar áudio da aba\".";
-        return;
-      }
-      const audioTrack = ds.getAudioTracks()[0];
-      ds.getVideoTracks().forEach((t) => { t.enabled = false; }); // só precisamos do áudio
-      if (!audioTrack) {
-        ds.getTracks().forEach((t) => t.stop());
-        transcriptStatusEl.textContent = "Faltou marcar \"Compartilhar áudio da aba\" na janela de compartilhamento. Tente de novo.";
-        return;
-      }
-      remoteStream = ds;
-      remoteContext = new (window.AudioContext || window.webkitAudioContext)();
-      const src = remoteContext.createMediaStreamSource(new MediaStream([audioTrack]));
-      remoteAnalyser = remoteContext.createAnalyser();
-      remoteAnalyser.fftSize = 2048;
-      remoteSamples = new Uint8Array(remoteAnalyser.fftSize);
-      src.connect(remoteAnalyser);   // não vai pra caixa de som: só medimos
-      audioTrack.addEventListener("ended", stopClientCapture);
-      remoteCapturing = true;
-      sessionClientCaptured = sessionClientCaptured || sessionActive;
-      lastYouActiveAt = lastClientActiveAt = Date.now();
-      captureClientBtn.textContent = "Parar áudio do cliente";
-      talkIndicatorEl.classList.add("on");
-      transcriptStatusEl.textContent = "Áudio do cliente separado ✓ — só medimos o volume, nada é gravado.";
-      posthog.capture("client_audio_capture_started");
-    }
-
-    function stopClientCapture() {
-      if (!remoteCapturing && !remoteStream) return;
-      remoteCapturing = false;
-      if (remoteStream) remoteStream.getTracks().forEach((t) => t.stop());
-      if (remoteContext) remoteContext.close();
-      remoteStream = null;
-      remoteContext = null;
-      remoteAnalyser = null;
-      captureClientBtn.textContent = "Separar áudio do cliente";
-      talkIndicatorEl.classList.remove("on");
-      indYouEl.classList.remove("active");
-      indClientEl.classList.remove("active");
-    }
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) captureClientBtn.style.display = "none";
-    captureClientBtn.addEventListener("click", () => (remoteCapturing ? stopClientCapture() : startClientCapture()));
-
-    // Métricas de dinâmica quando temos os dois canais (medido, não estimado).
-    function sumIntervals(arr) { return arr.reduce((acc, [a, b]) => acc + (b - a) + 0.2, 0); }
-    function intersectSeconds(a, b) {
-      let i = 0, j = 0, total = 0;
-      while (i < a.length && j < b.length) {
-        const lo = Math.max(a[i][0], b[j][0]);
-        const hi = Math.min(a[i][1], b[j][1]);
-        if (hi > lo) total += hi - lo;
-        if (a[i][1] < b[j][1]) i++; else j++;
-      }
-      return total;
-    }
-
-    function computeAudioDynamics(durationSec) {
-      const you = talkTrack.you, client = talkTrack.client;
-      const youSec = sumIntervals(you), clientSec = sumIntervals(client);
-      const total = youSec + clientSec;
-      if (total < 10) return null;
-      const pctYou = Math.round((youSec / total) * 100);
-      const overlapSec = intersectSeconds(you, client);
-
-      const longest = (arr) => arr.reduce((m, [a, b]) => Math.max(m, b - a + 0.2), 0);
-
-      // Trocas de turno: ignora falas de menos de 1,5s (um "aham" não é um turno).
-      const seq = []
-        .concat(you.filter(([a, b]) => b - a >= 1.5).map((r) => ({ who: "you", a: r[0], b: r[1] })))
-        .concat(client.filter(([a, b]) => b - a >= 1.5).map((r) => ({ who: "client", a: r[0], b: r[1] })))
-        .sort((x, y) => x.a - y.a);
-      let turns = 0;
-      for (let i = 1; i < seq.length; i++) if (seq[i].who !== seq[i - 1].who) turns++;
-
-      // Tempo para responder: do fim de uma fala do cliente até você começar.
-      const gaps = [];
-      client.forEach(([, end]) => {
-        const next = you.find(([a]) => a >= end - 0.2);
-        if (next) {
-          const gap = next[0] - end;
-          if (gap >= 0 && gap <= 10) gaps.push(gap);
-        }
-      });
-      gaps.sort((x, y) => x - y);
-      const avgResponseSec = gaps.length ? gaps[Math.floor(gaps.length / 2)] : null;
-
-      // Você começou a falar no meio de uma fala do cliente (1s+ depois do começo dela).
-      let interruptions = 0;
-      you.forEach(([a]) => {
-        if (client.some(([cs, ce]) => a > cs + 1 && a < ce - 0.5)) interruptions++;
-      });
-
-      // Se o seu mic ficou ativo durante a maior parte da fala do cliente, ele
-      // está captando a caixa de som (sem fone) e a sua fala fica contaminada.
-      const micBleed = clientSec > 0 && overlapSec / clientSec > 0.6;
-
-      const cap = (arr) => arr.filter(([a, b]) => b - a >= 1).slice(0, 400).map(([a, b]) => [Math.round(a), Math.round(b)]);
-      const totalSec = Math.max(durationSec, ...you.map((r) => r[1]), ...client.map((r) => r[1]), 1);
-      const activeUnion = youSec + clientSec - overlapSec;
-      return {
-        pctYou, pctOther: 100 - pctYou, basis: "audio",
-        turnsPerMinute: (turns / Math.max(totalSec / 60, 0.05)).toFixed(1),
-        longestYou: Math.round(longest(you)), longestOther: Math.round(longest(client)),
-        silencePct: Math.max(0, Math.min(100, Math.round(100 - (activeUnion / totalSec) * 100))),
-        youSeconds: Math.round(youSec), clientSeconds: Math.round(clientSec),
-        overlapSeconds: Math.round(overlapSec), interruptions,
-        avgResponseSec: avgResponseSec == null ? null : Math.round(avgResponseSec * 10) / 10,
-        micBleed,
-        timeline: { total: Math.round(totalSec), you: cap(you), client: cap(client) },
-      };
-    }
-
-    function renderTalkTimelineHtml(tl) {
-      if (!tl || !tl.total) return "";
-      const bars = (arr, cls) => arr.map(([a, b]) =>
-        `<div class="tl-bar ${cls}" style="left:${(a / tl.total) * 100}%;width:${Math.max(((b - a) / tl.total) * 100, 0.3)}%"></div>`).join("");
-      return `<div class="tl-wrap">
-        <div class="tl-row"><span class="tl-label">Você</span><div class="tl-track">${bars(tl.you, "you")}</div></div>
-        <div class="tl-row"><span class="tl-label">Cliente</span><div class="tl-track">${bars(tl.client, "client")}</div></div>
-        <div class="tl-axis"><span>0:00</span><span>${formatClock(tl.total / 2)}</span><span>${formatClock(tl.total)}</span></div>
-      </div>`;
-    }
-
     async function setupAudioAnalyser() {
       // echoCancellation ajuda a reduzir o som da própria caixa de som voltando
       // pelo microfone. autoGainControl fica desligado de propósito: ele
@@ -3100,7 +2814,6 @@
     }
 
     function teardownAudioAnalyser() {
-      stopClientCapture();
       if (volumeSampleIntervalId) clearInterval(volumeSampleIntervalId);
       volumeSampleIntervalId = null;
       if (micAudioStream) micAudioStream.getTracks().forEach((t) => t.stop());
@@ -3124,7 +2837,6 @@
 
     function sampleVoiceMetrics() {
       const volume = getCurrentVolume();
-      const talk = updateTalkTrack(volume, remoteCapturing ? getRemoteVolume() : 0);
 
       if (volume >= SILENCE_RMS_THRESHOLD) {
         currentUtteranceVolumes.push(volume);
@@ -3135,24 +2847,7 @@
         if (volume < SILENCE_RMS_THRESHOLD) sessionSilentSamples++;
       }
 
-      if (remoteCapturing) {
-        // Com o áudio do cliente separado dá pra distinguir os dois silêncios:
-        // pausa longa = ninguém falou; escuta ativa = só o cliente falou.
-        const nowMs = Date.now();
-        if (talk.youActive) { lastYouActiveAt = nowMs; activeListeningAlreadyFlagged = false; }
-        if (talk.clientActive) lastClientActiveAt = nowMs;
-        if (talk.youActive || talk.clientActive) pauseAlreadyFlagged = false;
-        if (!pauseAlreadyFlagged && nowMs - Math.max(lastYouActiveAt, lastClientActiveAt) > PAUSE_MIN_MS) {
-          pauseAlreadyFlagged = true;
-          if (sessionActive) sessionPauseCount++;
-          pushLiveAlert("Pausa longa detectada");
-        }
-        if (!activeListeningAlreadyFlagged && nowMs - lastYouActiveAt > ACTIVE_LISTENING_MIN_MS && nowMs - lastClientActiveAt < 5000) {
-          activeListeningAlreadyFlagged = true;
-          if (sessionActive) sessionActiveListeningCount++;
-          pushLiveAlert("Boa escuta ativa — você deu bastante espaço pro cliente falar.");
-        }
-      } else if (volume < SILENCE_RMS_THRESHOLD) {
+      if (volume < SILENCE_RMS_THRESHOLD) {
         if (silenceStartTime === null) {
           silenceStartTime = Date.now();
         } else {
