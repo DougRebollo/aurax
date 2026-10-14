@@ -141,6 +141,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js"></script>
+  <script src="focus.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
@@ -326,6 +327,15 @@
         <div class="oratoria-disclaimer">Aproximação por ritmo, pausas, vícios, confiança do reconhecimento de fala e variação de volume. Não é avaliação fonoaudiológica.</div>`;
     }
 
+    // As 5 sessões anteriores à selecionada, só pra comparar no cartão de foco.
+    function previousSessionsOf(h) {
+      const t = new Date(h.date).getTime();
+      return allSessions
+        .filter((s) => s.id !== h.id && new Date(s.date).getTime() < t)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5);
+    }
+
     function renderSessionDetail(h) {
       const panel = document.getElementById("detailPanel");
       if (!h) { panel.innerHTML = '<div class="detail-empty">Selecione uma sessão para ver os detalhes.</div>'; return; }
@@ -381,12 +391,13 @@
         <div class="detail-body">
           <div class="section-label">Nota de oratória</div>
           ${renderOratoriaDetail(h)}
+          ${window.AuraFocus ? window.AuraFocus.render(h, previousSessionsOf(h)) : ""}
           ${aiHtml}
           <div class="section-label">Dinâmica da conversa</div>
           ${dynamicsHtml}
           ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
           ${h.open_questions != null || h.closed_questions != null ? `<div class="session-secondary-stats">Perguntas: ${h.open_questions || 0} abertas · ${h.closed_questions || 0} fechadas</div>` : ""}
-          ${h.tips && h.tips.length ? `<div class="section-label">Dicas desta sessão</div>${renderCoachingTips(h.tips)}` : ""}
+          ${h.tips && h.tips.length ? `<details class="tips-fold"><summary>Ver todas as dicas desta sessão (${h.tips.length})</summary>${renderCoachingTips(h.tips)}</details>` : ""}
           ${negotiationTagsHtml || slangTagsHtml || fillerTagsHtml ? `<div class="section-label">Palavras-chave, gírias e vícios</div>
             ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
             ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}

@@ -903,6 +903,7 @@
       </div>
 
       <div id="leftSummaryCards" class="card" style="display:none">
+        <div id="summaryFocus"></div>
         <h3 style="margin-top:0">Dicas de melhoria</h3>
         <div id="summaryTips"></div>
 
@@ -1006,6 +1007,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js"></script>
+  <script src="focus.js"></script>
   <script>
     const EMOTION_LABELS_PT = {
       neutral: "Focado",
@@ -2094,6 +2096,7 @@
         summaryLanguageEl.innerHTML = "";
         summaryOratoriaEl.innerHTML = "";
         summaryTipsEl.innerHTML = "";
+        document.getElementById("summaryFocus").innerHTML = "";
         return;
       }
 
@@ -2208,7 +2211,40 @@
         openQuestions: sessionOpenQuestions,
         closedQuestions: sessionClosedQuestions,
       });
-      summaryTipsEl.innerHTML = renderCoachingTips(tips);
+      summaryTipsEl.innerHTML = tips.length > 1
+        ? `<details class="tips-fold"><summary>Ver todas as dicas (${tips.length})</summary>${renderCoachingTips(tips)}</details>`
+        : renderCoachingTips(tips);
+
+      // Cartão "Foco para a próxima reunião": mostra já, e depois refaz com a
+      // comparação das últimas sessões (busca antes de salvar esta, pra ela
+      // não entrar na própria média).
+      const focusInput = {
+        oratoria_score: oratoriaResult.overall,
+        oratoria_subscores: oratoriaResult.subScores,
+        wpm: wpmSession,
+        pauses: sessionPauseCount,
+        transcript: sessionTranscript,
+        filler_counts: sessionFillerCounts,
+        slang_counts: sessionSlangCounts,
+        open_questions: sessionOpenQuestions,
+        closed_questions: sessionClosedQuestions,
+        objections: sessionObjections,
+        tips,
+        dynamics,
+      };
+      const summaryFocusEl = document.getElementById("summaryFocus");
+      if (window.AuraFocus) {
+        summaryFocusEl.innerHTML = AuraFocus.render(focusInput, []);
+        try {
+          const { data: prevRows } = await supabaseClient
+            .from("sessions")
+            .select("oratoria_score, oratoria_subscores")
+            .eq("user_id", currentUserId)
+            .order("date", { ascending: false })
+            .limit(5);
+          if (prevRows && prevRows.length) summaryFocusEl.innerHTML = AuraFocus.render(focusInput, prevRows);
+        } catch (e) { /* sem comparação: o cartão continua útil sozinho */ }
+      }
 
       await saveHistoryEntry({
         date: new Date().toISOString(),

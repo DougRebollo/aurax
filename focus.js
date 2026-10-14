@@ -1,0 +1,262 @@
+/* AuraFocus — transforma a nota de uma sessão em UMA recomendação prática.
+ *
+ * Tudo aqui é regra (sem IA generativa): escolhe o ponto de maior impacto,
+ * mostra a frase da própria transcrição que o justifica, sugere uma ação e
+ * uma meta para a próxima reunião e compara com as sessões anteriores.
+ *
+ * Entrada (mesmo formato da tabela `sessions`):
+ *   h    = { oratoria_score, oratoria_subscores, wpm, pauses, transcript,
+ *            filler_counts, slang_counts, open_questions, closed_questions,
+ *            objections, tips, dynamics }
+ *   prev = sessões anteriores (mais recentes primeiro), só pra comparar.
+ */
+(function () {
+  const OPEN_STARTERS = [
+    "o que", "que", "como", "por que", "porque", "qual", "quais",
+    "quando", "onde", "quem", "quanto", "quantos", "quantas",
+  ]; // mesma lista do classifyQuestion do index.html
+
+  const SLANG_SWAPS = {
+    beleza: "perfeito", valeu: "obrigado", sussa: "tranquilo", "da hora": "interessante",
+    show: "ótimo", top: "excelente", galera: "equipe", "de boa": "sem problema",
+  };
+
+  const SUB_LABELS = {
+    ritmo: "Ritmo de fala", pausas: "Pausas", vicios: "Vícios de linguagem",
+    clareza: "Clareza/dicção", projecao: "Projeção de voz",
+  };
+
+  const ACTIONS = {
+    vicios: "Escolha UM vício (o que mais aparece) e troque por uma pausa curta de meio segundo. Antes de responder, respire — a pausa soa mais segura que o \"né\".",
+    ritmo_rapido: "Respire antes das frases-chave e faça pausas curtas entre as ideias. Grave um trecho seu e ouça pra calibrar o ritmo.",
+    ritmo_lento: "Prepare a abertura e as frases principais antes da call; ensaiar em voz alta dá mais energia e fluidez.",
+    pausas: "Prepare frases-ponte (\"deixa eu te mostrar um ponto…\") pra usar quando precisar de um segundo, em vez de deixar o silêncio se estender.",
+    clareza: "Articule o final das palavras e fale um pouco mais perto do microfone. Se puder, use um fone com microfone melhor.",
+    projecao: "Varie o tom nos pontos-chave: desacelere e fale com mais firmeza na proposta e no preço; a fala sem variação cansa quem ouve.",
+    poucas_perguntas_abertas: "Troque uma pergunta fechada por uma aberta a cada poucos minutos — comece com \"o que\", \"como\" ou \"por que\" e espere a resposta completa.",
+    objecao_tensa: "Monte um roteiro de 2–3 frases para as objeções mais comuns (preço, prazo, concorrente) antes da próxima call, pra não improvisar na hora.",
+    falou_por_cima: "Conte até dois depois que o cliente terminar antes de responder — o silêncio curto mostra que você realmente ouviu.",
+    monologo_longo: "Depois de uns 60 segundos falando, faça uma pergunta ao cliente. Falas mais curtas mantêm a conversa equilibrada.",
+    dominou_conversa: "Troque uma afirmação por uma pergunta aberta a cada poucos minutos e espere a resposta completa antes de continuar.",
+    muitas_girias: "Grave um trecho seu e ouça de fora: a maioria das gírias é hábito automático que só percebemos ouvindo depois.",
+  };
+
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+  const clock = (n) => { const v = Math.round(n || 0); return Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"); };
+  const fmtS = (n) => { const v = Math.round(n || 0); return v < 60 ? v + "s" : Math.floor(v / 60) + "min" + String(v % 60).padStart(2, "0"); };
+  const cleanTok = (t) => t.toLowerCase().replace(/[.,!?;:"'()]/g, "");
+
+  const youLines = (h) => (h.transcript || []).filter((l) => l && l.text && l.speaker !== "Outro participante");
+  const wordCount = (text) => text.split(/\s+/).filter(Boolean).length;
+  const totalWords = (h) => youLines(h).reduce((n, l) => n + wordCount(l.text), 0);
+  const subScore = (h, key) => {
+    const s = (h.oratoria_subscores || []).find((x) => x.key === key);
+    return s ? s.score : null;
+  };
+  const tipKeys = (h) => new Set((h.tips || []).filter((t) => t && t.type === "melhorar").map((t) => t.key));
+
+  // Trecho citado: corta em ~200 caracteres e destaca (<mark>) as palavras dadas.
+  function quote(text, highlight) {
+    let t = text.trim();
+    if (t.length > 200) t = t.slice(0, 200).replace(/\s+\S*$/, "") + "…";
+    const set = new Set(highlight || []);
+    return t.split(/(\s+)/).map((tok) => (set.has(cleanTok(tok)) ? `<mark>${esc(tok)}</mark>` : esc(tok))).join("");
+  }
+
+  function pickCandidate(h) {
+    const cands = [];
+    (h.oratoria_subscores || []).forEach((s) => {
+      const key = s.key === "ritmo" ? (h.wpm > 160 ? "ritmo_rapido" : "ritmo_lento") : s.key;
+      cands.push({ key, sub: s.key, weight: 100 - s.score });
+    });
+    const tips = tipKeys(h);
+    const tipWeights = { objecao_tensa: 55, poucas_perguntas_abertas: 50, falou_por_cima: 45, monologo_longo: 45, dominou_conversa: 45, muitas_girias: 40 };
+    Object.keys(tipWeights).forEach((k) => { if (tips.has(k)) cands.push({ key: k, sub: null, weight: tipWeights[k] }); });
+    cands.sort((a, b) => b.weight - a.weight);
+    return cands[0] || null;
+  }
+
+  // Cada builder devolve { title, why, example?: {label, html}, goal } — a ação vem de ACTIONS[key].
+  const BUILDERS = {
+    vicios(h) {
+      const counts = h.filler_counts || {};
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+      const words = totalWords(h);
+      const rate = words >= 50 ? Math.round((total / words) * 100) : null; // transcrição curta demais: taxa não é confiável
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      const fillers = Object.keys(counts).filter((k) => !k.includes(" "));
+      let best = null;
+      youLines(h).forEach((l) => {
+        const toks = l.text.split(/\s+/).map(cleanTok);
+        const n = toks.filter((t) => fillers.includes(t)).length;
+        if (n >= 2 && toks.length >= 6 && (!best || n > best.n)) best = { n, line: l };
+      });
+      return {
+        title: "Vícios de linguagem",
+        why: total
+          ? `${total} ocorrências${rate != null ? ` (${rate} a cada 100 palavras)` : ""}` + (top.length ? ` — mais frequentes: ${top.map(([w, c]) => `“${esc(w)}” ×${c}`).join(", ")}.` : ".")
+          : "Vícios de linguagem acima do ideal.",
+        example: best ? { label: `Um trecho seu (${clock(best.line.t)})`, html: quote(best.line.text, fillers) } : null,
+        goal: rate != null ? `Meta: ${Math.max(3, Math.round(rate * 0.7))} vícios a cada 100 palavras (hoje: ${rate}).` : "Meta: reduzir pela metade o vício mais frequente.",
+      };
+    },
+    ritmo_rapido(h) {
+      let longest = null;
+      youLines(h).forEach((l) => { const n = wordCount(l.text); if (n >= 25 && (!longest || n > longest.n)) longest = { n, line: l }; });
+      return {
+        title: "Ritmo de fala acelerado",
+        why: `${h.wpm} palavras por minuto — o ideal para negociação fica entre 110 e 160.`,
+        example: longest ? { label: `Trecho longo sem respirar (${longest.n} palavras, ${clock(longest.line.t)})`, html: quote(longest.line.text) } : null,
+        goal: "Meta: ficar entre 130 e 150 palavras/min.",
+      };
+    },
+    ritmo_lento(h) {
+      return {
+        title: "Ritmo de fala devagar",
+        why: `${h.wpm} palavras por minuto — abaixo de 110 a fala pode soar insegura ou perder a atenção.`,
+        example: null,
+        goal: "Meta: chegar a 110–130 palavras/min.",
+      };
+    },
+    pausas(h) {
+      return {
+        title: "Pausas longas",
+        why: `${h.pauses || 0} pausas longas nesta sessão — podem passar hesitação na condução.`,
+        example: null,
+        goal: "Meta: no máximo 2 pausas longas por reunião.",
+      };
+    },
+    clareza(h) {
+      const s = subScore(h, "clareza");
+      return {
+        title: "Clareza e dicção",
+        why: `O reconhecimento de fala teve dificuldade em entender parte da sua fala (nota ${Math.round(s)}/100). Pode ser dicção, ritmo ou o microfone captando baixo.`,
+        example: null,
+        goal: "Meta: clareza acima de 80.",
+      };
+    },
+    projecao(h) {
+      const s = subScore(h, "projecao");
+      return {
+        title: "Projeção e variação de voz",
+        why: `O volume da sua voz variou pouco (nota ${Math.round(s)}/100) — fala sem variação cansa quem ouve.`,
+        example: null,
+        goal: "Meta: projeção acima de 80.",
+      };
+    },
+    poucas_perguntas_abertas(h) {
+      const open = h.open_questions || 0, closed = h.closed_questions || 0;
+      let q = null;
+      youLines(h).forEach((l) => {
+        const t = l.text.trim(), low = t.toLowerCase();
+        if (!q && t.endsWith("?") && !OPEN_STARTERS.some((w) => low.startsWith(w + " ") || low === w + "?")) q = l;
+      });
+      return {
+        title: "Poucas perguntas abertas",
+        why: `${open} ${open === 1 ? "aberta" : "abertas"} e ${closed} ${closed === 1 ? "fechada" : "fechadas"} — perguntas abertas fazem o cliente falar mais e revelar a necessidade real.`,
+        example: q ? { label: `Pergunta fechada (${clock(q.t)}) — tente abrir`, html: quote(q.text) } : null,
+        goal: "Meta: pelo menos 1 pergunta aberta a cada 3 perguntas.",
+      };
+    },
+    objecao_tensa(h) {
+      const o = (h.objections || [])[0];
+      return {
+        title: "Resposta a objeções",
+        why: "A resposta ao cliente nas objeções pareceu tensa ou hesitante.",
+        example: o ? { label: `Objeção do cliente (${clock(o.t)})`, html: `“${esc(o.phrase)}” → ${esc(o.result)}` } : null,
+        goal: "Meta: ter uma resposta pronta para as 2 objeções mais comuns.",
+      };
+    },
+    falou_por_cima(h) {
+      const n = (h.dynamics && h.dynamics.interruptions) || 0;
+      return {
+        title: "Falar por cima do cliente",
+        why: `Você começou a falar no meio da fala do cliente ${n} ${n === 1 ? "vez" : "vezes"}.`,
+        example: null,
+        goal: "Meta: no máximo 1 vez por reunião.",
+      };
+    },
+    monologo_longo(h) {
+      const s = (h.dynamics && h.dynamics.longestYou) || 0;
+      return {
+        title: "Falas longas sem pausa",
+        why: `Sua fala mais longa durou ${fmtS(s)} seguidos — o cliente ficou muito tempo só ouvindo.`,
+        example: null,
+        goal: "Meta: falas de no máximo 60 segundos seguidos.",
+      };
+    },
+    dominou_conversa(h) {
+      const p = (h.dynamics && h.dynamics.pctYou) || 0;
+      return {
+        title: "Você dominou a conversa",
+        why: `Você ficou com ${p}% do tempo de fala — pouco espaço para o cliente.`,
+        example: null,
+        goal: "Meta: ficar abaixo de 60% do tempo de fala.",
+      };
+    },
+    muitas_girias(h) {
+      const counts = h.slang_counts || {};
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      const total = top.reduce((n, [, c]) => n + c, 0);
+      const word = top[0] && top[0][0];
+      const line = word ? youLines(h).find((l) => (" " + l.text.toLowerCase() + " ").includes(" " + word + " ")) : null;
+      return {
+        title: "Gírias e informalidades",
+        why: `${total} ocorrências` + (top.length ? ` — mais frequentes: ${top.slice(0, 3).map(([w, c]) => `“${esc(w)}” ×${c}${SLANG_SWAPS[w] ? ` → ${esc(SLANG_SWAPS[w])}` : ""}`).join(", ")}.` : "."),
+        example: line ? { label: `Um trecho seu (${clock(line.t)})`, html: quote(line.text, [word]) } : null,
+        goal: "Meta: no máximo 2 gírias por reunião.",
+      };
+    },
+  };
+
+  function compare(h, prev, cand) {
+    const key = cand.sub;
+    const read = (s) => (key ? subScore(s, key) : s.oratoria_score);
+    const vals = (prev || []).map(read).filter((v) => v != null);
+    const now = read(h);
+    if (!vals.length || now == null) return null;
+    const mean = Math.round(avg(vals));
+    return { label: key ? SUB_LABELS[key] : "Nota geral", n: vals.length, mean, now: Math.round(now), diff: Math.round(now) - mean };
+  }
+
+  function build(h, prev) {
+    if (!h) return null;
+    const cand = pickCandidate(h);
+    if (!cand || !BUILDERS[cand.key]) return null;
+    const b = BUILDERS[cand.key](h);
+    const subs = (h.oratoria_subscores || []).slice().sort((x, y) => y.score - x.score);
+    const best = subs[0] && subs[0].score >= 80 && subs[0].key !== cand.sub ? subs[0] : null;
+    const polish = cand.weight < 25; // nada realmente fraco: o foco é só o critério mais baixo
+    if (polish && cand.sub) {
+      b.why = `Seu critério mais baixo (${SUB_LABELS[cand.sub]}: ${Math.round(100 - cand.weight)}/100) — um ajuste pequeno aqui eleva a nota geral.`;
+    }
+    return {
+      eyebrow: polish ? "Para subir de nível" : "Foco para a próxima reunião",
+      ...b,
+      action: ACTIONS[cand.key],
+      compare: compare(h, prev, cand),
+      strength: best ? { label: SUB_LABELS[best.key] || best.label, score: Math.round(best.score) } : null,
+    };
+  }
+
+  function render(h, prev) {
+    const f = build(h, prev);
+    if (!f) return "";
+    const cmp = f.compare
+      ? `<div class="fn-compare">Nas suas últimas ${f.compare.n} ${f.compare.n === 1 ? "sessão" : "sessões"}, <b>${esc(f.compare.label)}</b> ficou em média <b>${f.compare.mean}</b>; hoje: <b>${f.compare.now}</b> `
+        + `<span class="${f.compare.diff > 0 ? "up" : f.compare.diff < 0 ? "down" : ""}">${f.compare.diff > 0 ? "▲ +" + f.compare.diff : f.compare.diff < 0 ? "▼ " + f.compare.diff : "= igual"}</span></div>`
+      : "";
+    return `<div class="focus-next">
+      <div class="fn-eyebrow">${esc(f.eyebrow)}</div>
+      <h3>${esc(f.title)}</h3>
+      <p class="fn-why">${f.why}</p>
+      ${f.example ? `<div class="fn-example"><span>${esc(f.example.label)}</span><blockquote>${f.example.html}</blockquote></div>` : ""}
+      <div class="fn-action"><b>Na próxima reunião:</b> ${esc(f.action)}<div class="fn-goal">${esc(f.goal)}</div></div>
+      ${cmp}
+      ${f.strength ? `<div class="fn-strength">✓ Ponto forte: ${esc(f.strength.label)} (${f.strength.score}/100) — mantenha.</div>` : ""}
+    </div>`;
+  }
+
+  window.AuraFocus = { build, render, ACTIONS };
+})();
