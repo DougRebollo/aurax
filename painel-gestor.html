@@ -4,224 +4,53 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AuraX — Painel do Gestor</title>
+<link rel="stylesheet" href="shell.css" />
 <style>
-  :root {
-    --bg-1: #1a2338;
-    --bg-2: #0b0c10;
-    --bg-3: #08080a;
-    --text: #eee;
-    --text-muted: #9aa0ab;
-    --text-dim: #6b7280;
-    --accent-blue: #4f8cff;
-    --accent-green: #7ee787;
-    --accent-teal: #3ddba0;
-    --accent-amber: #ffb648;
-    --accent-red: #e5533d;
-    --card-bg: linear-gradient(160deg, rgba(79, 140, 255, 0.07), rgba(126, 231, 135, 0.025));
-    --card-border: rgba(255, 255, 255, 0.08);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    min-height: 100vh;
-    position: relative;
-  }
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(79, 140, 255, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(79, 140, 255, 0.045) 1px, transparent 1px);
-    background-size: 42px 42px;
-    -webkit-mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
-    mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
-    pointer-events: none;
-  }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 20px 80px; position: relative; }
-
-  .top-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
-  .top-bar-nav { display: flex; gap: 10px; flex-wrap: wrap; }
-  .logo {
-    font-size: 1.15rem; font-weight: 700; letter-spacing: 1.5px;
-    background: linear-gradient(90deg, #eaf2ff, var(--accent-green) 55%, var(--accent-blue));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-
-  .card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 14px;
-  }
-
-  button {
-    font-family: inherit;
-    cursor: pointer;
-    border: none;
-    border-radius: 999px;
-    font-weight: 600;
-  }
-  .btn {
-    padding: 10px 20px;
-    font-size: 0.85rem;
-    background: linear-gradient(135deg, var(--accent-blue), #3d6fd6);
-    color: white;
-  }
-  .btn.ghost {
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--text-muted);
-    border: 1px solid var(--card-border);
-  }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .panel-head { margin-bottom: 22px; }
-  .panel-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-blue); margin-bottom: 6px; }
-  .panel-head h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  .panel-head p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
-
-  .add-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 18px; margin-bottom: 22px; }
-  .add-row input[type="email"] {
-    flex: 1;
-    min-width: 220px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text);
-    font-size: 0.88rem;
-    font-family: inherit;
-  }
-  .add-row input:focus { outline: none; border-color: var(--accent-blue); }
-  .add-feedback { font-size: 0.8rem; margin-top: 10px; padding: 0 18px 4px; }
-  .add-feedback.error { color: #ff8a76; }
-  .add-feedback.success { color: var(--accent-green); }
-
-  .team-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 26px; }
-  .person-card { padding: 14px 16px; }
-  .person-top { display: flex; align-items: center; gap: 10px; }
-  .avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.75rem; font-weight: 700; color: #0a0a0a;
-    background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
-    flex-shrink: 0;
-  }
-  .person-name { font-weight: 600; font-size: 0.92rem; }
-  .person-email { font-size: 0.72rem; color: var(--text-dim); }
-  .person-footer {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid var(--card-border);
-    display: flex;
-    justify-content: flex-end;
-  }
-  .remove-btn {
-    background: none;
-    color: var(--accent-red);
-    font-size: 0.75rem;
-    padding: 4px 10px;
-  }
-  .remove-btn:hover { background: rgba(229, 83, 61, 0.12); }
-
-  .empty-state { padding: 30px 18px; text-align: center; color: var(--text-dim); font-size: 0.88rem; }
-
-  .placeholder-card { padding: 18px 20px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
-  .placeholder-card b { color: var(--text); }
-
-  .section-title { font-size: 0.95rem; margin: 0 0 12px; color: #dcdfe4; }
-
-  .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-  .filter-tabs button {
-    border: 1px solid var(--card-border);
-    background: rgba(255, 255, 255, 0.03);
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 7px 14px;
-    border-radius: 999px;
-  }
-  .filter-tabs button.active {
-    border-color: var(--accent-blue);
-    background: rgba(79, 140, 255, 0.14);
-    color: #fff;
-  }
-
-  .session-card { padding: 14px 16px; margin-bottom: 10px; }
-  .session-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
-  .session-title-row { display: flex; align-items: center; gap: 8px; }
-  .session-title { font-weight: 600; font-size: 0.9rem; }
-  .session-meta { font-size: 0.75rem; color: var(--text-dim); }
-  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .badge { font-size: 0.7rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
-  .badge-focused { background: rgba(61, 219, 160, 0.15); color: var(--accent-teal); border: 1px solid rgba(61, 219, 160, 0.4); }
-  .badge-motivated { background: rgba(255, 182, 72, 0.15); color: var(--accent-amber); border: 1px solid rgba(255, 182, 72, 0.4); }
-  .badge-tired { background: rgba(79, 140, 255, 0.15); color: #7ba9ff; border: 1px solid rgba(79, 140, 255, 0.4); }
-  .tip-line { font-size: 0.8rem; margin: 8px 0 0; padding-left: 9px; border-left: 2px solid var(--accent-amber); color: #ddd; }
-  .tip-line.positive { border-left-color: var(--accent-green); }
-
-  .rank-badge {
-    flex-shrink: 0;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.68rem;
-    font-weight: 800;
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--text-muted);
-    border: 1px solid var(--card-border);
-  }
-  .rank-badge.gold { background: rgba(255, 215, 0, 0.14); color: #ffd700; border-color: rgba(255, 215, 0, 0.4); }
-  .rank-badge.silver { background: rgba(192, 192, 192, 0.14); color: #d6d6d6; border-color: rgba(192, 192, 192, 0.4); }
-  .rank-badge.bronze { background: rgba(205, 127, 50, 0.16); color: #e0995e; border-color: rgba(205, 127, 50, 0.45); }
-  .oratoria-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 3px 11px;
-    border-radius: 999px;
-    border: 1px solid;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
-  .stat-card { padding: 14px 16px; text-align: center; }
-  .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--accent-green); }
-  .stat-label { font-size: 0.68rem; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
-
-  .focus-card {
-    margin-bottom: 22px;
-    padding: 18px 20px;
-    background: linear-gradient(160deg, rgba(255, 182, 72, 0.1), rgba(255, 182, 72, 0.02));
-    border-color: rgba(255, 182, 72, 0.3);
-  }
-  .focus-eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-amber); margin-bottom: 6px; }
-  .focus-card h3 { font-size: 1.05rem; margin: 0 0 4px; color: #f5f5f5; }
-  .focus-card p { margin: 0; color: var(--text-muted); font-size: 0.82rem; }
-
+  .add-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 18px; }
+  .add-row input[type="email"] { flex: 1; min-width: 220px; }
+  .add-feedback { font-size: 13px; padding: 0 4px; margin-top: -10px; }
+  .add-feedback:empty { display: none; }
+  .add-feedback.error { color: var(--bad); }
+  .add-feedback.success { color: var(--good); }
   .team-limit-notice p { margin: 0 0 12px; }
 
-  .account-blocked-banner {
-    margin-bottom: 22px;
-    padding: 14px 18px;
-    background: rgba(229, 83, 61, 0.1);
-    border-color: rgba(229, 83, 61, 0.35);
-    color: #ff9a86;
-    font-size: 0.85rem;
+  .team-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .person-card { padding: 14px 16px; }
+  .person-top { display: flex; align-items: center; gap: 10px; }
+  .person-name { font-weight: 600; }
+  .person-email { font-size: 12px; color: var(--ink-faint); overflow-wrap: anywhere; }
+  .person-footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; }
+  .remove-btn { background: none; border: 0; color: var(--bad); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+  .remove-btn:hover { background: var(--bad-soft); }
+
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; width: fit-content; max-width: 100%; }
+  .filter-tabs button { border: 0; background: transparent; padding: 5px 12px; border-radius: 6px; font-weight: 600; color: var(--ink-dim); }
+  .filter-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+  #sessionsList { display: flex; flex-direction: column; gap: 10px; }
+  .session-card { padding: 14px 16px; }
+  .session-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .session-title-row { display: flex; align-items: center; gap: 10px; }
+  .session-title { font-weight: 600; }
+  .session-meta { font-size: 12px; color: var(--ink-faint); }
+
+  .rank-badge {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; background: var(--surface-2); color: var(--ink-dim); border: 1px solid var(--line);
+  }
+  .rank-badge.gold { background: #fff3c4; color: #8a6400; border-color: #ecd57a; }
+  .rank-badge.silver { background: #eceef2; color: #596173; border-color: #cfd4dd; }
+  .rank-badge.bronze { background: #fae3cf; color: #8a4a1c; border-color: #e6bd9a; }
+  @media (prefers-color-scheme: dark) {
+    .rank-badge.gold { background: #3a3010; color: #f0d36a; border-color: #5c4d1a; }
+    .rank-badge.silver { background: #2a2f38; color: #c3cad6; border-color: #3d4452; }
+    .rank-badge.bronze { background: #3a2515; color: #e6a572; border-color: #5a3b24; }
   }
 
-  #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-  #gate p { color: var(--text-muted); font-size: 0.9rem; }
-
-  [hidden] { display: none !important; }
+  .account-blocked-banner { padding: 14px 18px; background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); color: var(--bad); font-size: 13px; }
+  #agendaBox { font-size: 13px; color: var(--ink-faint); }
+  #agendaList { display: grid; gap: 8px; }
 </style>
 <script>
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -234,27 +63,21 @@
 <body>
   <div id="gate"><p>Carregando...</p></div>
 
-  <div class="wrap" id="app" hidden>
-    <div class="top-bar">
-      <span class="logo">AuraX</span>
-      <div class="top-bar-nav">
-        <button type="button" class="btn ghost" id="howItWorksBtn">Como funciona</button>
-        <button type="button" class="btn ghost" id="insightsBtn">Meus Insights</button>
-        <button type="button" class="btn ghost" id="sessionsBtn">Minhas Sessões</button>
-        <a class="btn ghost" href="index.html" style="text-decoration:none; display:inline-block;">Meu AuraX</a>
-        <button type="button" class="btn ghost" id="logoutBtn">Sair</button>
-      </div>
-    </div>
+  <div class="shell" id="app" hidden>
+    <aside class="sidebar" id="shellSidebar"></aside>
+    <div class="shell-main">
+      <main class="content">
 
     <div class="card account-blocked-banner" id="accountBlockedBanner" hidden>
       ⚠️ Assinatura pausada — pagamento falhou ou foi cancelado. Os dados do time continuam disponíveis, mas ninguém consegue gravar sessão nova até reativar.
     </div>
 
-    <div class="panel-head">
-      <div class="panel-eyebrow">Painel do gestor</div>
-      <h1 id="greeting">Olá</h1>
-      <p id="greetingRole" style="display:none"></p>
-      <p>Gerencie quem faz parte do seu time no AuraX.</p>
+    <div class="page-head">
+      <div>
+        <h1 id="greeting">Painel do gestor</h1>
+        <p id="greetingRole" style="display:none"></p>
+        <p>Gerencie quem faz parte do seu time no AuraX.</p>
+      </div>
     </div>
 
     <div class="stat-grid">
@@ -281,8 +104,8 @@
     </div>
 
     <div class="section-title">Próximas calls (sua Agenda Google)</div>
-    <div id="agendaBox" style="margin-bottom:8px;font-size:0.9rem;color:#8b93a3;">Carregando sua agenda...</div>
-    <div id="agendaList" style="display:grid;gap:8px;"></div>
+    <div id="agendaBox">Carregando sua agenda...</div>
+    <div id="agendaList"></div>
 
     <div class="section-title">Seu time</div>
     <div class="team-strip" id="teamStrip"></div>
@@ -290,9 +113,12 @@
     <div class="section-title">Sessões</div>
     <div class="filter-tabs" id="filterTabs"></div>
     <div id="sessionsList"></div>
+      </main>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="shell.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
@@ -342,10 +168,10 @@
     }
 
     const ORATORIA_RANK_TIERS = [
-      { min: 90, label: "Excelente", color: "#7ee787" },
-      { min: 70, label: "Bom", color: "#7ee787" },
-      { min: 50, label: "Médio", color: "#ffb648" },
-      { min: 0, label: "Precisa de atenção", color: "#ff6b5b" },
+      { min: 90, label: "Excelente", color: "var(--good)" },
+      { min: 70, label: "Bom", color: "var(--good)" },
+      { min: 50, label: "Médio", color: "var(--warn)" },
+      { min: 0, label: "Precisa de atenção", color: "var(--bad)" },
     ];
 
     function oratoriaScoreRank(score) {
@@ -494,7 +320,7 @@
       const rank = row.oratoria_score != null ? oratoriaScoreRank(row.oratoria_score) : null;
       const oratoriaHtml = rank
         ? `<span class="oratoria-pill" style="color:${rank.color}; border-color:${rank.color}">${row.oratoria_score} · ${rank.label}</span>`
-        : `<span class="oratoria-pill" style="color:#777; border-color:#444">Sem nota</span>`;
+        : `<span class="oratoria-pill" style="color:var(--ink-faint); border-color:var(--line)">Sem nota</span>`;
       const rankBadgeHtml = typeof position === "number"
         ? `<span class="rank-badge ${rankBadgeClass(position)}">#${position + 1}</span>`
         : "";
@@ -647,21 +473,6 @@
     document.getElementById("addEmailInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); addToTeam(); }
     });
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      await supabaseClient.auth.signOut();
-      window.location.href = "login.html";
-    });
-    document.getElementById("howItWorksBtn").addEventListener("click", () => {
-      window.location.href = "index.html?onboarding=1";
-    });
-    document.getElementById("insightsBtn").addEventListener("click", () => {
-      posthog.capture("insights_opened");
-      window.location.href = "insights.html";
-    });
-    document.getElementById("sessionsBtn").addEventListener("click", () => {
-      posthog.capture("sessions_ranking_opened");
-      window.location.href = "sessoes.html";
-    });
 
     async function init() {
       const { data: { session } } = await supabaseClient.auth.getSession();
@@ -701,6 +512,7 @@
       }
       document.getElementById("gate").hidden = true;
       document.getElementById("app").hidden = false;
+      AuraShell.init({ active: "painel", client: supabaseClient, session });
 
       await loadTeam();
       await loadAgenda(session);
@@ -771,8 +583,8 @@
           div.style.cssText = "padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;";
           div.innerHTML =
             "<div style='font-weight:600;font-size:0.92rem;'>" + (ev.summary || "(sem título)") + "</div>"
-            + "<div style='font-size:0.8rem;color:#8b93a3;margin-top:2px;'>" + quando
-            + (temCall ? " · <span style='color:#7ee787;'>📹 videochamada</span>" : "") + "</div>";
+            + "<div style='font-size:12px;color:var(--ink-faint);margin-top:2px;'>" + quando
+            + (temCall ? " · <span style='color:var(--good);'>📹 videochamada</span>" : "") + "</div>";
           list.appendChild(div);
         });
 

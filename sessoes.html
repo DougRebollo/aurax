@@ -4,351 +4,78 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AuraX — Minhas Sessões</title>
+<link rel="stylesheet" href="shell.css" />
 <style>
-  :root {
-    --bg-1: #1a2338;
-    --bg-2: #0b0c10;
-    --bg-3: #08080a;
-    --text: #eee;
-    --text-muted: #9aa0ab;
-    --text-dim: #6b7280;
-    --accent-blue: #4f8cff;
-    --accent-green: #7ee787;
-    --accent-teal: #3ddba0;
-    --accent-amber: #ffb648;
-    --accent-red: #e5533d;
-    --accent-purple: #c9a6ff;
-    --card-bg: linear-gradient(160deg, rgba(79, 140, 255, 0.07), rgba(126, 231, 135, 0.025));
-    --card-border: rgba(255, 255, 255, 0.08);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    min-height: 100vh;
-    position: relative;
-  }
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(79, 140, 255, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(79, 140, 255, 0.045) 1px, transparent 1px);
-    background-size: 42px 42px;
-    -webkit-mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
-    mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
-    pointer-events: none;
-  }
-  .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 80px; position: relative; }
-
-  .top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 28px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    padding: 14px 0;
-    background: rgba(11, 12, 16, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  .logo {
-    font-size: 1.15rem; font-weight: 700; letter-spacing: 1.5px;
-    background: linear-gradient(90deg, #eaf2ff, var(--accent-green) 55%, var(--accent-blue));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-
-  .card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 14px;
-  }
-
-  button {
-    font-family: inherit;
-    cursor: pointer;
-    border: none;
-    border-radius: 999px;
-    font-weight: 600;
-  }
-  .btn.ghost {
-    padding: 10px 20px;
-    font-size: 0.85rem;
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--text-muted);
-    border: 1px solid var(--card-border);
-  }
-
-  .panel-head { margin-bottom: 22px; }
-  .panel-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-blue); margin-bottom: 6px; }
-  .panel-head h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  .panel-head p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
-
-  input[type="text"] {
-    padding: 9px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text);
-    font-size: 0.85rem;
-    font-family: inherit;
-    outline: none;
-  }
-  input[type="text"]:focus { border-color: var(--accent-blue); }
-  input[type="text"]::placeholder { color: #777; }
-
-  .toolbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; }
+  .head-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   #clientFilter { min-width: 220px; }
 
-  .empty-state { padding: 30px 18px; text-align: center; color: var(--text-dim); font-size: 0.88rem; }
-
-  .month-group { margin-bottom: 30px; }
-  .month-heading {
-    display: flex; align-items: baseline; gap: 10px;
-    font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; color: #f2f2f2;
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 12px; font-weight: 600; color: var(--ink-faint);
+    padding: 10px 16px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--surface-2);
   }
-  .month-count { font-size: 0.78rem; font-weight: 500; color: var(--text-dim); }
-  .month-row {
-    display: flex;
-    gap: 14px;
-    overflow-x: auto;
-    padding: 2px 2px 14px;
-    scroll-snap-type: x proximity;
+  td { padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  td.mono { white-space: nowrap; }
+  tr.row-click { cursor: pointer; }
+  tr.row-click:hover td { background: var(--surface-2); }
+  tr.selected td { background: var(--accent-soft); }
+  td.month-row {
+    background: var(--surface-2); font-size: 12px; font-weight: 700; color: var(--ink-dim);
+    padding: 8px 16px; text-transform: capitalize;
   }
-  .month-row::-webkit-scrollbar { height: 8px; }
-  .month-row::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 999px; }
-  .month-row::-webkit-scrollbar-track { background: transparent; }
+  .client-cell { display: flex; align-items: center; gap: 10px; min-width: 160px; font-weight: 600; }
 
-  .insight-line { margin: 4px 0; padding-left: 10px; border-left: 2px solid var(--accent-blue); font-size: 0.85rem; }
-  .tip-positive { border-left-color: var(--accent-green); }
-  .tip-improve { border-left-color: var(--accent-amber); }
-
-  .session-card {
-    padding: 16px 18px;
-    position: relative;
-    flex: 0 0 320px;
-    width: 320px;
-    scroll-snap-align: start;
-    overflow-y: auto;
-    max-height: 70vh;
-  }
-  .session-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
-  .session-card-title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.95rem; color: #f2f2f2; flex: 1; min-width: 0; }
-  .client-avatar {
-    width: 26px; height: 26px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.68rem; font-weight: 700; color: #0a0a0a; flex-shrink: 0;
-  }
-  .session-card-meta { font-size: 0.75rem; color: #888; white-space: nowrap; }
-  .oratoria-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    padding: 3px 12px;
-    border-radius: 999px;
-    border: 1px solid;
-    flex-shrink: 0;
-  }
-
-  .session-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-  .session-badge { font-size: 0.72rem; padding: 4px 10px; border-radius: 999px; font-weight: 600; }
-  .badge-focused { background: rgba(25, 158, 112, 0.15); color: var(--accent-teal); border: 1px solid rgba(25, 158, 112, 0.4); }
-  .badge-motivated { background: rgba(201, 133, 0, 0.15); color: var(--accent-amber); border: 1px solid rgba(201, 133, 0, 0.4); }
-  .badge-tired { background: rgba(57, 135, 229, 0.15); color: #6fa8f0; border: 1px solid rgba(57, 135, 229, 0.4); }
-
-  .session-secondary-stats { font-size: 0.78rem; color: #999; margin-top: 8px; }
-
-  .name-edit-btn, .delete-btn, .comment-btn {
-    margin-top: 0;
-    padding: 3px 9px;
-    border-radius: 6px;
-    background: none;
-    box-shadow: none;
-    font-size: 0.7rem;
-    font-weight: 600;
-  }
-  .name-edit-btn { color: var(--accent-blue); }
-  .name-edit-btn:hover { background: rgba(79, 140, 255, 0.12); }
-  .delete-btn { color: var(--accent-red); }
-  .delete-btn:hover { background: rgba(229, 83, 61, 0.12); }
-  .comment-btn { color: var(--accent-purple); }
-  .comment-btn:hover { background: rgba(179, 136, 255, 0.12); }
-  .comment-btn.has-comment { color: #0a0a0a; background: var(--accent-purple); }
+  .detail { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
+  .detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .detail-head h2 { margin: 0; font-size: 16px; }
+  .detail-meta { color: var(--ink-faint); font-size: 12px; margin-top: 2px; }
+  .detail-body { padding: 16px 18px 18px; }
+  .detail-empty { padding: 30px 18px; color: var(--ink-faint); text-align: center; }
+  .link-btn { background: none; border: 0; color: var(--accent); font-weight: 600; font-size: 12px; padding: 2px 6px; border-radius: 6px; }
+  .link-btn:hover { background: var(--accent-soft); }
+  .link-btn.danger { color: var(--bad); }
+  .link-btn.danger:hover { background: var(--bad-soft); }
   input.name-input { font-weight: 600; max-width: 220px; }
+  .section-label { font-size: 11px; font-weight: 700; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em; margin: 18px 0 6px; }
+  .section-label:first-child { margin-top: 0; }
 
-  .action-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .ring { width: 96px; height: 96px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; }
+  .ring-inner { width: 76px; height: 76px; border-radius: 50%; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+  .ring-inner b { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+  .ring-inner small { font-size: 11px; color: var(--ink-faint); margin-top: 3px; }
+  .detail-top { display: flex; gap: 16px; align-items: center; }
+  .sub-row { display: grid; grid-template-columns: 118px minmax(0, 1fr) 34px; gap: 10px; align-items: center; margin-top: 8px; font-size: 13px; }
+  .sub-row .mono { text-align: right; }
+  .bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .bar span { display: block; height: 100%; border-radius: 999px; }
 
-  .keyword-tags { margin-top: 4px; }
-  .keyword-tag {
-    display: inline-block; font-size: 0.7rem; background: rgba(255, 182, 72, 0.15);
-    color: var(--accent-amber); border-radius: 999px; padding: 2px 9px; margin: 2px 4px 0 0;
-  }
-  .slang-tag {
-    display: inline-block; font-size: 0.7rem; background: rgba(179, 136, 255, 0.15);
-    color: var(--accent-purple); border-radius: 999px; padding: 2px 9px; margin: 2px 4px 0 0;
-  }
-
-  .session-transcript { margin-top: 8px; }
-  .session-transcript summary { cursor: pointer; color: var(--accent-blue); font-size: 0.8rem; }
-  .transcript-line {
-    padding: 5px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 0.8rem;
-  }
-  .transcript-flagged { border-left: 2px solid var(--accent-amber); padding-left: 8px; background: rgba(255, 182, 72, 0.06); }
-  .transcript-slang { border-left: 2px solid var(--accent-purple); padding-left: 8px; background: rgba(179, 136, 255, 0.06); }
-  .transcript-time { color: var(--accent-green); margin-right: 8px; font-variant-numeric: tabular-nums; }
-  .transcript-expression { color: #aaa; font-size: 0.78rem; margin-left: 6px; }
-  .expr-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-  .speaker-tag {
-    display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 1px 7px;
-    border-radius: 999px; margin-right: 6px; text-transform: uppercase; letter-spacing: 0.3px;
-  }
-  .speaker-you { background: rgba(79, 140, 255, 0.18); color: #7ba9ff; }
-  .speaker-other { background: rgba(255, 182, 72, 0.18); color: #ffcf80; }
+  .ai-box { padding: 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); margin-top: 18px; }
+  .ai-box h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--purple); }
+  .ai-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; margin-top: 6px; font-size: 13px; }
+  .ai-row b { font-weight: 600; }
+  .ai-row span { color: var(--ink-dim); }
+  .oratoria-disclaimer { font-size: 12px; color: var(--ink-faint); margin-top: 10px; }
+  .talk-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--line); margin-top: 6px; }
 
   /* Modal de comentário */
   #commentOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 6, 10, 0.78);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    z-index: 1000;
+    position: fixed; inset: 0; background: var(--overlay); display: flex; align-items: center;
+    justify-content: center; padding: 20px; z-index: 1000;
   }
   #commentOverlay.hidden { display: none; }
-  .comment-modal { width: 100%; max-width: 440px; padding: 26px 26px 22px; }
-  .comment-modal h3 { margin: 0 0 4px; font-size: 1.05rem; }
-  .comment-modal .comment-target { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
-  .comment-modal textarea {
-    width: 100%;
-    min-height: 120px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text);
-    font-size: 0.88rem;
-    font-family: inherit;
-    resize: vertical;
-  }
-  .comment-modal textarea:focus { outline: none; border-color: var(--accent-blue); }
+  .comment-modal { width: 100%; max-width: 440px; padding: 24px; }
+  .comment-modal h3 { margin: 0 0 4px; font-size: 16px; }
+  .comment-target { font-size: 13px; color: var(--ink-dim); margin-bottom: 14px; }
+  .comment-modal textarea { width: 100%; min-height: 120px; resize: vertical; }
   .comment-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-  .comment-modal-actions button { padding: 9px 18px; font-size: 0.85rem; }
-  .btn-primary { background: linear-gradient(135deg, var(--accent-blue), #3d6fd6); color: white; }
 
-  .detail-btn {
-    padding: 3px 9px;
-    border-radius: 6px;
-    background: none;
-    box-shadow: none;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--accent-green);
+  @media (max-width: 1100px) {
+    .split { grid-template-columns: minmax(0, 1fr); }
+    .detail { position: static; max-height: none; }
   }
-  .detail-btn:hover { background: rgba(126, 231, 135, 0.12); }
-
-  /* Modal de detalhe da sessão */
-  #detailOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 6, 10, 0.78);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 40px 20px;
-    z-index: 1000;
-    overflow-y: auto;
-  }
-  #detailOverlay.hidden { display: none; }
-  .detail-modal { width: 100%; max-width: 760px; padding: 30px 32px 26px; }
-  .detail-modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
-  .detail-modal-header h2 { margin: 0; font-size: 1.2rem; }
-  .detail-modal-meta { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 22px; }
-  .detail-close-btn { background: rgba(255, 255, 255, 0.06); color: var(--text-muted); padding: 6px 14px; font-size: 0.8rem; }
-  .detail-section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--accent-blue); margin: 26px 0 10px; }
-  .detail-section-title:first-of-type { margin-top: 0; }
-
-  .oratoria-card { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
-  .oratoria-score-badge {
-    flex-shrink: 0;
-    width: 112px;
-    height: 112px;
-    border-radius: 50%;
-    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), rgba(255, 255, 255, 0.08) 0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .oratoria-score-inner {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    background: #0d0e13;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .oratoria-score-value { font-size: 1.9rem; font-weight: 800; line-height: 1; }
-  .oratoria-score-label { font-size: 0.65rem; color: #888; margin-top: 2px; }
-  .oratoria-breakdown { flex: 1 1 260px; min-width: 240px; }
-  .oratoria-rank-badge {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border: 1px solid;
-    border-radius: 999px;
-    padding: 3px 11px;
-    margin-bottom: 10px;
-  }
-  .bar-row { display: flex; align-items: center; margin: 6px 0; font-size: 0.85rem; }
-  .bar-label { width: 150px; font-size: 0.8rem; }
-  .bar-track { flex: 1; background: #333; border-radius: 6px; height: 12px; overflow: hidden; margin: 0 8px; }
-  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-green)); }
-  .bar-pct { width: 42px; text-align: right; font-variant-numeric: tabular-nums; font-size: 0.8rem; }
-  .oratoria-disclaimer { font-size: 0.72rem; color: #777; margin-top: 12px; }
-
-  .ai-summary-card {
-    padding: 18px 20px;
-    border-radius: 12px;
-    background: linear-gradient(160deg, rgba(179, 136, 255, 0.1), rgba(179, 136, 255, 0.02));
-    border: 1px solid rgba(179, 136, 255, 0.3);
-    margin-bottom: 22px;
-  }
-  .ai-summary-eyebrow {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--accent-purple);
-    margin-bottom: 12px;
-    font-weight: 700;
-  }
-  .ai-summary-row { display: flex; gap: 10px; font-size: 0.86rem; margin-top: 8px; }
-  .ai-summary-row:first-of-type { margin-top: 0; }
-  .ai-summary-row b { flex-shrink: 0; width: 96px; color: #ddd; font-weight: 700; }
-  .ai-summary-row span { color: var(--text-muted); }
-
-  #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-  #gate p { color: var(--text-muted); font-size: 0.9rem; }
-
-  [hidden] { display: none !important; }
 </style>
 <script>
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -361,27 +88,34 @@
 <body>
   <div id="gate"><p>Carregando...</p></div>
 
-  <div class="wrap" id="app" hidden>
-    <div class="top-bar">
-      <span class="logo">AuraX</span>
-      <div style="display:flex; gap:10px;">
-        <a class="btn ghost" href="index.html" style="text-decoration:none; display:inline-block;">← Voltar ao AuraX</a>
-        <button type="button" class="btn ghost" id="logoutBtn">Sair</button>
-      </div>
-    </div>
+  <div class="shell" id="app" hidden>
+    <aside class="sidebar" id="shellSidebar"></aside>
+    <div class="shell-main">
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <h1>Minhas Sessões</h1>
+            <p>Clique em uma sessão para ver a nota detalhada, o resumo e a transcrição.</p>
+          </div>
+          <div class="head-actions">
+            <input type="text" id="clientFilter" placeholder="Filtrar por cliente..." />
+            <button type="button" class="btn ghost" id="clearAllBtn">Limpar histórico</button>
+          </div>
+        </div>
 
-    <div class="panel-head">
-      <div class="panel-eyebrow">Histórico</div>
-      <h1>Minhas Sessões</h1>
-      <p>Suas sessões, organizadas por mês — as mais recentes primeiro.</p>
+        <div class="split">
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Cliente</th><th>Data</th><th>Duração</th><th>Oratória</th><th>Vícios</th><th>Perguntas</th></tr></thead>
+                <tbody id="sessBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <aside class="card detail" id="detailPanel" aria-live="polite"></aside>
+        </div>
+      </main>
     </div>
-
-    <div class="toolbar">
-      <input type="text" id="clientFilter" placeholder="Filtrar por cliente..." />
-      <button type="button" class="btn ghost" id="clearAllBtn">Limpar histórico</button>
-    </div>
-
-    <div id="sessionsList"></div>
   </div>
 
   <div id="commentOverlay" class="hidden">
@@ -391,25 +125,13 @@
       <textarea id="commentTextarea" placeholder="Anotações sobre esta sessão..."></textarea>
       <div class="comment-modal-actions">
         <button type="button" class="btn ghost" id="commentCancelBtn">Cancelar</button>
-        <button type="button" class="btn-primary" id="commentSaveBtn">Salvar</button>
+        <button type="button" class="btn" id="commentSaveBtn">Salvar</button>
       </div>
-    </div>
-  </div>
-
-  <div id="detailOverlay" class="hidden">
-    <div class="card detail-modal">
-      <div class="detail-modal-header">
-        <div>
-          <h2 id="detailTitle"></h2>
-          <div class="detail-modal-meta" id="detailMeta"></div>
-        </div>
-        <button type="button" class="detail-close-btn" id="detailCloseBtn">Fechar</button>
-      </div>
-      <div id="detailBody"></div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="shell.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
@@ -418,6 +140,7 @@
     let currentUserId = null;
     let allSessions = [];
     let filterText = "";
+    let selectedId = null;
     let activeCommentId = null;
 
     const SLANG_LIBRARY = {
@@ -425,361 +148,234 @@
       "show": "ótimo", "top": "excelente", "galera": "equipe", "de boa": "sem problema",
       "mano": "", "bagulho": "assunto", "treco": "item", "pô": "",
     };
-    const FILLER_LIBRARY = {
-      "né": "corte a palavra ou faça uma pausa", "tipo": "por exemplo", "então": "diante disso / dessa forma",
-      "é": "uma pausa silenciosa", "an": "uma pausa silenciosa", "hã": "uma pausa silenciosa",
-      "ahn": "uma pausa silenciosa", "eh": "uma pausa silenciosa", "hum": "uma pausa silenciosa",
-      "assim": "dessa forma", "sabe": "entende / compreende",
-    };
     const EXPRESSION_COLORS = {
-      Feliz: "#7ee787", Triste: "#4f8cff", Bravo: "#e5533d", "Nervoso/Medo": "#ffb648",
-      Enjoado: "#b388ff", Surpreso: "#ffe066", Focado: "#3ddba0",
+      Feliz: "var(--good)", Triste: "var(--accent)", Bravo: "var(--bad)", "Nervoso/Medo": "var(--warn)",
+      Enjoado: "var(--purple)", Surpreso: "var(--warn)", Focado: "var(--good)",
     };
     const ORATORIA_RANK_TIERS = [
-      { min: 90, label: "Excelente", color: "#7ee787" },
-      { min: 70, label: "Bom", color: "#7ee787" },
-      { min: 50, label: "Médio", color: "#ffb648" },
-      { min: 0, label: "Precisa de atenção", color: "#ff6b5b" },
+      { min: 90, label: "Excelente", color: "var(--good)" },
+      { min: 70, label: "Bom", color: "var(--good)" },
+      { min: 50, label: "Médio", color: "var(--warn)" },
+      { min: 0, label: "Precisa de atenção", color: "var(--bad)" },
     ];
 
     function oratoriaScoreRank(score) {
       return ORATORIA_RANK_TIERS.find((tier) => score >= tier.min);
     }
-
+    function scoreColor(score) {
+      return score >= 70 ? "var(--good)" : score >= 50 ? "var(--warn)" : "var(--bad)";
+    }
     function expressionColor(tag) {
       const label = tag.split("—")[0].trim();
-      return EXPRESSION_COLORS[label] || "#777";
+      return EXPRESSION_COLORS[label] || "var(--ink-faint)";
     }
-
     function escapeHtml(str) {
       const div = document.createElement("div");
-      div.textContent = str;
+      div.textContent = str == null ? "" : String(str);
       return div.innerHTML;
     }
-
     function formatDateBR(iso) {
       const d = new Date(iso);
       return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     }
-
     function formatDuration(totalSeconds) {
       const h = Math.floor(totalSeconds / 3600);
       const m = Math.floor((totalSeconds % 3600) / 60);
       const s = Math.floor(totalSeconds % 60);
-      const hh = h > 0 ? `${h}h ` : "";
-      return `${hh}${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+      return `${h > 0 ? h + "h " : ""}${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
     }
-
     function formatClock(totalSeconds) {
       const m = Math.floor(totalSeconds / 60);
       const s = Math.floor(totalSeconds % 60);
       return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
     }
-
     function clientInitials(name) {
-      if (!name) return "";
+      if (!name) return "—";
       return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
+    }
+    function monthKey(dateStr) {
+      const d = new Date(dateStr);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    }
+    function monthLabel(dateStr) {
+      return new Date(dateStr).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    }
+    function sumCounts(counts) {
+      return Object.values(counts || {}).reduce((a, b) => a + b, 0);
     }
 
     function renderKeywordTags(counts) {
       const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
-      if (!entries.length) return "";
-      return entries.map(([kw, count]) => `<span class="keyword-tag">${kw} × ${count}</span>`).join(" ");
+      return entries.map(([kw, count]) => `<span class="keyword-tag">${escapeHtml(kw)} × ${count}</span>`).join(" ");
     }
-
     function renderSlangTags(counts) {
       const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
-      if (!entries.length) return "";
       return entries
         .map(([word, count]) => {
           const suggestion = SLANG_LIBRARY[word];
-          return `<span class="slang-tag">${word}${suggestion ? ` → ${suggestion}` : ""} × ${count}</span>`;
+          return `<span class="slang-tag">${escapeHtml(word)}${suggestion ? ` → ${escapeHtml(suggestion)}` : ""} × ${count}</span>`;
         })
         .join(" ");
     }
-
     function renderCoachingTips(tips) {
       if (!tips || !tips.length) return "";
       return tips
-        .map((t) => `<div class="insight-line ${t.type === "positivo" ? "tip-positive" : "tip-improve"}">${t.type === "positivo" ? "✓" : "→"} ${t.text}</div>`)
+        .map((t) => `<div class="insight-line ${t.type === "positivo" ? "tip-positive" : "tip-improve"}">${t.type === "positivo" ? "✓" : "→"} ${escapeHtml(t.text)}</div>`)
         .join("");
     }
-
     function renderTranscriptLineHtml(line) {
       const color = expressionColor(line.expression || "");
       const hasKeywords = line.keywords && line.keywords.length;
       const hasSlang = line.slang && line.slang.length;
-      const keywordTagsHtml = hasKeywords
-        ? `<div class="keyword-tags">${line.keywords.map((k) => `<span class="keyword-tag">${k}</span>`).join("")}</div>`
-        : "";
-      const slangTagsHtml = hasSlang
-        ? `<div class="keyword-tags">${line.slang.map((w) => `<span class="slang-tag">${w}${SLANG_LIBRARY[w] ? ` → ${SLANG_LIBRARY[w]}` : ""}</span>`).join("")}</div>`
-        : "";
+      const tagsHtml = (hasKeywords ? `<div class="keyword-tags">${line.keywords.map((k) => `<span class="keyword-tag">${escapeHtml(k)}</span>`).join("")}</div>` : "") +
+        (hasSlang ? `<div class="keyword-tags">${line.slang.map((w) => `<span class="slang-tag">${escapeHtml(w)}${SLANG_LIBRARY[w] ? ` → ${escapeHtml(SLANG_LIBRARY[w])}` : ""}</span>`).join("")}</div>` : "");
       const speakerTagHtml = line.speaker
-        ? `<span class="speaker-tag ${line.speaker === "Outro participante" ? "speaker-other" : "speaker-you"}">${line.speaker}</span>`
+        ? `<span class="speaker-tag ${line.speaker === "Outro participante" ? "speaker-other" : "speaker-you"}">${escapeHtml(line.speaker)}</span>`
         : "";
       const flagClass = hasKeywords ? " transcript-flagged" : hasSlang ? " transcript-slang" : "";
       return `
         <div class="transcript-line${flagClass}">
           <span class="transcript-time">${formatClock(line.t)}</span>${speakerTagHtml}${escapeHtml(line.text)}
-          <span class="transcript-expression"><span class="expr-dot" style="background:${color}"></span>${line.expression || ""}</span>
-          ${keywordTagsHtml}
-          ${slangTagsHtml}
+          <span class="transcript-expression"><span class="expr-dot" style="background:${color}"></span>${escapeHtml(line.expression || "")}</span>
+          ${tagsHtml}
         </div>`;
     }
 
-    function monthKey(dateStr) {
-      const d = new Date(dateStr);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    function oratoriaPillHtml(score) {
+      if (score == null) return '<span class="oratoria-pill" style="color:var(--ink-faint); border-color:var(--line)">Sem nota</span>';
+      const rank = oratoriaScoreRank(score);
+      return `<span class="oratoria-pill" style="color:${rank.color}; border-color:${rank.color}"><span class="mono">${score}</span> ${rank.label}</span>`;
     }
 
-    function monthLabel(dateStr) {
-      const d = new Date(dateStr);
-      const label = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-      return label.charAt(0).toUpperCase() + label.slice(1);
+    // ===== Lista (tabela agrupada por mês) =====
+    function visibleSessions() {
+      const filtered = filterText
+        ? allSessions.filter((h) => (h.client_name || "").toLowerCase().includes(filterText))
+        : allSessions;
+      return [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
-    function sessionCardHtml(h) {
-      const transcriptHtml = h.transcript && h.transcript.length
-        ? `<details class="session-transcript">
-             <summary>Ver transcrição (${h.transcript.length} falas)</summary>
-             ${h.transcript.map(renderTranscriptLineHtml).join("")}
-           </details>`
-        : "";
-      const objectionsHtml = h.objections && h.objections.length
-        ? `<details class="session-transcript">
-             <summary>Ver objeções (${h.objections.length})</summary>
-             ${h.objections.map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`).join("")}
-           </details>`
-        : "";
-      const negotiationTagsHtml = renderKeywordTags(h.keyword_counts);
-      const slangTagsHtml = renderSlangTags(h.slang_counts);
-      const fillerTagsHtml = renderKeywordTags(h.filler_counts);
-      const initials = clientInitials(h.client_name);
-      const rank = h.oratoria_score != null ? oratoriaScoreRank(h.oratoria_score) : null;
-      const oratoriaHtml = rank
-        ? `<span class="oratoria-pill" style="color:${rank.color}; border-color:${rank.color}">${h.oratoria_score} · ${rank.label}</span>`
-        : `<span class="oratoria-pill" style="color:#777; border-color:#444">Sem nota</span>`;
+    function renderSessionsList() {
+      const bodyEl = document.getElementById("sessBody");
+      const list = visibleSessions();
 
-      return `
-        <div class="card session-card" data-id="${h.id}">
-          <div class="session-card-header">
-            <div class="session-card-title">
-              ${initials ? `<span class="client-avatar">${initials}</span>` : ""}
-              <span class="history-name-display">${h.client_name ? escapeHtml(h.client_name) : "Sessão sem cliente"}</span>
-              <button type="button" class="name-edit-btn">Editar</button>
-            </div>
-            ${oratoriaHtml}
-          </div>
-          <div class="session-card-meta">${formatDateBR(h.date)} · ${formatDuration(h.duration)}</div>
+      if (!list.length) {
+        bodyEl.innerHTML = `<tr><td colspan="6" class="empty-state">${allSessions.length ? "Nenhuma sessão encontrada para esse cliente." : "Nenhuma sessão salva ainda."}</td></tr>`;
+        document.getElementById("detailPanel").innerHTML = '<div class="detail-empty">Selecione uma sessão para ver os detalhes.</div>';
+        return;
+      }
+      if (!list.some((s) => String(s.id) === String(selectedId))) selectedId = list[0].id;
 
-          <div class="session-badges">
-            <span class="session-badge badge-focused">Constância ${Math.round((h.focused || 0) * 100)}%</span>
-            <span class="session-badge badge-motivated">Motivado ${Math.round((h.motivated || 0) * 100)}%</span>
-            <span class="session-badge badge-tired">Cansado ${Math.round((h.tired || 0) * 100)}%</span>
-          </div>
-
-          ${h.tips && h.tips.length ? `<div style="margin-top:10px">${renderCoachingTips(h.tips)}</div>` : ""}
-          ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
-          ${h.dynamics ? `<div class="session-secondary-stats">Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>` : ""}
-          ${h.open_questions != null || h.closed_questions != null ? `<div class="session-secondary-stats">Perguntas: ${h.open_questions || 0} abertas · ${h.closed_questions || 0} fechadas</div>` : ""}
-          ${negotiationTagsHtml ? `<div class="keyword-tags" style="margin-top:8px">${negotiationTagsHtml}</div>` : ""}
-          ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
-          ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}
-          ${transcriptHtml}
-          ${objectionsHtml}
-
-          <div class="action-row" style="margin-top:12px">
-            <button type="button" class="detail-btn">🔎 Ver detalhes</button>
-            <button type="button" class="comment-btn${h.notes ? " has-comment" : ""}">${h.notes ? "💬 Ver comentário" : "💬 Adicionar comentário"}</button>
-            <button type="button" class="delete-btn">Excluir</button>
-          </div>
-        </div>`;
+      let html = "";
+      let lastMonth = "";
+      list.forEach((h) => {
+        const key = monthKey(h.date);
+        if (key !== lastMonth) {
+          html += `<tr><td class="month-row" colspan="6">${monthLabel(h.date)}</td></tr>`;
+          lastMonth = key;
+        }
+        const perguntas = h.open_questions != null || h.closed_questions != null
+          ? `${h.open_questions || 0} ab · ${h.closed_questions || 0} fe` : "—";
+        html += `
+          <tr class="row-click${String(h.id) === String(selectedId) ? " selected" : ""}" data-id="${h.id}" tabindex="0">
+            <td><div class="client-cell"><span class="client-avatar">${clientInitials(h.client_name)}</span>${h.client_name ? escapeHtml(h.client_name) : "Sessão sem cliente"}</div></td>
+            <td class="mono">${formatDateBR(h.date)}</td>
+            <td class="mono">${formatDuration(h.duration || 0)}</td>
+            <td>${oratoriaPillHtml(h.oratoria_score)}</td>
+            <td class="mono">${sumCounts(h.filler_counts)}</td>
+            <td class="mono">${perguntas}</td>
+          </tr>`;
+      });
+      bodyEl.innerHTML = html;
+      renderSessionDetail(allSessions.find((s) => String(s.id) === String(selectedId)));
     }
 
-    function oratoriaBarColor(score) {
-      if (score >= 70) return "#7ee787";
-      if (score >= 50) return "#ffb648";
-      return "#ff6b5b";
-    }
-
-    // Nota de oratória detalhada de UMA sessão — mesmo visual da tela de
-    // gravação (anel + barras por sub-nota), reconstruído a partir do que
-    // foi salvo. Sessões gravadas antes do detalhamento existir só têm a
-    // nota final, sem as sub-notas — mostra um aviso em vez de inventar dado.
+    // ===== Painel de detalhe =====
     function renderOratoriaDetail(h) {
       if (h.oratoria_score == null) {
         return '<div class="insight-line">Sem fala suficiente pra ter calculado uma nota de oratória nesta sessão.</div>';
       }
-      const color = oratoriaBarColor(h.oratoria_score);
+      const color = scoreColor(h.oratoria_score);
       const rank = oratoriaScoreRank(h.oratoria_score);
       const subScores = h.oratoria_subscores;
-      const barsHtml =
-        subScores && subScores.length
-          ? subScores
-              .map(
-                (s) => `
-              <div class="bar-row">
-                <div class="bar-label">${s.label}</div>
-                <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.score)}%; background:${oratoriaBarColor(s.score)}"></div></div>
-                <div class="bar-pct">${Math.round(s.score)}%</div>
-              </div>`
-              )
-              .join("")
-          : '<div class="insight-line">Detalhamento por ritmo/pausas/vícios/clareza/projeção não disponível — essa sessão foi gravada antes desse detalhamento existir.</div>';
-
+      const barsHtml = subScores && subScores.length
+        ? subScores.map((s) => `
+            <div class="sub-row">
+              <span>${escapeHtml(s.label)}</span>
+              <div class="bar"><span style="width:${Math.round(s.score)}%; background:${scoreColor(s.score)}"></span></div>
+              <span class="mono">${Math.round(s.score)}</span>
+            </div>`).join("")
+        : '<div class="insight-line" style="margin-top:10px">Detalhamento por critério não disponível: essa sessão foi gravada antes desse detalhamento existir.</div>';
       return `
-        <div class="oratoria-card">
-          <div class="oratoria-score-badge" style="--score:${h.oratoria_score}; --score-color:${color}">
-            <div class="oratoria-score-inner">
-              <div class="oratoria-score-value" style="color:${color}">${h.oratoria_score}</div>
-              <div class="oratoria-score-label">/100</div>
-            </div>
+        <div class="detail-top">
+          <div class="ring" style="background:conic-gradient(${color} ${h.oratoria_score}%, var(--line) 0)">
+            <div class="ring-inner"><b style="color:${color}">${h.oratoria_score}</b><small>/100</small></div>
           </div>
-          <div class="oratoria-breakdown">
-            <div class="oratoria-rank-badge" style="color:${rank.color}; border-color:${rank.color}">${rank.label}</div>
-            ${barsHtml}
-          </div>
+          <div><span class="oratoria-pill" style="color:${rank.color}; border-color:${rank.color}">${rank.label}</span></div>
         </div>
-        <div class="oratoria-disclaimer">Aproximação a partir de ritmo, pausas, vícios de linguagem, confiança do reconhecimento de fala e variação de volume — não é uma avaliação fonoaudiológica.</div>
-      `;
+        <div style="margin-top:10px">${barsHtml}</div>
+        <div class="oratoria-disclaimer">Aproximação por ritmo, pausas, vícios, confiança do reconhecimento de fala e variação de volume. Não é avaliação fonoaudiológica.</div>`;
     }
 
     function renderSessionDetail(h) {
-      document.getElementById("detailTitle").textContent = h.client_name || "Sessão sem cliente";
-      document.getElementById("detailMeta").textContent = `${formatDateBR(h.date)} · ${formatDuration(h.duration)}`;
+      const panel = document.getElementById("detailPanel");
+      if (!h) { panel.innerHTML = '<div class="detail-empty">Selecione uma sessão para ver os detalhes.</div>'; return; }
 
       const negotiationTagsHtml = renderKeywordTags(h.keyword_counts);
       const slangTagsHtml = renderSlangTags(h.slang_counts);
       const fillerTagsHtml = renderKeywordTags(h.filler_counts);
 
-      const dynamicsHtml = h.dynamics
-        ? `
-          <div class="talk-split-bar" style="display:flex; height:10px; border-radius:6px; overflow:hidden; background:#333; margin-top:6px;">
-            <div style="width:${h.dynamics.pctYou}%; background:linear-gradient(90deg, var(--accent-blue), #7ba9ff)"></div>
-            <div style="width:${h.dynamics.pctOther}%; background:linear-gradient(90deg, var(--accent-amber), #ffcf80)"></div>
-          </div>
-          <div class="session-secondary-stats" style="margin-top:6px">Você ${h.dynamics.pctYou}% · Outro participante ${h.dynamics.pctOther}% · Trocas de turno ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>
-          ${h.open_questions != null || h.closed_questions != null ? `<div class="session-secondary-stats">Perguntas: ${h.open_questions || 0} abertas · ${h.closed_questions || 0} fechadas</div>` : ""}
-        `
-        : '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
-
-      const aiSummaryHtml = h.ai_summary
-        ? `
-          <div class="ai-summary-card">
-            <div class="ai-summary-eyebrow">Resumo por IA</div>
-            <div class="ai-summary-row"><b>Objetivo</b><span>${escapeHtml(h.ai_summary.objetivo)}</span></div>
-            <div class="ai-summary-row"><b>Objeção</b><span>${escapeHtml(h.ai_summary.objecao)}</span></div>
-            <div class="ai-summary-row"><b>Próximo passo</b><span>${escapeHtml(h.ai_summary.proximo_passo)}</span></div>
-          </div>`
+      const aiHtml = h.ai_summary
+        ? `<div class="ai-box"><h3>Resumo por IA</h3>
+            <div class="ai-row"><b>Objetivo</b><span>${escapeHtml(h.ai_summary.objetivo)}</span></div>
+            <div class="ai-row"><b>Objeção</b><span>${escapeHtml(h.ai_summary.objecao)}</span></div>
+            <div class="ai-row"><b>Próximo passo</b><span>${escapeHtml(h.ai_summary.proximo_passo)}</span></div></div>`
         : "";
 
-      const bodyHtml = `
-        ${aiSummaryHtml}
-        <div class="detail-section-title">Nota de oratória</div>
-        ${renderOratoriaDetail(h)}
+      const dynamicsHtml = h.dynamics
+        ? `<div class="talk-bar"><div style="width:${h.dynamics.pctYou}%; background:var(--accent)"></div><div style="width:${h.dynamics.pctOther}%; background:var(--warn)"></div></div>
+           <div class="session-secondary-stats">Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>`
+        : '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
 
-        <div class="detail-section-title">Dinâmica da conversa</div>
-        ${dynamicsHtml}
-        ${h.wpm != null ? `<div class="session-secondary-stats" style="margin-top:6px">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
-
-        ${h.tips && h.tips.length ? `<div class="detail-section-title">Dicas desta sessão</div>${renderCoachingTips(h.tips)}` : ""}
-
-        ${
-          negotiationTagsHtml || slangTagsHtml || fillerTagsHtml
-            ? `<div class="detail-section-title">Palavras-chave, gírias e vícios</div>
-               ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
-               ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
-               ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}`
-            : ""
-        }
-
-        ${
-          h.objections && h.objections.length
-            ? `<div class="detail-section-title">Objeções (${h.objections.length})</div>
-               ${h.objections.map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`).join("")}`
-            : ""
-        }
-
-        ${
-          h.transcript && h.transcript.length
-            ? `<div class="detail-section-title">Transcrição (${h.transcript.length} falas)</div>
-               ${h.transcript.map(renderTranscriptLineHtml).join("")}`
-            : ""
-        }
-
-        ${h.notes ? `<div class="detail-section-title">Seu comentário</div><div class="insight-line">${escapeHtml(h.notes)}</div>` : ""}
-      `;
-      document.getElementById("detailBody").innerHTML = bodyHtml;
+      panel.innerHTML = `
+        <div class="detail-head" data-id="${h.id}">
+          <div>
+            <h2 class="detail-name">${h.client_name ? escapeHtml(h.client_name) : "Sessão sem cliente"}</h2>
+            <div class="detail-meta">${formatDateBR(h.date)} · ${formatDuration(h.duration || 0)}</div>
+          </div>
+          <div style="display:flex; gap:2px; flex-wrap:wrap; justify-content:flex-end">
+            <button type="button" class="link-btn" data-act="edit">Editar nome</button>
+            <button type="button" class="link-btn" data-act="comment">${h.notes ? "Ver comentário" : "Comentar"}</button>
+            <button type="button" class="link-btn danger" data-act="delete">Excluir</button>
+          </div>
+        </div>
+        <div class="detail-body">
+          <div class="section-label">Nota de oratória</div>
+          ${renderOratoriaDetail(h)}
+          ${aiHtml}
+          <div class="section-label">Dinâmica da conversa</div>
+          ${dynamicsHtml}
+          ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
+          ${h.open_questions != null || h.closed_questions != null ? `<div class="session-secondary-stats">Perguntas: ${h.open_questions || 0} abertas · ${h.closed_questions || 0} fechadas</div>` : ""}
+          ${h.tips && h.tips.length ? `<div class="section-label">Dicas desta sessão</div>${renderCoachingTips(h.tips)}` : ""}
+          ${negotiationTagsHtml || slangTagsHtml || fillerTagsHtml ? `<div class="section-label">Palavras-chave, gírias e vícios</div>
+            ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
+            ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
+            ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}` : ""}
+          ${h.objections && h.objections.length ? `<div class="section-label">Objeções (${h.objections.length})</div>
+            ${h.objections.map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`).join("")}` : ""}
+          ${h.notes ? `<div class="section-label">Seu comentário</div><div class="insight-line">${escapeHtml(h.notes)}</div>` : ""}
+          ${h.transcript && h.transcript.length ? `<details class="session-transcript"><summary>Ver transcrição (${h.transcript.length} falas)</summary>${h.transcript.map(renderTranscriptLineHtml).join("")}</details>` : ""}
+        </div>`;
     }
 
-    function openSessionDetail(sessionId) {
-      const session = allSessions.find((s) => String(s.id) === String(sessionId));
-      if (!session) return;
-      renderSessionDetail(session);
-      document.getElementById("detailOverlay").classList.remove("hidden");
-      posthog.capture("session_detail_opened");
-    }
-
-    function closeSessionDetail() {
-      document.getElementById("detailOverlay").classList.add("hidden");
-    }
-
-    document.getElementById("detailCloseBtn").addEventListener("click", closeSessionDetail);
-    document.getElementById("detailOverlay").addEventListener("click", (e) => {
-      if (e.target.id === "detailOverlay") closeSessionDetail();
-    });
-
+    // ===== Dados =====
     async function loadSessions() {
       const { data, error } = await supabaseClient
-        .from("sessions")
-        .select("*")
-        .eq("user_id", currentUserId)
-        .order("date", { ascending: false });
-      if (error) {
-        console.error("Erro ao carregar sessões:", error.message);
-        return [];
-      }
+        .from("sessions").select("*").eq("user_id", currentUserId).order("date", { ascending: false });
+      if (error) { console.error("Erro ao carregar sessões:", error.message); return []; }
       return data;
     }
-
-    function renderSessionsList() {
-      const listEl = document.getElementById("sessionsList");
-      const filtered = filterText
-        ? allSessions.filter((h) => (h.client_name || "").toLowerCase().includes(filterText))
-        : allSessions;
-
-      if (!filtered.length) {
-        listEl.innerHTML = allSessions.length
-          ? '<div class="empty-state">Nenhuma sessão encontrada para esse cliente.</div>'
-          : '<div class="empty-state">Nenhuma sessão salva ainda.</div>';
-        return;
-      }
-
-      const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      const groups = [];
-      const groupIndexByKey = new Map();
-      for (const session of sorted) {
-        const key = monthKey(session.date);
-        if (!groupIndexByKey.has(key)) {
-          groupIndexByKey.set(key, groups.length);
-          groups.push({ key, label: monthLabel(session.date), sessions: [] });
-        }
-        groups[groupIndexByKey.get(key)].sessions.push(session);
-      }
-
-      listEl.innerHTML = groups
-        .map(
-          (g) => `
-            <div class="month-group">
-              <div class="month-heading">${g.label}<span class="month-count">${g.sessions.length} sessão${g.sessions.length > 1 ? "ões" : ""}</span></div>
-              <div class="month-row">${g.sessions.map((h) => sessionCardHtml(h)).join("")}</div>
-            </div>`
-        )
-        .join("");
-    }
-
     async function refreshSessions() {
       allSessions = await loadSessions();
       renderSessionsList();
@@ -789,37 +385,40 @@
       filterText = e.target.value.trim().toLowerCase();
       renderSessionsList();
     });
-
     document.getElementById("clearAllBtn").addEventListener("click", async () => {
       if (!confirm("Limpar todo o histórico? Essa ação não pode ser desfeita.")) return;
       await supabaseClient.from("sessions").delete().eq("user_id", currentUserId);
       await refreshSessions();
     });
 
-    async function startEditingClientName(editBtn) {
-      const card = editBtn.closest(".session-card");
-      const id = card.dataset.id;
+    document.getElementById("sessBody").addEventListener("click", (e) => {
+      const tr = e.target.closest("tr[data-id]");
+      if (!tr) return;
+      selectedId = tr.dataset.id;
+      renderSessionsList();
+    });
+    document.getElementById("sessBody").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      const tr = e.target.closest("tr[data-id]");
+      if (tr) tr.click();
+    });
+
+    function startEditingClientName(id) {
       const session = allSessions.find((s) => String(s.id) === String(id));
       if (!session) return;
-
-      const nameDisplay = card.querySelector(".history-name-display");
+      const nameEl = document.querySelector("#detailPanel .detail-name");
       const input = document.createElement("input");
       input.type = "text";
       input.className = "name-input";
       input.value = session.client_name || "";
       input.placeholder = "Nome do cliente";
-
-      nameDisplay.replaceWith(input);
-      editBtn.style.display = "none";
+      nameEl.replaceWith(input);
       input.focus();
       input.select();
-
       const commit = async () => {
-        const newName = input.value.trim();
-        await supabaseClient.from("sessions").update({ client_name: newName }).eq("id", id);
+        await supabaseClient.from("sessions").update({ client_name: input.value.trim() }).eq("id", id);
         await refreshSessions();
       };
-
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") { e.preventDefault(); input.blur(); }
         else if (e.key === "Escape") { input.value = session.client_name || ""; input.blur(); }
@@ -837,17 +436,14 @@
       document.getElementById("commentOverlay").classList.remove("hidden");
       document.getElementById("commentTextarea").focus();
     }
-
     function closeCommentModal() {
       document.getElementById("commentOverlay").classList.add("hidden");
       activeCommentId = null;
     }
-
     document.getElementById("commentCancelBtn").addEventListener("click", closeCommentModal);
     document.getElementById("commentOverlay").addEventListener("click", (e) => {
       if (e.target.id === "commentOverlay") closeCommentModal();
     });
-
     document.getElementById("commentSaveBtn").addEventListener("click", async () => {
       if (!activeCommentId) return;
       const notes = document.getElementById("commentTextarea").value;
@@ -857,39 +453,18 @@
       await refreshSessions();
     });
 
-    document.getElementById("sessionsList").addEventListener("click", (e) => {
-      const detailBtn = e.target.closest(".detail-btn");
-      if (detailBtn) {
-        const card = detailBtn.closest(".session-card");
-        openSessionDetail(card.dataset.id);
-        return;
+    document.getElementById("detailPanel").addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-act]");
+      if (!btn) return;
+      const id = btn.closest("[data-id]").dataset.id;
+      if (btn.dataset.act === "edit") startEditingClientName(id);
+      else if (btn.dataset.act === "comment") openCommentModal(id);
+      else if (btn.dataset.act === "delete") {
+        if (!confirm("Excluir esta sessão? Essa ação não pode ser desfeita.")) return;
+        await supabaseClient.from("sessions").delete().eq("id", id);
+        selectedId = null;
+        await refreshSessions();
       }
-
-      const editBtn = e.target.closest(".name-edit-btn");
-      if (editBtn) { startEditingClientName(editBtn); return; }
-
-      const deleteBtn = e.target.closest(".delete-btn");
-      if (deleteBtn) {
-        const card = deleteBtn.closest(".session-card");
-        if (confirm("Excluir esta sessão? Essa ação não pode ser desfeita.")) {
-          supabaseClient.from("sessions").delete().eq("id", card.dataset.id).then(refreshSessions);
-        }
-        return;
-      }
-
-      const commentBtn = e.target.closest(".comment-btn");
-      if (commentBtn) {
-        const card = commentBtn.closest(".session-card");
-        openCommentModal(card.dataset.id);
-        return;
-      }
-
-      if (e.target.closest("input, textarea, details, summary")) return;
-    });
-
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      await supabaseClient.auth.signOut();
-      window.location.href = "login.html";
     });
 
     async function init() {
@@ -904,6 +479,7 @@
       document.getElementById("gate").hidden = true;
       document.getElementById("app").hidden = false;
 
+      AuraShell.init({ active: "sessoes", client: supabaseClient, session });
       await refreshSessions();
     }
 
