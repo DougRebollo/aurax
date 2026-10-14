@@ -784,6 +784,13 @@
   #switchCam { color: #fff; }
   #container { box-shadow: 0 0 0 1px var(--line), 0 0 40px -14px var(--aura-color); }
 
+  /* Tela larga: transcrição ao lado do vídeo, com "Calibrar" e "Ativar microfone" sempre à vista */
+  @media (min-width: 1400px) {
+    #stage { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(320px, 420px); }
+    #statusColumn { grid-row: 1; }
+    #transcript-section { grid-column: 3; grid-row: 1; position: sticky; top: 20px; }
+    #transcriptLog { max-height: min(62vh, 560px); }
+  }
   @media (max-width: 1100px) {
     #stage { grid-template-columns: minmax(0, 1fr); }
     #statusColumn, #videoColumn, #transcript-section { grid-column: 1; grid-row: auto; }
