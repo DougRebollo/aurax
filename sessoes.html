@@ -59,6 +59,14 @@
   .ai-row b { font-weight: 600; }
   .ai-row span { color: var(--ink-dim); }
   .oratoria-disclaimer { font-size: 12px; color: var(--ink-faint); margin-top: 10px; }
+  .tl-wrap { margin-top: 10px; }
+  .tl-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .tl-label { width: 54px; font-size: 12px; font-weight: 600; color: var(--ink-dim); flex-shrink: 0; }
+  .tl-track { position: relative; flex: 1; height: 14px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+  .tl-bar { position: absolute; top: 0; bottom: 0; min-width: 2px; }
+  .tl-bar.you { background: var(--accent); }
+  .tl-bar.client { background: var(--warn); }
+  .tl-axis { display: flex; justify-content: space-between; margin: 3px 0 0 64px; font-size: 11px; color: var(--ink-faint); font-family: var(--mono); }
   .talk-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--line); margin-top: 6px; }
 
   /* Modal de comentário */
@@ -333,11 +341,29 @@
             <div class="ai-row"><b>Próximo passo</b><span>${escapeHtml(h.ai_summary.proximo_passo)}</span></div></div>`
         : "";
 
+      const fmtS = (n) => { const v = Math.round(n || 0); return v < 60 ? v + "s" : Math.floor(v / 60) + "min" + String(v % 60).padStart(2, "0"); };
+      const clockS = (n) => { const v = Math.round(n || 0); return Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0"); };
+      const timelineHtml = (tl) => {
+        if (!tl || !tl.total) return "";
+        const bars = (arr, cls) => (arr || []).map(([a, b]) => `<div class="tl-bar ${cls}" style="left:${(a / tl.total) * 100}%;width:${Math.max(((b - a) / tl.total) * 100, 0.3)}%"></div>`).join("");
+        return `<div class="tl-wrap">
+          <div class="tl-row"><span class="tl-label">Você</span><div class="tl-track">${bars(tl.you, "you")}</div></div>
+          <div class="tl-row"><span class="tl-label">Cliente</span><div class="tl-track">${bars(tl.client, "client")}</div></div>
+          <div class="tl-axis"><span>0:00</span><span>${clockS(tl.total / 2)}</span><span>${clockS(tl.total)}</span></div></div>`;
+      };
+      const dyn = h.dynamics;
+      const dynamicsStats = !dyn ? "" : dyn.basis === "audio"
+        ? `Você falou ${dyn.pctYou}% (${fmtS(dyn.youSeconds)}) · Cliente ${dyn.pctOther}% (${fmtS(dyn.clientSeconds)}) · Trocas ${dyn.turnsPerMinute}/min`
+          + `<br>Fala mais longa — sua: ${fmtS(dyn.longestYou)} · do cliente: ${fmtS(dyn.longestOther)}`
+          + (dyn.avgResponseSec != null ? ` · Tempo p/ responder: ${dyn.avgResponseSec}s` : "")
+          + (dyn.micBleed ? `<br>⚠️ Seu microfone captou o cliente (provavelmente sem fone): a parte "Você" pode estar inflada.` : ` · Falou por cima: ${dyn.interruptions}x`)
+        : dyn.basis === "tempo"
+          ? `Você falou ${dyn.pctYou}% do tempo · Outro participante / silêncio ${dyn.pctOther}%`
+          : `Você ${dyn.pctYou}% · Outro ${dyn.pctOther}% · Trocas ${dyn.turnsPerMinute}/min · Silêncio ${dyn.silencePct}%`;
       const dynamicsHtml = h.dynamics
-        ? `<div class="talk-bar"><div style="width:${h.dynamics.pctYou}%; background:var(--accent)"></div><div style="width:${h.dynamics.pctOther}%; background:var(--warn)"></div></div>
-           <div class="session-secondary-stats">${h.dynamics.basis === "tempo"
-             ? `Você falou ${h.dynamics.pctYou}% do tempo · Outro participante / silêncio ${h.dynamics.pctOther}%`
-             : `Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%`}</div>`
+        ? `<div class="talk-bar"><div style="width:${dyn.pctYou}%; background:var(--accent)"></div><div style="width:${dyn.pctOther}%; background:var(--warn)"></div></div>
+           ${dyn.basis === "audio" ? timelineHtml(dyn.timeline) : ""}
+           <div class="session-secondary-stats">${dynamicsStats}</div>`
         : '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
 
       panel.innerHTML = `
