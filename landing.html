@@ -10,7 +10,7 @@
   /* Landing: cinza frio, superfícies brancas, azul só onde há ação; o produto aparece como mockup real. */
   html { scroll-behavior: smooth; }
   body { overflow-x: hidden; }
-  .lp-wrap { max-width: 1160px; margin: 0 auto; padding-inline: 24px; }
+  .lp-wrap { max-width: 1280px; margin: 0 auto; padding-inline: 24px; }
 
   .lp-nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
   .lp-nav-inner { display: flex; align-items: center; gap: 28px; height: 64px; }
@@ -159,6 +159,33 @@
     .score-row { flex-direction: column; align-items: flex-start; }
     .bar-row { grid-template-columns: 96px minmax(0, 1fr) 30px; }
   }
+  /* Faixa do topo: grade suave de fundo + cartões flutuantes nas laterais (telas largas) */
+  .lp-band { position: relative; overflow: hidden; }
+  .lp-band::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, #000 20%, transparent 78%);
+    mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, #000 20%, transparent 78%);
+    opacity: 0.7;
+  }
+  .lp-band > * { position: relative; }
+  .lp-stats { display: grid; grid-template-columns: repeat(3, auto); gap: 0; margin-top: 36px; width: fit-content; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+  .lp-stat { padding: 14px 22px; }
+  .lp-stat + .lp-stat { border-left: 1px solid var(--line); }
+  .lp-stat b { display: block; font-family: var(--mono); font-weight: 500; font-size: 24px; letter-spacing: -0.02em; }
+  .lp-stat span { font-size: 12px; color: var(--ink-dim); }
+  .float { display: none; position: absolute; width: 236px; padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 14px 34px -16px rgba(20, 28, 45, 0.3); font-size: 13px; }
+  .float small { display: block; font-size: 11px; color: var(--ink-faint); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .float b { font-weight: 600; }
+  .float.l1 { right: calc(50% + 670px); top: 130px; }
+  .float.l2 { right: calc(50% + 700px); top: 300px; }
+  .float.l3 { right: calc(50% + 650px); top: 470px; }
+  .float.r1 { left: calc(50% + 670px); top: 120px; }
+  .float.r2 { left: calc(50% + 690px); top: 320px; }
+  .float .up { color: var(--good); font-family: var(--mono); font-weight: 500; }
+  @media (min-width: 1780px) { .float { display: block; } }
+  @media (max-width: 640px) { .lp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; } .lp-stat { padding: 12px; } .lp-stat b { font-size: 20px; } }
 </style>
 <script>
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -185,6 +212,7 @@
   </div>
 </nav>
 
+<div class="lp-band">
 <header class="lp-wrap lp-hero">
   <div>
     <p class="lp-eyebrow">Para heads comerciais, gestores e líderes de equipe</p>
@@ -195,6 +223,11 @@
       <a class="lp-btn ghost big" href="#funcionalidades">Ver funcionalidades</a>
     </div>
     <p class="lp-hero-note">Roda no navegador. Sem bot entrando na sua call.</p>
+    <div class="lp-stats" aria-label="Em números">
+      <div class="lp-stat"><b>5</b><span>critérios na nota</span></div>
+      <div class="lp-stat"><b>3 s</b><span>pra calibrar a voz</span></div>
+      <div class="lp-stat"><b>0</b><span>bots na sua call</span></div>
+    </div>
   </div>
 
   <div class="win" role="img" aria-label="Exemplo da tela de sessão ao vivo do AuraX, com nota de oratória 82 e vícios de linguagem destacados">
@@ -216,6 +249,12 @@
     </div>
   </div>
 </header>
+  <div class="float l1" aria-hidden="true"><small>Alerta ao vivo</small>Ritmo de fala acelerado: <b>182 palavras/min</b></div>
+  <div class="float l2" aria-hidden="true"><small>Escuta ativa</small>Você deu espaço pro cliente falar: <b>36% do tempo</b></div>
+  <div class="float l3" aria-hidden="true"><small>Objeção detectada</small>"<b>tá caro</b>" · resposta analisada</div>
+  <div class="float r1" aria-hidden="true"><small>Evolução</small>Oratória <span class="up">64 → 82</span><br>nas últimas 8 calls</div>
+  <div class="float r2" aria-hidden="true"><small>Principal ponto de melhoria</small><b>Poucas perguntas abertas</b><br>em 6 de 17 sessões</div>
+</div>
 <p class="lp-wrap eg" style="margin-top:-24px;text-align:right">Tela ilustrativa com dados de exemplo.</p>
 
 <section class="lp-proof" aria-label="Diferenciais">
