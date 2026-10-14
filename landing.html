@@ -4,410 +4,160 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AuraX — Inteligência comportamental para líderes comerciais</title>
+<link rel="stylesheet" href="shell.css" />
+<script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; overflow-x: hidden; max-width: 100%; }
-  body {
-    margin: 0;
-    background: radial-gradient(ellipse 1200px 800px at 50% -10%, #1a2338 0%, #0b0c10 55%, #08080a 100%);
-    color: #eee;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    position: relative;
-    overflow-x: hidden;
-  }
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(79, 140, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(79, 140, 255, 0.05) 1px, transparent 1px);
-    background-size: 42px 42px;
-    -webkit-mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
-    mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
-    pointer-events: none;
-    z-index: 0;
-  }
+  /* Landing: cinza frio, superfícies brancas, azul só onde há ação; o produto aparece como mockup real. */
+  html { scroll-behavior: smooth; }
+  body { overflow-x: hidden; }
+  .lp-wrap { max-width: 1160px; margin: 0 auto; padding-inline: 24px; }
 
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+  .lp-nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .lp-nav-inner { display: flex; align-items: center; gap: 28px; height: 64px; }
+  .lp-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none; }
+  .lp-brand b { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 15px; }
+  .lp-links { display: flex; gap: 22px; margin-left: 8px; }
+  .lp-links a { color: var(--ink-dim); text-decoration: none; font-weight: 500; font-size: 14px; }
+  .lp-links a:hover { color: var(--ink); }
+  .lp-nav-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 
-  /* Nav */
-  nav.top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 0;
-  }
-  .logo {
-    font-size: 1.3rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    background: linear-gradient(90deg, #eaf2ff, #7ee787 55%, #4f8cff);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  nav.top a.ghost-link {
-    color: #aaa;
-    text-decoration: none;
-    font-size: 0.85rem;
-    margin-right: 18px;
-  }
-  nav.top a.ghost-link:hover { color: #eee; }
-
-  /* Buttons */
-  .btn {
-    display: inline-block;
-    padding: 13px 26px;
-    border-radius: 999px;
-    border: none;
-    background: linear-gradient(135deg, #4f8cff, #3d6fd6);
-    color: white;
-    font-size: 0.95rem;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    text-decoration: none;
-    box-shadow: 0 4px 20px rgba(79, 140, 255, 0.4);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(79, 140, 255, 0.5); }
-  .btn.ghost {
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: none;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-  }
-  .btn.ghost:hover { background: rgba(255, 255, 255, 0.1); }
-  .btn.big { padding: 16px 34px; font-size: 1.05rem; }
+  .lp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 9px; font-weight: 600; font-size: 14px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; font-family: inherit; }
+  .lp-btn:hover { filter: brightness(0.94); }
+  .lp-btn.ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .lp-btn.ghost:hover { background: var(--surface-2); filter: none; }
+  .lp-btn.big { padding: 13px 22px; font-size: 15px; }
 
   /* Hero */
-  header.hero {
-    text-align: center;
-    padding: 40px 0 10px;
-  }
-  .eyebrow {
-    display: inline-block;
-    font-size: 0.75rem;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: #7ba9ff;
-    background: rgba(79, 140, 255, 0.12);
-    border: 1px solid rgba(79, 140, 255, 0.3);
-    padding: 5px 14px;
-    border-radius: 999px;
-    margin-bottom: 20px;
-  }
-  h1.hero-title {
-    font-size: clamp(2.2rem, 5vw, 3.6rem);
-    font-weight: 800;
-    line-height: 1.15;
-    margin: 0 0 18px;
-    background: linear-gradient(100deg, #eaf2ff 20%, #7ee787 55%, #4f8cff 85%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .hero-sub {
-    font-size: 1.1rem;
-    color: #b7bcc9;
-    max-width: 640px;
-    margin: 0 auto 32px;
-    line-height: 1.6;
-  }
-  .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 8px; }
-  .hero-note { font-size: 0.78rem; color: #666; margin-top: 14px; }
+  .lp-hero { padding-block: 72px 56px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 56px; align-items: center; }
+  .lp-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 18px; }
+  .lp-hero h1 { font-size: clamp(2.4rem, 5vw, 3.7rem); line-height: 1.04; letter-spacing: -0.03em; font-weight: 700; margin: 0 0 20px; text-wrap: balance; }
+  .lp-hero h1 span { color: var(--accent); }
+  .lp-sub { font-size: 1.08rem; color: var(--ink-dim); max-width: 520px; margin: 0 0 28px; }
+  .lp-sub strong { color: var(--ink); font-weight: 600; }
+  .lp-cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .lp-hero-note { margin-top: 16px; font-size: 13px; color: var(--ink-faint); }
 
-  /* Orbit / 360 showcase */
-  .orbit-stage {
-    position: relative;
-    height: 420px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    perspective: 1400px;
-    margin: 30px 0 10px;
-    overflow: hidden;
-  }
-  .orbit-core {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #a6ffcf, #4f8cff 55%, transparent 75%);
-    box-shadow: 0 0 70px 22px rgba(79, 140, 255, 0.35), 0 0 120px 45px rgba(126, 231, 135, 0.15);
-    animation: corePulse 3.2s ease-in-out infinite;
-  }
-  @keyframes corePulse {
-    0%, 100% { transform: scale(1); opacity: 0.9; }
-    50% { transform: scale(1.12); opacity: 1; }
-  }
-  .orbit-ring {
-    position: relative;
-    width: 10px;
-    height: 10px;
-    transform-style: preserve-3d;
-    animation: orbitSpin 26s linear infinite;
-  }
-  .orbit-stage:hover .orbit-ring { animation-play-state: paused; }
-  @keyframes orbitSpin {
-    from { transform: rotateY(0deg); }
-    to { transform: rotateY(360deg); }
-  }
-  .orbit-card {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 178px;
-    height: 108px;
-    margin: -54px 0 0 -89px;
-    background: linear-gradient(160deg, rgba(79, 140, 255, 0.16), rgba(126, 231, 135, 0.06));
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 16px;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 12px;
-  }
-  .orbit-card .oc-title { font-size: 0.85rem; font-weight: 700; color: #f2f2f2; margin-bottom: 4px; }
-  .orbit-card .oc-sub { font-size: 0.7rem; color: #aab; line-height: 1.35; }
+  /* Janela do produto */
+  .win { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px -24px rgba(20, 28, 45, 0.28); overflow: hidden; min-width: 0; }
+  .win-bar { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--surface-2); font-size: 12px; color: var(--ink-dim); font-weight: 600; }
+  .win-bar .live { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.06em; }
+  .win-bar .live i { width: 7px; height: 7px; border-radius: 50%; background: #e5484d; display: block; }
+  .win-body { padding: 20px; display: grid; grid-template-columns: 1fr; gap: 18px; }
+  .score-row { display: flex; gap: 20px; align-items: center; }
+  .ring { width: 108px; height: 108px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; background: conic-gradient(var(--good) 82%, var(--line) 0); }
+  .ring > div { width: 86px; height: 86px; border-radius: 50%; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+  .ring b { font-family: var(--mono); font-size: 30px; font-weight: 500; color: var(--good); }
+  .ring small { font-size: 11px; color: var(--ink-faint); margin-top: 4px; }
+  .bars { flex: 1; min-width: 0; display: grid; gap: 9px; }
+  .bar-row { display: grid; grid-template-columns: 104px minmax(0, 1fr) 34px; gap: 10px; align-items: center; font-size: 13px; color: var(--ink-dim); }
+  .bar-row i { display: block; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .bar-row i span { display: block; height: 100%; border-radius: 999px; background: var(--good); }
+  .bar-row i span.w { background: var(--warn); }
+  .bar-row em { font-style: normal; font-family: var(--mono); text-align: right; color: var(--ink); }
+  .pill { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .pill.good { background: var(--good-soft); color: var(--good); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.neutral { background: var(--surface-2); color: var(--ink-dim); border: 1px solid var(--line); }
+  .tline { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; position: relative; }
+  .tline + .tline { margin-top: 8px; }
+  .tline .who { font-size: 11px; font-weight: 700; margin-right: 8px; }
+  .tline .who.you { color: var(--accent); }
+  .tline .who.other { color: var(--warn); }
+  .tline mark { background: var(--warn-soft); color: var(--warn); font-weight: 700; padding: 0 4px; border-radius: 4px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .eg { margin-top: 12px; font-size: 12px; color: var(--ink-faint); }
 
-  /* Sections */
-  section { padding: 70px 0; }
-  .section-head { text-align: center; max-width: 620px; margin: 0 auto 44px; }
-  .section-head h2 {
-    font-size: clamp(1.6rem, 3vw, 2.2rem);
-    margin: 0 0 12px;
-    color: #f5f5f5;
-  }
-  .section-head p { color: #999; font-size: 1rem; line-height: 1.6; margin: 0; }
+  /* Faixa de provas */
+  .lp-proof { border-block: 1px solid var(--line); background: var(--surface); }
+  .lp-proof-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lp-proof-item { padding: 24px 28px; }
+  .lp-proof-item + .lp-proof-item { border-left: 1px solid var(--line); }
+  .lp-proof-item b { display: block; font-size: 15px; margin-bottom: 4px; }
+  .lp-proof-item span { color: var(--ink-dim); font-size: 14px; }
 
-  .card {
-    background: linear-gradient(160deg, rgba(79, 140, 255, 0.08), rgba(126, 231, 135, 0.03));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  }
+  /* Seções */
+  .lp-section { padding-block: 84px; }
+  .lp-head { max-width: 640px; margin-bottom: 44px; }
+  .lp-head h2 { font-size: clamp(1.7rem, 3.2vw, 2.3rem); letter-spacing: -0.02em; line-height: 1.12; margin: 0 0 12px; text-wrap: balance; }
+  .lp-head p { color: var(--ink-dim); font-size: 1.02rem; margin: 0; }
 
-  .feature-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 18px;
-  }
-  .feature-card {
-    padding: 26px 24px;
-    transition: transform 0.15s ease, border-color 0.15s ease;
-  }
-  .feature-card:hover { transform: translateY(-3px); border-color: rgba(79, 140, 255, 0.35); }
-  .feature-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
-    font-weight: 800;
-    margin-bottom: 16px;
-    background: linear-gradient(135deg, #4f8cff, #7ee787);
-    color: #0a0a0a;
-  }
-  .feature-card h3 { font-size: 1.05rem; margin: 0 0 8px; color: #f2f2f2; }
-  .feature-card p { font-size: 0.88rem; color: #9aa; line-height: 1.55; margin: 0; }
+  .lp-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 56px; align-items: center; }
+  .lp-split + .lp-split { margin-top: 84px; }
+  .lp-split.flip > :first-child { order: 2; }
+  .lp-split h3 { font-size: 1.5rem; letter-spacing: -0.02em; margin: 0 0 12px; line-height: 1.15; }
+  .lp-split p { color: var(--ink-dim); margin: 0 0 16px; max-width: 460px; }
+  .lp-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .lp-list li { padding-left: 24px; position: relative; color: var(--ink-dim); font-size: 14px; }
+  .lp-list li::before { content: ""; position: absolute; left: 0; top: 7px; width: 12px; height: 7px; border-left: 2px solid var(--good); border-bottom: 2px solid var(--good); transform: rotate(-45deg) scale(0.9); }
 
-  /* How it works */
-  .steps {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-  }
-  .step { padding: 26px 22px; text-align: center; }
-  .step-num {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(79, 140, 255, 0.15);
-    border: 1px solid rgba(79, 140, 255, 0.4);
-    color: #7ba9ff;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 14px;
-  }
-  .step h3 { font-size: 1rem; margin: 0 0 8px; color: #f2f2f2; }
-  .step p { font-size: 0.85rem; color: #999; line-height: 1.5; margin: 0; }
+  .swap { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: var(--warn-soft); border-left: 3px solid var(--warn); font-size: 14px; }
+  .swap.slang { background: var(--purple-soft); border-left-color: var(--purple); }
+  .swap + .swap { margin-top: 8px; }
+  .swap b { font-weight: 700; }
+  .swap .n { color: var(--ink-faint); font-size: 12px; margin-left: 6px; font-family: var(--mono); }
+  .swap .to { color: var(--good); font-weight: 600; font-size: 13px; }
 
-  /* Pricing */
-  .pricing-card {
-    max-width: 440px;
-    margin: 0 auto;
-    padding: 40px 36px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .pricing-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 0%, rgba(79, 140, 255, 0.15), transparent 60%);
-    pointer-events: none;
-  }
-  .plan-name { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: #7ba9ff; margin-bottom: 10px; }
-  .price { font-size: 3rem; font-weight: 800; color: #fff; }
-  .price sup { font-size: 1.2rem; font-weight: 600; vertical-align: super; color: #ccc; }
-  .price span.period { font-size: 1rem; font-weight: 500; color: #888; }
-  .price-list {
-    list-style: none;
-    padding: 0;
-    margin: 28px 0 32px;
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .price-list li {
-    font-size: 0.9rem;
-    color: #ccc;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .price-list li::before {
-    content: "✓";
-    color: #7ee787;
-    font-weight: 800;
-    flex-shrink: 0;
-  }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { text-align: left; font-size: 11px; color: var(--ink-faint); font-weight: 600; padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl td { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl .mono { font-family: var(--mono); }
+  .who-cell { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+  .av { width: 24px; height: 24px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .tbl-wrap { overflow-x: auto; }
+  .spark { display: block; width: 100%; height: auto; }
 
-  .team-size-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin: 16px 0 0;
-    padding: 8px 18px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(79, 140, 255, 0.22), rgba(126, 231, 135, 0.16));
-    border: 1px solid rgba(126, 231, 135, 0.4);
-    color: #eaf2ff;
-    font-size: 0.85rem;
-    font-weight: 700;
-  }
-  .enterprise-card {
-    margin-top: 22px;
-    padding: 28px 32px;
-    background: rgba(255, 182, 72, 0.05);
-    border-color: rgba(255, 182, 72, 0.25);
-  }
-  .enterprise-card::before { background: radial-gradient(circle at 50% 0%, rgba(255, 182, 72, 0.12), transparent 60%); }
-  .enterprise-card .plan-name { color: var(--accent-amber, #ffb648); }
-  .enterprise-card h3 { font-size: 1.15rem; margin: 0 0 8px; color: #f5f5f5; }
-  .enterprise-card p { font-size: 0.88rem; color: #bbb; margin: 0 0 20px; }
+  /* Grade de recursos */
+  .lp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .lp-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .lp-card h4 { margin: 0 0 6px; font-size: 15px; }
+  .lp-card p { margin: 0; color: var(--ink-dim); font-size: 14px; }
+  .lp-card .tag { display: inline-block; font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 6px; margin-bottom: 12px; }
 
-  /* Final CTA */
-  .final-cta { text-align: center; }
-  .final-cta h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); margin: 0 0 14px; color: #f5f5f5; }
-  .final-cta p { color: #999; margin: 0 0 30px; }
+  /* Passos */
+  .lp-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+  .lp-step { padding: 26px 26px 28px; }
+  .lp-step + .lp-step { border-left: 1px solid var(--line); }
+  .lp-step .k { font-family: var(--mono); font-size: 13px; color: var(--accent); margin-bottom: 14px; }
+  .lp-step h4 { margin: 0 0 6px; font-size: 16px; }
+  .lp-step p { margin: 0; color: var(--ink-dim); font-size: 14px; }
 
-  footer {
-    padding: 40px 0 60px;
-    text-align: center;
-    color: #666;
-    font-size: 0.82rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-  }
-  footer a { color: #7ba9ff; text-decoration: none; }
+  /* Preço */
+  .lp-price-wrap { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+  .lp-price { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 32px; }
+  .lp-price .plan { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  .lp-price .amount { font-size: 3.4rem; font-weight: 700; letter-spacing: -0.03em; margin: 10px 0 4px; line-height: 1; }
+  .lp-price .amount small { font-size: 1rem; color: var(--ink-faint); font-weight: 500; letter-spacing: 0; }
+  .lp-price .team { display: inline-block; margin: 14px 0 20px; }
+  .lp-price .lp-list { margin-bottom: 26px; }
+  .lp-enterprise { border: 1px dashed var(--line); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; justify-content: center; gap: 12px; background: var(--surface-2); }
+  .lp-enterprise h3 { margin: 0; font-size: 1.3rem; letter-spacing: -0.01em; }
+  .lp-enterprise p { margin: 0 0 8px; color: var(--ink-dim); }
 
-  /* Preview do produto no topo — recriação fiel da tela real do app, pra
-     mostrar o diferencial (nota de oratória + vícios de linguagem) de cara,
-     sem precisar esperar o carrossel ou rolar a página. */
-  .hero-preview {
-    max-width: 760px;
-    margin: 34px auto 10px;
-    padding: 22px 24px;
-    text-align: left;
-  }
-  .hero-preview-badge {
-    display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: #7ee787;
-    background: rgba(126, 231, 135, 0.12);
-    border-radius: 999px;
-    padding: 3px 11px;
-    margin-bottom: 14px;
-  }
-  .hero-preview-grid {
-    display: flex;
-    gap: 22px;
-    flex-wrap: wrap;
-  }
-  .hp-oratoria { flex: 1 1 320px; display: flex; gap: 18px; align-items: center; }
-  .hp-score-badge {
-    flex-shrink: 0;
-    width: 96px;
-    height: 96px;
-    border-radius: 50%;
-    background: conic-gradient(#7ee787 82%, rgba(255, 255, 255, 0.08) 0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .hp-score-inner {
-    width: 76px;
-    height: 76px;
-    border-radius: 50%;
-    background: #0d0e13;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .hp-score-value { font-size: 1.55rem; font-weight: 800; color: #7ee787; line-height: 1; }
-  .hp-score-label { font-size: 0.6rem; color: #888; margin-top: 2px; }
-  .hp-bars { flex: 1; display: flex; flex-direction: column; gap: 7px; }
-  .hp-bar-row { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: #bbb; }
-  .hp-bar-label { width: 92px; flex-shrink: 0; }
-  .hp-bar-track { flex: 1; background: #2a2a30; border-radius: 6px; height: 7px; overflow: hidden; }
-  .hp-bar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #4f8cff, #7ee787); }
-  .hp-bar-pct { width: 32px; text-align: right; flex-shrink: 0; }
+  .lp-final { padding-block: 84px; text-align: left; }
+  .lp-final-box { background: var(--ink); color: var(--bg); border-radius: 20px; padding: 56px; display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; }
+  .lp-final-box h2 { margin: 0 0 6px; font-size: clamp(1.6rem, 3vw, 2.2rem); letter-spacing: -0.02em; max-width: 560px; }
+  .lp-final-box p { margin: 0; opacity: 0.7; }
+  .lp-final-box .lp-btn { background: var(--bg); color: var(--ink); border-color: var(--bg); }
+  footer.lp-foot { border-top: 1px solid var(--line); padding-block: 28px; color: var(--ink-faint); font-size: 13px; }
+  footer.lp-foot .lp-wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
-  .hp-vicios { flex: 1 1 280px; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
-  .hp-vicios-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px; color: #999; margin-bottom: 2px; }
-  .hp-swap-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 9px;
-    background: rgba(255, 182, 72, 0.08);
-    border-left: 3px solid #ffb648;
-    font-size: 0.78rem;
+  @media (max-width: 960px) {
+    .lp-hero, .lp-split, .lp-price-wrap { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+    .lp-split.flip > :first-child { order: 0; }
+    .lp-hero { padding-block: 44px 40px; }
+    .lp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .lp-links { display: none; }
   }
-  .hp-swap-card.slang { background: rgba(179, 136, 255, 0.08); border-left-color: #b388ff; }
-  .hp-swap-word { font-weight: 700; color: #f2f2f2; }
-  .hp-swap-arrow { color: #666; margin: 0 6px; }
-  .hp-swap-suggestion { font-weight: 600; color: #7ee787; }
-  .hp-insight-line {
-    font-size: 0.76rem;
-    color: #ccc;
-    padding-left: 9px;
-    border-left: 2px solid #4f8cff;
-  }
-
   @media (max-width: 640px) {
-    .orbit-stage { height: 300px; }
-    .orbit-card { width: 150px; height: 96px; margin: -48px 0 0 -75px; }
-    .hp-oratoria { flex-direction: column; align-items: flex-start; }
+    .lp-wrap { padding-inline: 16px; }
+    .lp-proof-grid, .lp-steps, .lp-grid { grid-template-columns: minmax(0, 1fr); }
+    .lp-proof-item + .lp-proof-item, .lp-step + .lp-step { border-left: 0; border-top: 1px solid var(--line); }
+    .lp-section { padding-block: 56px; }
+    .lp-final-box { padding: 32px 24px; }
+    .lp-nav-actions .lp-btn.ghost { display: none; }
+    .score-row { flex-direction: column; align-items: flex-start; }
+    .bar-row { grid-template-columns: 96px minmax(0, 1fr) 30px; }
   }
 </style>
 <script>
@@ -419,254 +169,266 @@
 </script>
 </head>
 <body>
-  <div class="wrap">
-    <nav class="top">
-      <span class="logo">AuraX</span>
-      <div>
-        <a class="btn ghost" href="login.html">Entrar</a>
-        <a class="btn ghost" id="navCta" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
-      </div>
-    </nav>
+<nav class="lp-nav" aria-label="Principal">
+  <div class="lp-wrap lp-nav-inner">
+    <a class="lp-brand" href="#"><b>A</b>AuraX</a>
+    <div class="lp-links">
+      <a href="#funcionalidades">Funcionalidades</a>
+      <a href="#gestores">Para gestores</a>
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#preco">Preço</a>
+    </div>
+    <div class="lp-nav-actions">
+      <a class="lp-btn ghost" href="login.html">Entrar</a>
+      <a class="lp-btn" id="navCta" href="#" target="_blank" rel="noopener">Falar com o comercial</a>
+    </div>
+  </div>
+</nav>
 
-    <header class="hero">
-      <span class="eyebrow">Para heads comerciais, gestores e líderes de equipe</span>
-      <h1 class="hero-title">A autoavaliação de quem<br>lidera pelo exemplo</h1>
-      <p class="hero-sub">
-        O AuraX é uma <strong>IA de desenvolvimento pessoal em negociação</strong>, feita para
-        líderes, gestores, heads de times e executivos comerciais fazerem sua autoavaliação de
-        oratória e comunicação com o cliente — junto com a leitura de expressão facial, direto na
-        sua própria call. Veja seu progresso a cada reunião e troque, na hora, os vícios de
-        linguagem que estão te atrapalhando.
-      </p>
-      <div class="hero-ctas">
-        <a class="btn big" id="heroCta" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
-        <a class="btn ghost big" href="#funcionalidades">Ver funcionalidades</a>
-      </div>
-      <div class="hero-note">Fale com nosso time comercial pelo WhatsApp.</div>
-
-      <div class="card hero-preview">
-        <span class="hero-preview-badge">O diferencial do AuraX</span>
-        <div class="hero-preview-grid">
-          <div class="hp-oratoria">
-            <div class="hp-score-badge">
-              <div class="hp-score-inner">
-                <div class="hp-score-value">82</div>
-                <div class="hp-score-label">/100</div>
-              </div>
-            </div>
-            <div class="hp-bars">
-              <div class="hp-bar-row">
-                <span class="hp-bar-label">Ritmo de fala</span>
-                <span class="hp-bar-track"><span class="hp-bar-fill" style="width:88%"></span></span>
-                <span class="hp-bar-pct">88%</span>
-              </div>
-              <div class="hp-bar-row">
-                <span class="hp-bar-label">Clareza/dicção</span>
-                <span class="hp-bar-track"><span class="hp-bar-fill" style="width:79%"></span></span>
-                <span class="hp-bar-pct">79%</span>
-              </div>
-              <div class="hp-bar-row">
-                <span class="hp-bar-label">Projeção de voz</span>
-                <span class="hp-bar-track"><span class="hp-bar-fill" style="width:74%"></span></span>
-                <span class="hp-bar-pct">74%</span>
-              </div>
-              <div class="hp-insight-line">Nota de oratória — atualiza ao vivo, durante a sua própria call</div>
-            </div>
-          </div>
-          <div class="hp-vicios">
-            <div class="hp-vicios-title">Vícios de linguagem e insights</div>
-            <div class="hp-swap-card">
-              <span><span class="hp-swap-word">"né"</span> × 6</span>
-              <span><span class="hp-swap-arrow">→</span><span class="hp-swap-suggestion">corte a palavra ou pause</span></span>
-            </div>
-            <div class="hp-swap-card slang">
-              <span><span class="hp-swap-word">"tipo"</span> × 4</span>
-              <span><span class="hp-swap-arrow">→</span><span class="hp-swap-suggestion">por exemplo</span></span>
-            </div>
-            <div class="hp-insight-line">+ evolução entre reuniões na tela de Insights</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="orbit-stage">
-        <div class="orbit-core"></div>
-        <div class="orbit-ring" id="orbitRing"></div>
-      </div>
-    </header>
-
-    <section id="funcionalidades">
-      <div class="section-head">
-        <h2>Tudo que acontece na sua reunião, decodificado</h2>
-        <p>O AuraX lê sinais que passam despercebidos na sua própria negociação e fecha cada sessão com dicas práticas de onde evoluir.</p>
-      </div>
-      <div class="feature-grid">
-        <div class="card feature-card">
-          <div class="feature-icon">FA</div>
-          <h3>Leitura facial em tempo real</h3>
-          <p>Detecta foco, motivação e cansaço enquanto a call acontece, com uma "auréola" visual que muda de cor conforme a expressão dominante.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">DI</div>
-          <h3>Dicas de melhoria ao final</h3>
-          <p>Cada sessão termina com uma autoavaliação objetiva: ritmo acelerado, muitas pausas, boa escuta ativa, gírias em excesso — o que evoluir na próxima.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">TR</div>
-          <h3>Transcrição com distinção de falantes</h3>
-          <p>Transcreve tudo automaticamente e separa "Você" de "Outro participante" por uma aproximação de voz — sem precisar de nenhuma integração.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">OR</div>
-          <h3>Nota de oratória ao vivo</h3>
-          <p>Uma pontuação de 0 a 100 que atualiza durante a própria call — ritmo, pausas, clareza, projeção de voz — pra você já ajustar antes de a reunião acabar.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">OB</div>
-          <h3>Detecção de objeções</h3>
-          <p>Identifica frases comuns de objeção ("tá caro", "vou pensar"...) e analisa como a sua resposta foi entregue nos segundos seguintes.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">PN</div>
-          <h3>Palavras-chave de negociação</h3>
-          <p>Reconhece na hora menções a preço, desconto, prazo, concorrente, contrato e fechamento — e avisa discretamente que aquele é um momento decisivo.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">DC</div>
-          <h3>Dinâmica da conversa</h3>
-          <p>Quanto você falou x quanto ouviu, trocas de turno e silêncio na sessão — pra saber se você está conduzindo ou dominando demais a negociação.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">AL</div>
-          <h3>Alertas ao vivo</h3>
-          <p>Avisos discretos durante a própria call: ritmo de fala acelerado, pausas longas e palavras-chave de negociação mencionadas.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">HI</div>
-          <h3>Ranking das suas sessões</h3>
-          <p>Todas as reuniões ranqueadas pela nota de oratória, com comentário por sessão e filtro por cliente — sua própria evolução, registrada reunião após reunião.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">RE</div>
-          <h3>Relatórios prontos</h3>
-          <p>Exporte cada sessão em PDF (com os mesmos gráficos que você vê na tela) ou CSV, prontos pra revisar depois ou guardar como histórico da sua evolução.</p>
-        </div>
-        <div class="card feature-card">
-          <div class="feature-icon">SB</div>
-          <h3>Sem bot pedindo pra entrar</h3>
-          <p>Diferente de outras ferramentas, o AuraX não entra sozinho na sua call nem pede permissão de calendário. Você liga quando a reunião começa e desliga quando termina — o controle é sempre seu.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="como-funciona">
-      <div class="section-head">
-        <h2>Como funciona</h2>
-        <p>Três passos, direto do navegador — sem instalar nada e sem treinar ninguém.</p>
-      </div>
-      <div class="steps">
-        <div class="card step">
-          <div class="step-num">1</div>
-          <h3>Ligue câmera e microfone</h3>
-          <p>Abra o AuraX no navegador durante a própria videochamada com o cliente.</p>
-        </div>
-        <div class="card step">
-          <div class="step-num">2</div>
-          <h3>Inicie a sessão</h3>
-          <p>Um clique começa a registrar expressões, transcrição e insights da negociação.</p>
-        </div>
-        <div class="card step">
-          <div class="step-num">3</div>
-          <h3>Receba suas dicas</h3>
-          <p>Ao final, um resumo completo com dicas objetivas de onde melhorar na próxima reunião.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="preco">
-      <div class="section-head">
-        <h2>Um plano, sem letra miúda</h2>
-        <p>Acesso completo a todas as funcionalidades do AuraX.</p>
-      </div>
-      <div class="card pricing-card">
-        <div class="plan-name">Plano Profissional</div>
-        <div class="price"><sup>R$</sup> 219<span class="period">/mês</span></div>
-        <div class="team-size-badge">👥 1 gestor + 5 colaboradores — equipe de 6 pessoas</div>
-        <ul class="price-list">
-          <li>Leitura facial e estimativas em tempo real</li>
-          <li>Transcrição ao vivo com distinção de falantes</li>
-          <li>Detecção de objeções e alertas ao vivo</li>
-          <li>Dicas de melhoria ao final de cada reunião</li>
-          <li>Histórico ilimitado com anotações por cliente</li>
-          <li>Exportação em PDF e CSV</li>
-          <li>Suporte direto via WhatsApp</li>
-        </ul>
-        <button type="button" class="btn big" id="contractPlanBtn" style="width:100%">Contratar plano</button>
-      </div>
-
-      <div class="card pricing-card enterprise-card">
-        <div class="plan-name">Equipe maior</div>
-        <h3>Precisa de mais de 6 pessoas?</h3>
-        <p>Fora do plano padrão — nosso time comercial monta uma proposta sob medida pro tamanho do seu time.</p>
-        <a class="btn big ghost" id="enterpriseSalesLink" href="#" target="_blank" rel="noopener" style="width:100%">Falar com o time comercial</a>
-      </div>
-    </section>
-
-    <section class="final-cta">
-      <h2>Pronto pra ver o que sua próxima call revela?</h2>
-      <p>Fale com nosso time comercial pelo WhatsApp.</p>
-      <a class="btn big" id="finalCta" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
-    </section>
-
-    <footer>
-      AuraX — feito para quem lidera pelo exemplo e quer evoluir além das palavras.
-      <br>
-      <a href="index.html">Acessar o app</a>
-    </footer>
+<header class="lp-wrap lp-hero">
+  <div>
+    <p class="lp-eyebrow">Para heads comerciais, gestores e líderes de equipe</p>
+    <h1>Sua oratória, medida <span>em cada call.</span></h1>
+    <p class="lp-sub">O AuraX é uma <strong>IA de desenvolvimento pessoal em negociação</strong>. Ele acompanha a sua própria call, aponta vícios de linguagem e gírias na hora e fecha cada reunião com uma nota e o que melhorar na próxima.</p>
+    <div class="lp-cta-row">
+      <a class="lp-btn big" id="heroCta" href="#" target="_blank" rel="noopener">Falar com o time comercial</a>
+      <a class="lp-btn ghost big" href="#funcionalidades">Ver funcionalidades</a>
+    </div>
+    <p class="lp-hero-note">Roda no navegador. Sem bot entrando na sua call.</p>
   </div>
 
-  <script>
-    const WHATSAPP_NUMBER = "5551984026354";
-    const WHATSAPP_MESSAGE = "Olá! Quero falar com o time comercial sobre o AuraX.";
-    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+  <div class="win" role="img" aria-label="Exemplo da tela de sessão ao vivo do AuraX, com nota de oratória 82 e vícios de linguagem destacados">
+    <div class="win-bar">Sessão ao vivo <span class="live"><i></i>AO VIVO</span></div>
+    <div class="win-body">
+      <div class="score-row">
+        <div class="ring"><div><b>82</b><small>/100</small></div></div>
+        <div class="bars">
+          <div class="bar-row"><span>Ritmo de fala</span><i><span style="width:88%"></span></i><em>88</em></div>
+          <div class="bar-row"><span>Clareza/dicção</span><i><span style="width:79%"></span></i><em>79</em></div>
+          <div class="bar-row"><span>Projeção de voz</span><i><span class="w" style="width:62%"></span></i><em>62</em></div>
+        </div>
+      </div>
+      <div>
+        <div class="tline"><span class="who you">VOCÊ</span>Então, <mark>né</mark>, o que mais pesa hoje no custo de vocês?</div>
+        <div class="tline"><span class="who other">OUTRO</span>É o volume de consultas. Cada uma sai caro.</div>
+      </div>
+      <div class="chips"><span class="pill good">132 palavras/min</span><span class="pill neutral">1 pausa longa</span><span class="pill warn">3 vícios nesta sessão</span></div>
+    </div>
+  </div>
+</header>
+<p class="lp-wrap eg" style="margin-top:-24px;text-align:right">Tela ilustrativa com dados de exemplo.</p>
 
-    ["navCta", "heroCta", "finalCta"].forEach((id) => {
-      const el = document.getElementById(id);
-      el.href = whatsappUrl;
-      el.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: id }));
-    });
+<section class="lp-proof" aria-label="Diferenciais">
+  <div class="lp-wrap lp-proof-grid">
+    <div class="lp-proof-item"><b>Sem bot na sua call</b><span>Você liga quando a reunião começa e desliga quando termina.</span></div>
+    <div class="lp-proof-item"><b>Vídeo e áudio ficam no navegador</b><span>Só o resumo da sessão é salvo na sua conta.</span></div>
+    <div class="lp-proof-item"><b>Autoavaliação, não vigilância</b><span>É você vendo a própria performance, reunião após reunião.</span></div>
+  </div>
+</section>
 
-    // Ainda sem checkout — só registra a intenção até o Stripe entrar amanhã.
-    document.getElementById("contractPlanBtn").addEventListener("click", () => {
-      posthog.capture("contract_plan_click");
-    });
+<section class="lp-section" id="funcionalidades">
+  <div class="lp-wrap">
+    <div class="lp-head">
+      <h2>O que o AuraX mede na sua fala</h2>
+      <p>Sinais que passam despercebidos durante a negociação, transformados em nota e em ações práticas.</p>
+    </div>
 
-    const ENTERPRISE_MESSAGE = "Olá! Minha equipe tem mais de 6 pessoas e preciso de um plano sob medida pro AuraX.";
-    const enterpriseWhatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(ENTERPRISE_MESSAGE)}`;
-    const enterpriseSalesLink = document.getElementById("enterpriseSalesLink");
-    enterpriseSalesLink.href = enterpriseWhatsappUrl;
-    enterpriseSalesLink.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: "enterpriseSalesLink" }));
+    <div class="lp-split">
+      <div>
+        <h3>Uma nota de oratória que atualiza durante a call</h3>
+        <p>De 0 a 100, calculada por regras claras. Você ajusta o ritmo antes de a reunião acabar e vê depois o detalhe de cada critério.</p>
+        <ul class="lp-list">
+          <li>Ritmo de fala, pausas e vícios de linguagem</li>
+          <li>Clareza (confiança do reconhecimento de voz) e projeção</li>
+          <li>Rótulo simples: Excelente, Bom, Médio ou Precisa de atenção</li>
+        </ul>
+      </div>
+      <div class="win">
+        <div class="win-bar">Nota por critério</div>
+        <div class="win-body">
+          <div class="bars" style="gap:12px">
+            <div class="bar-row"><span>Ritmo de fala</span><i><span style="width:88%"></span></i><em>88</em></div>
+            <div class="bar-row"><span>Pausas</span><i><span style="width:95%"></span></i><em>95</em></div>
+            <div class="bar-row"><span>Vícios</span><i><span style="width:74%"></span></i><em>74</em></div>
+            <div class="bar-row"><span>Clareza</span><i><span style="width:90%"></span></i><em>90</em></div>
+            <div class="bar-row"><span>Projeção</span><i><span class="w" style="width:62%"></span></i><em>62</em></div>
+          </div>
+          <div class="eg" style="margin:0">Exemplo de uma sessão com nota 82.</div>
+        </div>
+      </div>
+    </div>
 
-    const ORBIT_ITEMS = [
-      { title: "Leitura Facial", sub: "Foco, motivação e cansaço em tempo real" },
-      { title: "Dicas de Melhoria", sub: "Autoavaliação objetiva ao final da reunião" },
-      { title: "Transcrição + Vozes", sub: "Distingue você do outro participante" },
-      { title: "Objeções", sub: "Detecta e analisa como você respondeu" },
-      { title: "Alertas ao Vivo", sub: "Ritmo, pausas e palavras-chave" },
-      { title: "Histórico", sub: "Suas reuniões, organizadas com anotações" },
-      { title: "Relatórios", sub: "PDF e CSV prontos pra revisar depois" },
-    ];
+    <div class="lp-split flip">
+      <div>
+        <h3>Vícios de linguagem e gírias, com a troca sugerida</h3>
+        <p>Cada "né", "tipo" ou "beleza" é contado e vem com uma alternativa. Na tela de gravação, a palavra sobe como um balão sobre o vídeo no momento em que você fala.</p>
+        <ul class="lp-list">
+          <li>Contagem por sessão e por palavra</li>
+          <li>Sugestão de substituição em cada vício</li>
+          <li>Tendência entre as suas calls, para ver se está caindo</li>
+        </ul>
+      </div>
+      <div class="win">
+        <div class="win-bar">Vícios de linguagem e gírias</div>
+        <div class="win-body">
+          <div>
+            <div class="swap"><span><b>"né"</b><span class="n">× 6</span></span><span class="to">→ corte a palavra ou pause</span></div>
+            <div class="swap"><span><b>"tipo"</b><span class="n">× 4</span></span><span class="to">→ por exemplo</span></div>
+            <div class="swap slang"><span><b>"beleza"</b><span class="n">× 2</span></span><span class="to">→ perfeito</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    const ring = document.getElementById("orbitRing");
-    const radius = window.innerWidth <= 640 ? 190 : 260;
-    const step = 360 / ORBIT_ITEMS.length;
+    <div class="lp-split">
+      <div>
+        <h3>Sua evolução, call por call</h3>
+        <p>Todas as sessões num histórico por cliente, com nota, comentário e a tendência da sua oratória ao longo do tempo.</p>
+        <ul class="lp-list">
+          <li>Sessões agrupadas por mês, com nota e vícios de cada uma</li>
+          <li>Seu principal ponto de melhoria, calculado das últimas calls</li>
+          <li>Exportação em PDF e CSV</li>
+        </ul>
+      </div>
+      <div class="win">
+        <div class="win-bar">Evolução da nota de oratória</div>
+        <div class="win-body">
+          <svg class="spark" viewBox="0 0 520 150" role="img" aria-label="Gráfico de exemplo: nota de oratória subindo de 52 para 78 em 8 sessões">
+            <g stroke="var(--line)"><line x1="30" x2="510" y1="20" y2="20"/><line x1="30" x2="510" y1="75" y2="75"/><line x1="30" x2="510" y1="130" y2="130"/></g>
+            <g font-size="10" fill="var(--ink-faint)" text-anchor="end"><text x="24" y="24">100</text><text x="24" y="79">50</text><text x="24" y="134">0</text></g>
+            <polygon points="30,130 30,78 100,70 170,76 240,58 310,62 380,46 450,50 510,40 510,130" fill="var(--accent)" opacity="0.08"/>
+            <polyline points="30,78 100,70 170,76 240,58 310,62 380,46 450,50 510,40" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+            <g fill="var(--surface)" stroke="var(--accent)" stroke-width="2"><circle cx="30" cy="78" r="3.5"/><circle cx="100" cy="70" r="3.5"/><circle cx="170" cy="76" r="3.5"/><circle cx="240" cy="58" r="3.5"/><circle cx="310" cy="62" r="3.5"/><circle cx="380" cy="46" r="3.5"/><circle cx="450" cy="50" r="3.5"/></g>
+            <circle cx="510" cy="40" r="5" fill="var(--accent)"/>
+            <g font-size="11" font-family="var(--mono)" fill="var(--ink-dim)" text-anchor="middle"><text x="30" y="66">52</text><text x="240" y="46">64</text><text x="510" y="28">78</text></g>
+          </svg>
+          <div class="eg" style="margin:0">Exemplo com 8 sessões.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    ORBIT_ITEMS.forEach((item, i) => {
-      const card = document.createElement("div");
-      card.className = "orbit-card";
-      card.style.transform = `rotateY(${i * step}deg) translateZ(${radius}px)`;
-      card.innerHTML = `<div class="oc-title">${item.title}</div><div class="oc-sub">${item.sub}</div>`;
-      ring.appendChild(card);
-    });
-  </script>
+<section class="lp-section" style="padding-top:0">
+  <div class="lp-wrap">
+    <div class="lp-head"><h2>E mais o que acompanha a sua fala</h2></div>
+    <div class="lp-grid">
+      <div class="lp-card"><span class="tag">face</span><h4>Leitura facial em tempo real</h4><p>Foco, motivação e cansaço estimados enquanto a call acontece.</p></div>
+      <div class="lp-card"><span class="tag">voz</span><h4>Transcrição com falantes</h4><p>Separa "Você" de "Outro participante" por aproximação de volume. Funciona melhor com fone.</p></div>
+      <div class="lp-card"><span class="tag">objeção</span><h4>Detecção de objeções</h4><p>Reconhece frases como "tá caro" e "vou pensar" e analisa como você respondeu.</p></div>
+      <div class="lp-card"><span class="tag">negócio</span><h4>Palavras de negociação</h4><p>Marca preço, desconto, prazo, concorrente e fechamento quando aparecem na conversa.</p></div>
+      <div class="lp-card"><span class="tag">conversa</span><h4>Dinâmica da conversa</h4><p>Quanto você falou e quanto ouviu, trocas de turno, silêncio e perguntas abertas.</p></div>
+      <div class="lp-card"><span class="tag">alerta</span><h4>Alertas ao vivo</h4><p>Avisos discretos de ritmo acelerado e pausas longas durante a própria call.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="lp-section" id="gestores" style="padding-top:0">
+  <div class="lp-wrap">
+    <div class="lp-split">
+      <div>
+        <h3>Para gestores: o time inteiro num painel</h3>
+        <p>Cada pessoa avalia a própria fala. Você enxerga o resumo do time: nota média, quem está evoluindo e onde todos tropeçam. Nunca o vídeo ou o áudio.</p>
+        <ul class="lp-list">
+          <li>Até 5 colaboradores além de você</li>
+          <li>Ranking de sessões e principal ponto de melhoria do time</li>
+          <li>Comentários por sessão para o feedback depois da call</li>
+        </ul>
+      </div>
+      <div class="win">
+        <div class="win-bar">Painel do gestor</div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Pessoa</th><th>Sessões</th><th>Oratória</th><th>Principal ponto</th></tr></thead>
+            <tbody>
+              <tr><td><div class="who-cell"><span class="av">MA</span>Marina A.</div></td><td class="mono">3</td><td><span class="pill good">81 Bom</span></td><td>Poucas perguntas abertas</td></tr>
+              <tr><td><div class="who-cell"><span class="av">RT</span>Rafael T.</div></td><td class="mono">2</td><td><span class="pill warn">64 Médio</span></td><td>Vícios de linguagem</td></tr>
+              <tr><td><div class="who-cell"><span class="av">CD</span>Camila D.</div></td><td class="mono">2</td><td><span class="pill warn">59 Médio</span></td><td>Ritmo acelerado</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <p class="eg" style="margin-top:12px">Painel ilustrativo, nomes e dados de exemplo.</p>
+  </div>
+</section>
+
+<section class="lp-section" id="como-funciona" style="padding-top:0">
+  <div class="lp-wrap">
+    <div class="lp-head"><h2>Como funciona</h2><p>Direto do navegador, sem instalar nada.</p></div>
+    <div class="lp-steps">
+      <div class="lp-step"><div class="k">passo 1</div><h4>Abra o AuraX durante a call</h4><p>Autorize câmera e microfone e calibre a sua voz em três segundos.</p></div>
+      <div class="lp-step"><div class="k">passo 2</div><h4>Inicie a sessão</h4><p>Um clique começa a registrar expressão, transcrição e vícios de linguagem.</p></div>
+      <div class="lp-step"><div class="k">passo 3</div><h4>Finalize e veja o resumo</h4><p>Nota de oratória, dicas objetivas e o histórico atualizado para a próxima reunião.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="lp-section" id="preco" style="padding-top:0">
+  <div class="lp-wrap">
+    <div class="lp-head"><h2>Um plano, sem letra miúda</h2><p>Acesso completo a todas as funcionalidades.</p></div>
+    <div class="lp-price-wrap">
+      <div class="lp-price">
+        <div class="plan">Plano Profissional</div>
+        <div class="amount">R$ 219<small> /mês</small></div>
+        <span class="pill good team">1 gestor + 5 colaboradores: equipe de 6 pessoas</span>
+        <ul class="lp-list">
+          <li>Nota de oratória, vícios de linguagem e gírias</li>
+          <li>Leitura facial e transcrição ao vivo</li>
+          <li>Detecção de objeções e alertas durante a call</li>
+          <li>Histórico ilimitado com comentários por cliente</li>
+          <li>Painel do gestor e exportação em PDF e CSV</li>
+          <li>Suporte direto via WhatsApp</li>
+        </ul>
+        <button type="button" class="lp-btn big" id="contractPlanBtn" style="width:100%">Contratar plano</button>
+      </div>
+      <div class="lp-enterprise">
+        <span class="pill neutral" style="align-self:flex-start">Equipe maior</span>
+        <h3>Precisa de mais de 6 pessoas?</h3>
+        <p>Fora do plano padrão, o time comercial monta uma proposta sob medida para o tamanho do seu time.</p>
+        <a class="lp-btn ghost big" id="enterpriseSalesLink" href="#" target="_blank" rel="noopener">Falar com o time comercial</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="lp-final">
+  <div class="lp-wrap">
+    <div class="lp-final-box">
+      <div>
+        <h2>Pronto para ver o que a sua próxima call revela?</h2>
+        <p>Fale com o nosso time comercial pelo WhatsApp.</p>
+      </div>
+      <a class="lp-btn big" id="finalCta" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<footer class="lp-foot">
+  <div class="lp-wrap">
+    <span>AuraX, feito para quem lidera pelo exemplo e quer evoluir além das palavras.</span>
+    <a href="login.html">Acessar o app</a>
+  </div>
+</footer>
+<script>
+  const WHATSAPP_NUMBER = "5551984026354";
+  const waUrl = (msg) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+  const whatsappUrl = waUrl("Olá! Quero falar com o time comercial sobre o AuraX.");
+
+  ["navCta", "heroCta", "finalCta"].forEach((id) => {
+    const el = document.getElementById(id);
+    el.href = whatsappUrl;
+    el.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: id }));
+  });
+
+  // Ainda sem checkout: só registra a intenção até o Stripe entrar.
+  document.getElementById("contractPlanBtn").addEventListener("click", () => {
+    posthog.capture("contract_plan_click");
+  });
+
+  const enterpriseLink = document.getElementById("enterpriseSalesLink");
+  enterpriseLink.href = waUrl("Olá! Minha equipe tem mais de 6 pessoas e preciso de um plano sob medida pro AuraX.");
+  enterpriseLink.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: "enterpriseSalesLink" }));
+</script>
 </body>
 </html>
