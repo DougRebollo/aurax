@@ -1738,15 +1738,29 @@
       });
 
       const totalWords = wordsYou + wordsOther;
-      const pctYou = totalWords ? Math.round((wordsYou / totalWords) * 100) : 0;
-      const pctOther = 100 - pctYou;
+      let pctYou = totalWords ? Math.round((wordsYou / totalWords) * 100) : 0;
+      let pctOther = 100 - pctYou;
       const durationMin = sessionTranscript.length
         ? Math.max(sessionTranscript[sessionTranscript.length - 1].t / 60, 0.05)
         : 0.05;
       const turnsPerMinute = (turnChanges / durationMin).toFixed(1);
       const silencePct = sessionTotalSamples ? Math.round((sessionSilentSamples / sessionTotalSamples) * 100) : 0;
 
-      return { pctYou, pctOther, turnsPerMinute, longestYou, longestOther, silencePct };
+      // De fone, o microfone só capta a SUA voz: a fala do cliente não entra
+      // na transcrição, então contar palavras dá "você falou ~100%" mesmo
+      // quando ele falou quase tudo. Se quase não há palavras do "outro"
+      // (sinal de que o áudio dele não vaza pro mic), a divisão passa a ser
+      // por tempo: o quanto o seu mic ficou ativo x quieto (cliente falando).
+      // Sem fone o áudio dele vaza, e a contagem por palavras continua válida.
+      const otherWordShare = totalWords ? wordsOther / totalWords : 0;
+      let basis = "palavras";
+      if (sessionTotalSamples >= 20 && otherWordShare < 0.25) {
+        basis = "tempo";
+        pctYou = 100 - silencePct;
+        pctOther = silencePct;
+      }
+
+      return { pctYou, pctOther, turnsPerMinute, longestYou, longestOther, silencePct, basis };
     }
 
     // Nota de oratória: combina sinais que já coletamos (ritmo, pausas,
@@ -1961,7 +1975,9 @@
         } else if (dynamics.pctOther >= 35) {
           tips.push({ key: "boa_escuta", type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o outro participante falar.` });
         }
-        if (dynamics.silencePct >= 15) {
+        // De fone, o silêncio do SEU mic é o cliente falando (escuta), não
+        // hesitação — o aviso só faz sentido quando a divisão é por palavras.
+        if (dynamics.basis !== "tempo" && dynamics.silencePct >= 15) {
           tips.push({ key: "silencio_alto", type: "melhorar", text: `Silêncio acima do ideal (${dynamics.silencePct}%) — pode indicar hesitação na condução.` });
         }
       }
@@ -2111,10 +2127,10 @@
             <div class="talk-split-you" style="width:${dynamics.pctYou}%"></div>
             <div class="talk-split-other" style="width:${dynamics.pctOther}%"></div>
           </div>
-          <div class="talk-split-labels"><span>Você ${dynamics.pctYou}%</span><span>Outro participante ${dynamics.pctOther}%</span></div>
-          <div class="insight-line" style="margin-top:10px">Trocas de turno: ${dynamics.turnsPerMinute}/min</div>
+          <div class="talk-split-labels"><span>Você ${dynamics.pctYou}%${dynamics.basis === "tempo" ? " do tempo" : ""}</span><span>${dynamics.basis === "tempo" ? "Outro participante / silêncio" : "Outro participante"} ${dynamics.pctOther}%</span></div>
+          ${dynamics.basis === "tempo" ? "" : `<div class="insight-line" style="margin-top:10px">Trocas de turno: ${dynamics.turnsPerMinute}/min</div>
           <div class="insight-line">Maior fala sua: ${dynamics.longestYou} palavras · do outro: ${dynamics.longestOther} palavras</div>
-          <div class="insight-line">Silêncio na sessão: ${dynamics.silencePct}%</div>
+          <div class="insight-line">Silêncio na sessão: ${dynamics.silencePct}%</div>`}
           <div class="insight-line">Suas perguntas: ${sessionOpenQuestions} aberta${sessionOpenQuestions === 1 ? "" : "s"} · ${sessionClosedQuestions} fechada${sessionClosedQuestions === 1 ? "" : "s"}</div>
         `;
       } else {

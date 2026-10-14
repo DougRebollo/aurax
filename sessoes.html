@@ -335,7 +335,9 @@
 
       const dynamicsHtml = h.dynamics
         ? `<div class="talk-bar"><div style="width:${h.dynamics.pctYou}%; background:var(--accent)"></div><div style="width:${h.dynamics.pctOther}%; background:var(--warn)"></div></div>
-           <div class="session-secondary-stats">Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%</div>`
+           <div class="session-secondary-stats">${h.dynamics.basis === "tempo"
+             ? `Você falou ${h.dynamics.pctYou}% do tempo · Outro participante / silêncio ${h.dynamics.pctOther}%`
+             : `Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%`}</div>`
         : '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
 
       panel.innerHTML = `
