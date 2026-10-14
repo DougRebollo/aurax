@@ -54,7 +54,89 @@
 
   .account-blocked-banner { padding: 14px 18px; background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); color: var(--bad); font-size: 13px; }
   #agendaBox { font-size: 13px; color: var(--ink-faint); }
-  #agendaList { display: grid; gap: 8px; }
+  #agendaBox:empty { display: none; }
+
+  /* ===== Gráfico de evolução ===== */
+  .chart-card { padding: 18px 20px 12px; }
+  .chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .chart-head h3 { margin: 0; font-size: 15px; }
+  .chart-sub { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
+  .chart-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, max-content)); gap: 14px 32px; margin: 14px 0 6px; }
+  .kpi { display: flex; gap: 10px; align-items: flex-start; }
+  .kpi .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+  .kpi .dot.you { background: var(--purple); }
+  .kpi .dot.team { background: var(--accent); }
+  .kpi-label { font-size: 12px; color: var(--ink-dim); font-weight: 500; }
+  .kpi-val { font-family: var(--mono); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+  .kpi-delta { font-size: 12px; color: var(--ink-faint); }
+  .kpi-delta.up { color: var(--good); }
+  .kpi-delta.down { color: var(--bad); }
+  .chart-wrap { position: relative; }
+  .chart-wrap svg { display: block; width: 100%; touch-action: pan-y; }
+  .chart-tip { position: absolute; top: 6px; z-index: 2; pointer-events: none; padding: 8px 10px; border-radius: 8px; font-size: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 24px -10px rgba(20, 28, 45, 0.35); white-space: nowrap; }
+  .chart-tip b { font-family: var(--mono); }
+  .chart-tip .tt-title { color: var(--ink-faint); margin-bottom: 4px; font-size: 11px; }
+  .chart-tip .tt-row { display: flex; align-items: center; gap: 6px; }
+  .chart-tip .tt-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ===== Calendário ===== */
+  .cal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+  .cal-head .section-title { margin: 0; }
+  .cal-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cal-nav { display: flex; gap: 4px; }
+  .cal-nav .btn { padding: 5px 11px; }
+  #calTitle { font-weight: 600; min-width: 170px; display: inline-block; }
+  #calTitle::first-letter, .ev-dialog .ev-when::first-letter, .cal-list-day::first-letter { text-transform: uppercase; }
+  .cal-card { padding: 0; overflow: hidden; }
+  .cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .cal-day { min-height: 230px; padding: 8px 6px 10px; border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .cal-day:first-child { border-left: 0; }
+  .cal-dow { font-size: 11px; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 6px; padding: 0 4px 4px; }
+  .cal-dow .num { font-size: 13px; color: var(--ink); min-width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 50%; letter-spacing: 0; }
+  .cal-day.today .cal-dow .num { background: var(--accent); color: #fff; }
+  .cal-day.today { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+  .cal-empty { font-size: 12px; color: var(--ink-faint); padding: 0 4px; opacity: 0.7; }
+  .cal-ev { display: block; width: 100%; text-align: left; border: 0; border-left: 3px solid var(--accent); background: var(--accent-soft); color: var(--ink); padding: 5px 7px; border-radius: 6px; font-size: 12px; line-height: 1.3; overflow: hidden; }
+  .cal-ev.call { border-left-color: var(--good); background: var(--good-soft); }
+  .cal-ev:hover { filter: brightness(0.96); }
+  .cal-ev .t { display: block; font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+  .cal-ev .n { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 600; word-break: break-word; }
+  .cal-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .cal-mhead { padding: 8px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--ink-faint); letter-spacing: 0.04em; border-bottom: 1px solid var(--line); }
+  .cal-cell { min-height: 104px; padding: 6px 5px 8px; border-left: 1px solid var(--line); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .cal-cell:nth-child(7n+1) { border-left: 0; }
+  .cal-cell.out { opacity: 0.45; }
+  .cal-cell .num { font-size: 12px; font-weight: 600; color: var(--ink-dim); padding: 0 3px; min-width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 50%; align-self: flex-start; }
+  .cal-cell.today .num { background: var(--accent); color: #fff; }
+  .cal-cell .cal-ev { padding: 2px 6px; font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+  .cal-more { border: 0; background: none; color: var(--accent); font-size: 11px; font-weight: 600; text-align: left; padding: 1px 4px; }
+  .cal-count { display: none; }
+  .cal-list { display: flex; flex-direction: column; }
+  .cal-list-day { padding: 10px 16px 4px; font-size: 12px; font-weight: 700; color: var(--ink-dim); border-top: 1px solid var(--line); }
+  .cal-list-day:first-child { border-top: 0; }
+  .cal-list .cal-ev { margin: 0 12px 6px; width: auto; display: flex; gap: 12px; align-items: baseline; padding: 8px 10px; }
+  .cal-list .cal-ev .t { min-width: 78px; }
+  .cal-list .cal-ev .n { display: block; }
+  .cal-state { padding: 34px 18px; text-align: center; color: var(--ink-faint); font-size: 13px; }
+
+  dialog.ev-dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 20px 22px; width: min(440px, calc(100vw - 32px)); box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.45); }
+  dialog.ev-dialog::backdrop { background: rgba(20, 24, 34, 0.5); }
+  .ev-dialog h3 { margin: 0 0 6px; font-size: 17px; word-break: break-word; }
+  .ev-dialog .ev-when { color: var(--ink-dim); font-size: 13px; }
+  .ev-dialog .ev-meta { color: var(--ink-faint); font-size: 12px; margin-top: 8px; }
+  .ev-dialog .ev-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+  .ev-dialog .btn { text-decoration: none; display: inline-block; }
+
+  @media (max-width: 1000px) {
+    .cal-week { grid-template-columns: 1fr; }
+    .cal-day { min-height: 0; border-left: 0; border-top: 1px solid var(--line); padding: 8px 12px 10px; }
+    .cal-day:first-child { border-top: 0; }
+    .cal-dow { padding: 0 0 2px; }
+    .cal-cell { min-height: 58px; }
+    .cal-cell .cal-ev, .cal-cell .cal-more { display: none; }
+    .cal-count { display: inline-block; align-self: flex-start; font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: 0; border-radius: 10px; padding: 1px 7px; margin-left: 3px; }
+    #calTitle { min-width: 0; }
+  }
 </style>
 <script>
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -87,6 +169,23 @@
     <div class="stat-grid">
       <div class="card stat-card"><div class="stat-value" id="statTeamSessions">0</div><div class="stat-label">Sessões do time</div></div>
       <div class="card stat-card"><div class="stat-value" id="statTeamOratoria">—</div><div class="stat-label">Oratória média do time</div></div>
+      <div class="card stat-card"><div class="stat-value" id="statMyOratoria">—</div><div class="stat-label">Sua oratória média</div></div>
+    </div>
+
+    <div class="card chart-card" id="chartCard">
+      <div class="chart-head">
+        <div>
+          <h3>Evolução da oratória</h3>
+          <div class="chart-sub">Média semanal da nota de oratória, você e seu time</div>
+        </div>
+        <div class="filter-tabs" id="chartRange">
+          <button type="button" data-w="4">4 semanas</button>
+          <button type="button" data-w="8" class="active">8 semanas</button>
+          <button type="button" data-w="12">12 semanas</button>
+        </div>
+      </div>
+      <div class="chart-kpis" id="chartKpis"></div>
+      <div class="chart-wrap" id="chartWrap"></div>
     </div>
 
     <div class="card focus-card" id="teamFocusCard" hidden>
@@ -107,9 +206,25 @@
       <a class="btn ghost" id="salesContactBtn" target="_blank" rel="noopener" style="text-decoration:none; display:inline-block;">Fale com Vendas</a>
     </div>
 
-    <div class="section-title">Próximas calls (sua Agenda Google)</div>
-    <div id="agendaBox">Carregando sua agenda...</div>
-    <div id="agendaList"></div>
+    <div class="cal-head">
+      <div class="section-title">Agenda das calls (Google Agenda)</div>
+      <div class="cal-controls">
+        <div class="cal-nav" id="calNav">
+          <button type="button" class="btn ghost" id="calPrev" aria-label="Anterior">‹</button>
+          <button type="button" class="btn ghost" id="calToday">Hoje</button>
+          <button type="button" class="btn ghost" id="calNext" aria-label="Próximo">›</button>
+        </div>
+        <span id="calTitle"></span>
+        <div class="filter-tabs" id="calView">
+          <button type="button" data-v="week">Semana</button>
+          <button type="button" data-v="month">Mês</button>
+          <button type="button" data-v="list">Lista</button>
+        </div>
+      </div>
+    </div>
+    <div id="agendaBox"></div>
+    <div class="card cal-card" id="calBody"><div class="cal-state">Carregando sua agenda...</div></div>
+    <dialog class="ev-dialog" id="evDialog"></dialog>
 
     <div class="section-title">Seu time</div>
     <div class="team-strip" id="teamStrip"></div>
@@ -250,6 +365,7 @@
       updateTeamLimitUI();
       renderFilterTabs();
       await renderTeamSummary();
+      await loadOratoriaChart();
       await renderSessions();
     }
 
@@ -522,82 +638,403 @@
       await loadAgenda(session);
     }
 
-    // ===== Leitura da Agenda Google (início) =====
-    async function loadAgenda(session) {
-      const box = document.getElementById("agendaBox");
-      const list = document.getElementById("agendaList");
+    // ===== Helpers de texto/data =====
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function safeUrl(u) {
+      return typeof u === "string" && /^https?:\/\//i.test(u) ? u : null;
+    }
+    function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+    function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+    function startOfWeek(d) { return addDays(startOfDay(d), -((d.getDay() + 6) % 7)); } // segunda-feira
+    function dayKey(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    function fmtTime(d) { return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+    function fmtDM(d) { return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); }
 
-      // O token de acesso ao Google vem na sessão do Supabase como
-      // provider_token. Ele é a chave que autoriza ler a agenda.
-      const token = session && session.provider_token;
-      if (!token) {
-        box.textContent = "Para ver sua agenda, saia e entre de novo com o Google (autorizando o acesso à agenda).";
+    // ===== Gráfico: evolução da oratória (você x time) =====
+    let chartRows = [];  // sessões com nota: você + time
+    let chartWeeks = 8;
+
+    async function loadOratoriaChart() {
+      const ids = [currentUserId].concat(teamMembers.map((p) => p.id));
+      const { data, error } = await supabaseClient
+        .from("sessions")
+        .select("user_id, date, oratoria_score")
+        .in("user_id", ids)
+        .not("oratoria_score", "is", null)
+        .order("date", { ascending: false })
+        .limit(1000);
+      chartRows = error || !data ? [] : data;
+      const mine = chartRows.filter((r) => r.user_id === currentUserId).map((r) => r.oratoria_score);
+      document.getElementById("statMyOratoria").textContent = mine.length ? Math.round(average(mine)) : "—";
+      renderOratoriaChart();
+    }
+
+    function renderOratoriaChart() {
+      const wrap = document.getElementById("chartWrap");
+      const kpisEl = document.getElementById("chartKpis");
+      const hasTeam = teamMembers.length > 0;
+      const thisWeek = startOfWeek(new Date());
+      const weeks = [];
+      for (let i = chartWeeks - 1; i >= 0; i--) weeks.push(addDays(thisWeek, -7 * i));
+
+      const inRange = (rows, from, to) => rows.filter((r) => { const t = new Date(r.date).getTime(); return t >= from.getTime() && t < to.getTime(); });
+      const avgOf = (rows) => (rows.length ? average(rows.map((r) => r.oratoria_score)) : null);
+      const mineRows = chartRows.filter((r) => r.user_id === currentUserId);
+      const teamRows = chartRows.filter((r) => r.user_id !== currentUserId);
+
+      const points = weeks.map((w) => {
+        const to = addDays(w, 7);
+        const a = inRange(mineRows, w, to), b = inRange(teamRows, w, to);
+        return { week: w, you: avgOf(a), youN: a.length, team: avgOf(b), teamN: b.length };
+      });
+
+      // KPIs: média do período e variação vs. período anterior de mesmo tamanho
+      const pStart = weeks[0], pEnd = addDays(thisWeek, 7), prevStart = addDays(pStart, -7 * chartWeeks);
+      const kpi = (label, dotClass, rows) => {
+        const cur = inRange(rows, pStart, pEnd), prev = inRange(rows, prevStart, pStart);
+        const c = avgOf(cur), p = avgOf(prev);
+        let delta = `<div class="kpi-delta">${cur.length ? "" : "sem sessões no período"}</div>`;
+        if (c != null && p != null) {
+          const d = Math.round(c) - Math.round(p);
+          const cls = d > 0 ? "up" : d < 0 ? "down" : "";
+          delta = `<div class="kpi-delta ${cls}">${d > 0 ? "▲ +" + d : d < 0 ? "▼ " + d : "= igual"} vs. período anterior</div>`;
+        } else if (c != null) {
+          delta = `<div class="kpi-delta">${cur.length} ${cur.length === 1 ? "sessão" : "sessões"} · sem período anterior pra comparar</div>`;
+        }
+        return `<div class="kpi"><span class="dot ${dotClass}"></span><div><div class="kpi-label">${label}</div><div class="kpi-val">${c != null ? Math.round(c) : "—"}</div>${delta}</div></div>`;
+      };
+      kpisEl.innerHTML = kpi("Você", "you", mineRows) + (hasTeam ? kpi("Seu time", "team", teamRows) : "");
+
+      const vals = points.flatMap((p) => [p.you, p.team]).filter((v) => v != null);
+      if (!vals.length) {
+        wrap.innerHTML = `<div class="empty-state">Quando você${hasTeam ? " e seu time" : ""} gravarem sessões com nota de oratória nesse período, a evolução aparece aqui.</div>`;
         return;
       }
 
-      try {
-        // Busca os próximos eventos, do agora em diante, ordenados por horário.
-        const agora = new Date().toISOString();
-        const url = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
-          + "?timeMin=" + encodeURIComponent(agora)
-          + "&maxResults=10&singleEvents=true&orderBy=startTime";
+      const W = Math.max(300, wrap.clientWidth || 700), H = W < 520 ? 220 : 260;
+      const m = { l: 32, r: 14, t: 16, b: 26 };
+      let lo = Math.max(0, Math.floor((Math.min(...vals) - 8) / 10) * 10);
+      let hi = Math.min(100, Math.ceil((Math.max(...vals) + 8) / 10) * 10);
+      if (hi - lo < 30) { hi = Math.min(100, lo + 30); lo = Math.max(0, hi - 30); }
+      const n = points.length;
+      const x = (i) => m.l + (i / (n - 1)) * (W - m.l - m.r);
+      const y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+      const base = H - m.b;
 
-        const resp = await fetch(url, {
-          headers: { Authorization: "Bearer " + token },
+      let svg = `<defs>
+        <linearGradient id="gYou" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--purple)" stop-opacity="0.22"/><stop offset="1" style="stop-color:var(--purple)" stop-opacity="0"/></linearGradient>
+        <linearGradient id="gTeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent)" stop-opacity="0.22"/><stop offset="1" style="stop-color:var(--accent)" stop-opacity="0"/></linearGradient>
+      </defs>`;
+      const step = hi - lo <= 40 ? 10 : 20;
+      for (let v = lo; v <= hi; v += step) {
+        svg += `<line x1="${m.l}" y1="${y(v)}" x2="${W - m.r}" y2="${y(v)}" style="stroke:var(--line)" stroke-width="1"/>`;
+        svg += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" style="fill:var(--ink-faint)">${v}</text>`;
+      }
+      if (lo < 70 && hi > 70) {
+        svg += `<line x1="${m.l}" y1="${y(70)}" x2="${W - m.r}" y2="${y(70)}" style="stroke:var(--good)" stroke-width="1" stroke-dasharray="4 4" opacity="0.7"/>`;
+        svg += `<text x="${W - m.r}" y="${y(70) - 4}" text-anchor="end" font-size="10" style="fill:var(--good)">meta: 70 (Bom)</text>`;
+      }
+      const every = n > 8 ? 2 : 1;
+      points.forEach((p, i) => {
+        if (i % every === 0 || i === n - 1) svg += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="11" style="fill:var(--ink-faint)">${fmtDM(p.week)}</text>`;
+      });
+
+      const series = [{ key: "you", color: "var(--purple)", grad: "gYou" }];
+      if (hasTeam) series.push({ key: "team", color: "var(--accent)", grad: "gTeam" });
+      series.slice().reverse().forEach((s) => { // você por cima do time
+        const segs = []; let cur = [];
+        points.forEach((p, i) => {
+          if (p[s.key] != null) cur.push([x(i), y(p[s.key])]);
+          else if (cur.length) { segs.push(cur); cur = []; }
         });
-
-        if (!resp.ok) {
-          // 401 = token expirou; 403 = falta permissão
-          if (resp.status === 401) {
-            box.textContent = "Sua autorização da agenda expirou. Saia e entre de novo com o Google.";
-          } else {
-            box.textContent = "Não consegui ler sua agenda agora (erro " + resp.status + ").";
-          }
-          return;
-        }
-
-        const data = await resp.json();
-        const eventos = (data.items || []).filter(function (e) { return e.start; });
-
-        if (eventos.length === 0) {
-          box.textContent = "Nenhuma call ou evento próximo na sua agenda.";
-          return;
-        }
-
-        box.textContent = "Seus próximos eventos:";
-        list.innerHTML = "";
-        eventosComCall = []; // reinicia a lista que o verificador usa
-        eventos.forEach(function (ev) {
-          const inicio = ev.start.dateTime || ev.start.date;
-          const dt = new Date(inicio);
-          const quando = dt.toLocaleString("pt-BR", {
-            day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-          });
-          // Detecta se o evento tem link de videochamada (Meet/Zoom/Teams)
-          const temCall = !!(ev.hangoutLink
-            || (ev.conferenceData && ev.conferenceData.entryPoints)
-            || /zoom|meet|teams/i.test((ev.location || "") + " " + (ev.description || "")));
-
-          // Guarda os que têm videochamada e horário exato, pro aviso de 5 min.
-          if (temCall && ev.start.dateTime) {
-            eventosComCall.push({ id: ev.id, titulo: ev.summary || "sua call", inicio: dt });
-          }
-
-          const div = document.createElement("div");
-          div.style.cssText = "padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;";
-          div.innerHTML =
-            "<div style='font-weight:600;font-size:0.92rem;'>" + (ev.summary || "(sem título)") + "</div>"
-            + "<div style='font-size:12px;color:var(--ink-faint);margin-top:2px;'>" + quando
-            + (temCall ? " · <span style='color:var(--good);'>📹 videochamada</span>" : "") + "</div>";
-          list.appendChild(div);
+        if (cur.length) segs.push(cur);
+        segs.forEach((seg) => {
+          if (seg.length < 2) return;
+          const d = seg.map((pt, k) => (k ? "L" : "M") + pt[0].toFixed(1) + " " + pt[1].toFixed(1)).join(" ");
+          svg += `<path d="${d} L${seg[seg.length - 1][0].toFixed(1)} ${base} L${seg[0][0].toFixed(1)} ${base} Z" fill="url(#${s.grad})"/>`;
+          svg += `<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
         });
+        points.forEach((p, i) => {
+          if (p[s.key] != null) svg += `<circle cx="${x(i)}" cy="${y(p[s.key])}" r="4" style="fill:${s.color};stroke:var(--surface)" stroke-width="2"/>`;
+        });
+      });
+      svg += `<line id="chartGuide" y1="${m.t}" y2="${base}" style="stroke:var(--ink-faint)" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>`;
 
-        // Com a agenda lida, garante que o verificador de avisos está rodando.
-        iniciarVerificadorDeAvisos();
-      } catch (err) {
-        box.textContent = "Erro ao acessar a agenda. Tente recarregar a página.";
+      wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Evolução semanal da nota de oratória">${svg}</svg><div class="chart-tip" id="chartTip" hidden></div>`;
+
+      const svgEl = wrap.querySelector("svg"), guide = wrap.querySelector("#chartGuide"), tip = wrap.querySelector("#chartTip");
+      const show = (ev) => {
+        const r = svgEl.getBoundingClientRect();
+        const px = ((ev.clientX - r.left) / r.width) * W;
+        const i = Math.max(0, Math.min(n - 1, Math.round(((px - m.l) / (W - m.l - m.r)) * (n - 1))));
+        const p = points[i];
+        guide.setAttribute("x1", x(i)); guide.setAttribute("x2", x(i)); guide.setAttribute("visibility", "visible");
+        const row = (label, color, v, cnt) =>
+          `<div class="tt-row"><span class="tt-dot" style="background:${color}"></span>${label}: ${v != null ? `<b>${Math.round(v)}</b> <span style="color:var(--ink-faint)">(${cnt} ${cnt === 1 ? "sessão" : "sessões"})</span>` : `<span style="color:var(--ink-faint)">sem sessões</span>`}</div>`;
+        tip.innerHTML = `<div class="tt-title">Semana de ${fmtDM(p.week)}</div>${row("Você", "var(--purple)", p.you, p.youN)}${hasTeam ? row("Time", "var(--accent)", p.team, p.teamN) : ""}`;
+        tip.hidden = false;
+        const left = (x(i) / W) * 100;
+        tip.style.left = `calc(${left}% ${i > n / 2 ? "- 12px" : "+ 12px"})`;
+        tip.style.transform = i > n / 2 ? "translateX(-100%)" : "none";
+      };
+      const hide = () => { guide.setAttribute("visibility", "hidden"); tip.hidden = true; };
+      svgEl.addEventListener("pointermove", show);
+      svgEl.addEventListener("pointerdown", show);
+      svgEl.addEventListener("pointerleave", hide);
+    }
+
+    document.getElementById("chartRange").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-w]");
+      if (!b) return;
+      chartWeeks = Number(b.dataset.w);
+      document.querySelectorAll("#chartRange button").forEach((x) => x.classList.toggle("active", x === b));
+      renderOratoriaChart();
+    });
+    let chartResizeTimer = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(chartResizeTimer);
+      chartResizeTimer = setTimeout(renderOratoriaChart, 150);
+    });
+
+    // ===== Agenda Google: calendário (início) =====
+    let calToken = null;
+    let calView = "week";
+    try { const v = localStorage.getItem("aurax_cal_view"); if (v === "week" || v === "month" || v === "list") calView = v; } catch (e) {}
+    let calCursor = new Date();
+    let calEvents = [];   // eventos normalizados do período exibido
+    let calReq = 0;       // ignora respostas antigas
+
+    function calMessage(text) {
+      document.getElementById("calBody").innerHTML = `<div class="cal-state">${esc(text)}</div>`;
+    }
+
+    async function calFetch(timeMin, timeMax, maxResults) {
+      const url = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+        + "?timeMin=" + encodeURIComponent(timeMin.toISOString())
+        + (timeMax ? "&timeMax=" + encodeURIComponent(timeMax.toISOString()) : "")
+        + "&maxResults=" + maxResults + "&singleEvents=true&orderBy=startTime";
+      const resp = await fetch(url, { headers: { Authorization: "Bearer " + calToken } });
+      if (!resp.ok) return { ok: false, status: resp.status };
+      const data = await resp.json();
+      return { ok: true, items: (data.items || []).filter((e) => e.start && e.status !== "cancelled") };
+    }
+
+    function calErrorText(status) {
+      if (status === 401) return "Sua autorização da agenda expirou. Saia e entre de novo com o Google.";
+      return "Não consegui ler sua agenda agora (erro " + status + ").";
+    }
+
+    function parseEvDate(o) {
+      if (o.dateTime) return new Date(o.dateTime);
+      const [y, mo, d] = o.date.split("-").map(Number); // dia inteiro: data local, sem fuso
+      return new Date(y, mo - 1, d);
+    }
+
+    function normalizeEvent(ev) {
+      const allDay = !!ev.start.date;
+      const start = parseEvDate(ev.start);
+      const end = ev.end ? parseEvDate(ev.end) : start;
+      const entry = ev.conferenceData && ev.conferenceData.entryPoints
+        ? ev.conferenceData.entryPoints.find((e) => e.entryPointType === "video") : null;
+      const text = (ev.location || "") + " " + (ev.description || "");
+      const urlInText = (text.match(/https?:\/\/[^\s"'<>]*(?:zoom\.us|meet\.google\.com|teams\.microsoft\.com|teams\.live\.com)[^\s"'<>]*/i) || [])[0];
+      const joinUrl = safeUrl(ev.hangoutLink) || safeUrl(entry && entry.uri) || safeUrl(urlInText);
+      const hasCall = !!(ev.hangoutLink || (ev.conferenceData && ev.conferenceData.entryPoints) || /zoom|meet|teams/i.test(text));
+      return {
+        id: ev.id, title: ev.summary || "(sem título)", allDay, start, end, hasCall, joinUrl,
+        htmlLink: safeUrl(ev.htmlLink), attendees: (ev.attendees || []).length,
+      };
+    }
+
+    function eventDays(e) { // chaves yyyy-mm-dd dos dias em que o evento aparece
+      const first = startOfDay(e.start);
+      let last = e.allDay ? addDays(startOfDay(e.end), -1) : startOfDay(new Date(e.end.getTime() - 1));
+      if (last < first) last = first;
+      const keys = [];
+      for (let d = first, i = 0; d <= last && i < 40; d = addDays(d, 1), i++) keys.push(dayKey(d));
+      return keys;
+    }
+
+    function eventsByDay(list) {
+      const map = {};
+      list.forEach((e, idx) => eventDays(e).forEach((k) => { (map[k] = map[k] || []).push(idx); }));
+      Object.values(map).forEach((arr) => arr.sort((a, b) => {
+        const A = calEvents[a], B = calEvents[b];
+        if (A.allDay !== B.allDay) return A.allDay ? -1 : 1;
+        return A.start - B.start;
+      }));
+      return map;
+    }
+
+    function evChip(idx, withTime) {
+      const e = calEvents[idx];
+      const t = e.allDay ? "Dia inteiro" : fmtTime(e.start);
+      return `<button type="button" class="cal-ev ${e.hasCall ? "call" : ""}" data-ev="${idx}" title="${esc(e.title)}">`
+        + (withTime ? `<span class="t">${t}${e.hasCall ? " · 📹" : ""}</span>` : "")
+        + `<span class="n">${esc(e.title)}</span></button>`;
+    }
+
+    function calRange() {
+      if (calView === "week") { const s = startOfWeek(calCursor); return [s, addDays(s, 7)]; }
+      if (calView === "month") {
+        const first = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
+        const s = startOfWeek(first);
+        const daysInMonth = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 0).getDate();
+        const rows = Math.ceil(((first.getDay() + 6) % 7 + daysInMonth) / 7);
+        return [s, addDays(s, rows * 7)];
+      }
+      const s = new Date(); return [s, addDays(startOfDay(s), 31)];
+    }
+
+    function calTitleText() {
+      if (calView === "month") return calCursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      if (calView === "list") return "Próximos 30 dias";
+      const [s] = calRange(), e = addDays(s, 6);
+      const sameMonth = s.getMonth() === e.getMonth();
+      return s.getDate() + (sameMonth ? "" : " de " + s.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")) + " – "
+        + e.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+    }
+
+    function renderCalendar() {
+      const body = document.getElementById("calBody");
+      const todayKey = dayKey(new Date());
+      const byDay = eventsByDay(calEvents);
+      document.getElementById("calTitle").textContent = calTitleText();
+      document.getElementById("calNav").style.display = calView === "list" ? "none" : "";
+      document.querySelectorAll("#calView button").forEach((b) => b.classList.toggle("active", b.dataset.v === calView));
+      const [start, end] = calRange();
+
+      if (calView === "week") {
+        let html = `<div class="cal-week">`;
+        for (let d = start; d < end; d = addDays(d, 1)) {
+          const k = dayKey(d), evs = byDay[k] || [];
+          html += `<div class="cal-day ${k === todayKey ? "today" : ""}">
+            <div class="cal-dow">${d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}<span class="num">${d.getDate()}</span></div>
+            ${evs.length ? evs.map((i) => evChip(i, true)).join("") : `<div class="cal-empty">Sem eventos</div>`}
+          </div>`;
+        }
+        body.innerHTML = html + `</div>`;
+      } else if (calView === "month") {
+        const dows = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
+        let html = `<div class="cal-month">` + dows.map((n) => `<div class="cal-mhead">${n}</div>`).join("");
+        for (let d = start; d < end; d = addDays(d, 1)) {
+          const k = dayKey(d), evs = byDay[k] || [];
+          const cls = (d.getMonth() !== calCursor.getMonth() ? "out " : "") + (k === todayKey ? "today" : "");
+          html += `<div class="cal-cell ${cls}"><span class="num">${d.getDate()}</span>`
+            + evs.slice(0, 3).map((i) => evChip(i, false)).join("")
+            + (evs.length > 3 ? `<button type="button" class="cal-more" data-day="${k}">+${evs.length - 3} mais</button>` : "")
+            + (evs.length ? `<button type="button" class="cal-count" data-day="${k}">${evs.length}</button>` : "")
+            + `</div>`;
+        }
+        body.innerHTML = html + `</div>`;
+      } else {
+        const keys = Object.keys(byDay).sort();
+        if (!keys.length) { calMessage("Nenhuma call ou evento nos próximos 30 dias."); return; }
+        let html = `<div class="cal-list">`;
+        keys.forEach((k) => {
+          const [y, mo, dd] = k.split("-").map(Number);
+          const d = new Date(y, mo - 1, dd);
+          html += `<div class="cal-list-day">${k === todayKey ? "Hoje · " : ""}${d.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</div>`
+            + byDay[k].map((i) => evChip(i, true)).join("");
+        });
+        body.innerHTML = html + `</div>`;
       }
     }
+
+    async function loadCalendarView() {
+      if (!calToken) return;
+      const req = ++calReq;
+      document.querySelectorAll("#calView button").forEach((b) => b.classList.toggle("active", b.dataset.v === calView));
+      const [s, e] = calRange();
+      document.getElementById("calTitle").textContent = calTitleText();
+      let res;
+      try {
+        res = calView === "list" ? await calFetch(new Date(), e, 60) : await calFetch(s, e, 250);
+      } catch (err) {
+        if (req === calReq) calMessage("Erro ao acessar a agenda. Tente recarregar a página.");
+        return;
+      }
+      if (req !== calReq) return;
+      if (!res.ok) { calMessage(calErrorText(res.status)); return; }
+      calEvents = res.items.map(normalizeEvent);
+      renderCalendar();
+    }
+
+    function openEventDialog(idx) {
+      const e = calEvents[idx];
+      if (!e) return;
+      const dlg = document.getElementById("evDialog");
+      const dayFmt = { weekday: "long", day: "numeric", month: "long" };
+      let when;
+      if (e.allDay) when = "Dia inteiro · " + e.start.toLocaleDateString("pt-BR", dayFmt);
+      else if (dayKey(e.start) === dayKey(e.end) || e.end.getTime() - e.start.getTime() < 86400000 && e.end.getHours() === 0 && e.end.getMinutes() === 0)
+        when = e.start.toLocaleDateString("pt-BR", dayFmt) + " · " + fmtTime(e.start) + " – " + fmtTime(e.end);
+      else when = e.start.toLocaleDateString("pt-BR", dayFmt) + " " + fmtTime(e.start) + " → " + e.end.toLocaleDateString("pt-BR", dayFmt) + " " + fmtTime(e.end);
+      dlg.innerHTML = `<h3>${esc(e.title)}</h3><div class="ev-when">${esc(when)}</div>`
+        + `<div class="ev-meta">${e.hasCall ? "📹 Tem videochamada" : "Sem videochamada"}${e.attendees ? " · " + e.attendees + (e.attendees === 1 ? " participante" : " participantes") : ""}</div>`
+        + `<div class="ev-actions">`
+        + (e.joinUrl ? `<a class="btn" href="${esc(e.joinUrl)}" target="_blank" rel="noopener noreferrer">Entrar na videochamada</a>` : "")
+        + (e.htmlLink ? `<a class="btn ghost" href="${esc(e.htmlLink)}" target="_blank" rel="noopener noreferrer">Abrir no Google Agenda</a>` : "")
+        + `<button type="button" class="btn ghost" data-close>Fechar</button></div>`;
+      if (!dlg.open) dlg.showModal();
+    }
+
+    function calShift(dir) {
+      if (calView === "week") calCursor = addDays(calCursor, 7 * dir);
+      else calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + dir, 1);
+      loadCalendarView();
+    }
+
+    function wireCalendar() {
+      document.getElementById("calPrev").addEventListener("click", () => calShift(-1));
+      document.getElementById("calNext").addEventListener("click", () => calShift(1));
+      document.getElementById("calToday").addEventListener("click", () => { calCursor = new Date(); loadCalendarView(); });
+      document.getElementById("calView").addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-v]");
+        if (!b || b.dataset.v === calView) return;
+        calView = b.dataset.v;
+        try { localStorage.setItem("aurax_cal_view", calView); } catch (err) {}
+        loadCalendarView();
+      });
+      document.getElementById("calBody").addEventListener("click", (e) => {
+        const ev = e.target.closest("[data-ev]");
+        if (ev) { openEventDialog(Number(ev.dataset.ev)); return; }
+        const day = e.target.closest("[data-day]");
+        if (day) { // "+N mais" / contador: abre a semana daquele dia
+          const [y, mo, dd] = day.dataset.day.split("-").map(Number);
+          calCursor = new Date(y, mo - 1, dd); calView = "week"; loadCalendarView();
+        }
+      });
+      const dlg = document.getElementById("evDialog");
+      dlg.addEventListener("click", (e) => { if (e.target === dlg || e.target.closest("[data-close]")) dlg.close(); });
+    }
+
+    async function loadAgenda(session) {
+      const box = document.getElementById("agendaBox");
+      // O token de acesso ao Google vem na sessão do Supabase como provider_token.
+      calToken = session && session.provider_token;
+      wireCalendar();
+      if (!calToken) {
+        document.getElementById("calBody").innerHTML = "";
+        box.textContent = "Para ver sua agenda, saia e entre de novo com o Google (autorizando o acesso à agenda).";
+        return;
+      }
+      loadCalendarView();
+
+      // Eventos de hoje em diante, só para o aviso de 5 min antes da call.
+      try {
+        const res = await calFetch(new Date(), null, 10);
+        if (!res.ok) return;
+        eventosComCall = []; // reinicia a lista que o verificador usa
+        res.items.map(normalizeEvent).forEach((e) => {
+          if (e.hasCall && !e.allDay) eventosComCall.push({ id: e.id, titulo: e.title, inicio: e.start });
+        });
+        iniciarVerificadorDeAvisos();
+      } catch (err) { /* o calendário já mostra o erro */ }
+    }
+    // ===== Agenda Google: calendário (fim) =====
 
     // ===== Aviso 5 min antes da call (início) =====
     let eventosComCall = [];
@@ -661,7 +1098,6 @@
       setInterval(verificarProximasCalls, 30000); // checa a cada 30s
     }
     // ===== Aviso 5 min antes da call (fim) =====
-    // ===== Leitura da Agenda Google (fim) =====
 
     init();
   </script>
