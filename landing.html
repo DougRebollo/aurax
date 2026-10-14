@@ -175,16 +175,17 @@
   .lp-stat + .lp-stat { border-left: 1px solid var(--line); }
   .lp-stat b { display: block; font-family: var(--mono); font-weight: 500; font-size: 24px; letter-spacing: -0.02em; }
   .lp-stat span { font-size: 12px; color: var(--ink-dim); }
-  .float { display: none; position: absolute; width: 236px; padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 14px 34px -16px rgba(20, 28, 45, 0.3); font-size: 13px; }
-  .float small { display: block; font-size: 11px; color: var(--ink-faint); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .float { display: none; position: absolute; align-items: center; gap: 10px; padding: 9px 14px 9px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 18px 40px -18px rgba(20, 28, 45, 0.28); font-size: 13px; white-space: nowrap; animation: lp-float 7s ease-in-out infinite; }
+  .float i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 13px; background: var(--accent-soft); }
   .float b { font-weight: 600; }
-  .float.l1 { right: calc(50% + 670px); top: 130px; }
-  .float.l2 { right: calc(50% + 700px); top: 300px; }
-  .float.l3 { right: calc(50% + 650px); top: 470px; }
-  .float.r1 { left: calc(50% + 670px); top: 120px; }
-  .float.r2 { left: calc(50% + 690px); top: 320px; }
   .float .up { color: var(--good); font-family: var(--mono); font-weight: 500; }
-  @media (min-width: 1780px) { .float { display: block; } }
+  .float.l1 { right: calc(50% + 690px); top: 170px; }
+  .float.l2 { right: calc(50% + 660px); top: 400px; animation-delay: -2.5s; animation-duration: 8s; }
+  .float.r1 { left: calc(50% + 690px); top: 200px; animation-delay: -4s; animation-duration: 6.5s; }
+  .float.r2 { left: calc(50% + 660px); top: 420px; animation-delay: -1s; animation-duration: 8.5s; }
+  @keyframes lp-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  @media (prefers-reduced-motion: reduce) { .float { animation: none; } }
+  @media (min-width: 1780px) { .float { display: flex; } }
   @media (max-width: 640px) { .lp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; } .lp-stat { padding: 12px; } .lp-stat b { font-size: 20px; } }
 </style>
 <script>
@@ -249,11 +250,10 @@
     </div>
   </div>
 </header>
-  <div class="float l1" aria-hidden="true"><small>Alerta ao vivo</small>Ritmo de fala acelerado: <b>182 palavras/min</b></div>
-  <div class="float l2" aria-hidden="true"><small>Escuta ativa</small>Você deu espaço pro cliente falar: <b>36% do tempo</b></div>
-  <div class="float l3" aria-hidden="true"><small>Objeção detectada</small>"<b>tá caro</b>" · resposta analisada</div>
-  <div class="float r1" aria-hidden="true"><small>Evolução</small>Oratória <span class="up">64 → 82</span><br>nas últimas 8 calls</div>
-  <div class="float r2" aria-hidden="true"><small>Principal ponto de melhoria</small><b>Poucas perguntas abertas</b><br>em 6 de 17 sessões</div>
+  <div class="float l1" aria-hidden="true"><i>⚡</i><span>Ritmo <b>182 palavras/min</b></span></div>
+  <div class="float l2" aria-hidden="true"><i>👂</i><span>Escuta ativa <b>36%</b></span></div>
+  <div class="float r1" aria-hidden="true"><i>📈</i><span>Oratória <span class="up">64 → 82</span></span></div>
+  <div class="float r2" aria-hidden="true"><i>🎯</i><span>Objeção: <b>"tá caro"</b></span></div>
 </div>
 <p class="lp-wrap eg" style="margin-top:-24px;text-align:right">Tela ilustrativa com dados de exemplo.</p>
 
