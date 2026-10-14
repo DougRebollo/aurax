@@ -723,6 +723,17 @@
   }
   .talk-split-you { background: linear-gradient(90deg, var(--accent), var(--accent)); }
   .talk-split-other { background: linear-gradient(90deg, var(--warn), var(--warn)); }
+  .saved-overlay { position: fixed; inset: 0; z-index: 1000; background: var(--overlay); display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+  .saved-overlay.hidden { display: none; }
+  .saved-card { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; padding: 26px 26px 22px; width: min(560px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.5); text-align: center; }
+  .saved-card h3 { margin: 6px 0 4px; font-size: 20px; }
+  .saved-sub { margin: 0 0 6px; color: var(--ink-dim); font-size: 14px; }
+  .saved-check { width: 46px; height: 46px; margin: 0 auto; border-radius: 50%; background: var(--good-soft); color: var(--good); display: grid; place-items: center; font-size: 24px; font-weight: 700; }
+  .saved-spinner { width: 34px; height: 34px; margin: 4px auto 10px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: savedSpin 0.8s linear infinite; }
+  @keyframes savedSpin { to { transform: rotate(360deg); } }
+  .saved-card .focus-next { text-align: left; margin: 16px 0 4px; }
+  .saved-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+  .saved-actions .btn { text-decoration: none; display: inline-block; }
   .tl-wrap { margin-top: 12px; }
   .tl-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
   .tl-label { width: 54px; font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); flex-shrink: 0; }
@@ -998,6 +1009,10 @@
   </div>
       </main>
     </div>
+  </div>
+
+  <div id="savedOverlay" class="saved-overlay hidden" role="dialog" aria-modal="true" aria-label="Sessão gravada">
+    <div class="saved-card"><div id="savedBody"></div></div>
   </div>
 
   <div id="trendTooltip"></div>
@@ -1552,7 +1567,9 @@
         // falhar, a sessão continua salva normal, só sem esse resumo extra.
         const insertedId = data && data[0] && data[0].id;
         if (insertedId) requestAiSummary(insertedId);
+        return { ok: true, id: insertedId || null };
       }
+      return { ok: false, id: null };
     }
 
     // Única chamada de IA generativa de verdade no AuraX (o resto é regra
@@ -1694,6 +1711,53 @@
       posthog.capture("session_started");
     });
 
+    // ===== Modal "Sessão gravada" =====
+    // Ao encerrar, a tela volta pro zero pra próxima sessão — sem um aviso,
+    // parece que nada foi salvo. O modal confirma o salvamento e leva direto
+    // pra análise daquela sessão em Minhas Sessões.
+    const savedOverlayEl = document.getElementById("savedOverlay");
+    const savedBodyEl = document.getElementById("savedBody");
+    const savedEsc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    function openSavedModal() {
+      savedBodyEl.innerHTML = `<div class="saved-spinner" aria-hidden="true"></div><h3>Salvando sua sessão…</h3><p class="saved-sub">Só um instante.</p>`;
+      savedOverlayEl.classList.remove("hidden");
+    }
+    function closeSavedModal() { savedOverlayEl.classList.add("hidden"); }
+
+    function showSavedResult(result, ctx) {
+      if (!result) {
+        savedBodyEl.innerHTML = `<h3>Sessão encerrada</h3>
+          <p class="saved-sub">Nenhum dado foi coletado (o rosto não foi detectado), então não há nada para salvar.</p>
+          <div class="saved-actions"><button type="button" class="btn" id="savedCloseBtn">Fechar</button></div>`;
+      } else if (!result.ok) {
+        savedBodyEl.innerHTML = `<h3>Não conseguimos salvar a sessão</h3>
+          <p class="saved-sub">Pode ter sido a conexão ou o login que expirou numa call longa. Guardamos uma cópia no seu navegador — não feche esta aba e avise o suporte.</p>
+          <div class="saved-actions"><button type="button" class="btn ghost" id="savedCloseBtn">Fechar</button></div>`;
+      } else {
+        const href = result.id ? `sessoes.html?id=${encodeURIComponent(result.id)}` : "sessoes.html";
+        const bits = [];
+        if (ctx.client) bits.push("Cliente: " + savedEsc(ctx.client));
+        bits.push(formatClock(ctx.duration || 0));
+        if (ctx.score != null) bits.push(`Nota de oratória <b>${ctx.score}</b>`);
+        savedBodyEl.innerHTML = `<div class="saved-check" aria-hidden="true">✓</div>
+          <h3>Sessão gravada</h3>
+          <p class="saved-sub">${bits.join(" · ")}</p>
+          ${ctx.focusHtml || ""}
+          <div class="saved-actions">
+            <a class="btn" id="savedViewBtn" href="${href}">Ver análise completa desta sessão</a>
+            <button type="button" class="btn ghost" id="savedCloseBtn">Fazer nova sessão</button>
+          </div>`;
+        const viewBtn = document.getElementById("savedViewBtn");
+        viewBtn.addEventListener("click", () => posthog.capture("saved_modal_view_analysis"));
+        viewBtn.focus({ preventScroll: true });
+      }
+      document.getElementById("savedCloseBtn").addEventListener("click", closeSavedModal);
+    }
+
+    savedOverlayEl.addEventListener("click", (e) => { if (e.target === savedOverlayEl) closeSavedModal(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSavedModal(); });
+
     endSessionBtn.addEventListener("click", () => {
       const durationSeconds = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 1000) : 0;
       sessionActive = false;
@@ -1702,6 +1766,7 @@
       endSessionBtn.style.display = "none";
       sessionTimerEl.textContent = "";
       updateSessionStatusDisplay();
+      openSavedModal();
       renderSummary();
       posthog.capture("session_ended", { duration_seconds: durationSeconds });
 
@@ -2097,6 +2162,7 @@
         summaryOratoriaEl.innerHTML = "";
         summaryTipsEl.innerHTML = "";
         document.getElementById("summaryFocus").innerHTML = "";
+        showSavedResult(null, {});
         return;
       }
 
@@ -2246,7 +2312,7 @@
         } catch (e) { /* sem comparação: o cartão continua útil sozinho */ }
       }
 
-      await saveHistoryEntry({
+      const saveResult = await saveHistoryEntry({
         date: new Date().toISOString(),
         duration,
         focused: avgFocused,
@@ -2266,6 +2332,12 @@
         openQuestions: sessionOpenQuestions,
         closedQuestions: sessionClosedQuestions,
         tips,
+      });
+      showSavedResult(saveResult, {
+        score: oratoriaResult.overall,
+        client: currentClientName,
+        duration,
+        focusHtml: summaryFocusEl.innerHTML,
       });
     }
 
