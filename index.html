@@ -1951,7 +1951,7 @@
         tips.push({
           key: "escuta_ativa_pausas",
           type: "positivo",
-          text: `${activeListeningCount} pausa${activeListeningCount > 1 ? "s" : ""} bem longa${activeListeningCount > 1 ? "s" : ""} (mais de 25s) — provavelmente foi você dando espaço pro cliente falar, não hesitação.`,
+          text: `${activeListeningCount} pausa${activeListeningCount > 1 ? "s" : ""} bem longa${activeListeningCount > 1 ? "s" : ""} (mais de 1min30) — provavelmente foi você dando espaço pro cliente falar, não hesitação.`,
         });
       }
 
@@ -2076,8 +2076,8 @@
       const keywordTagsHtml = renderKeywordTags(sessionKeywordCounts);
       summaryNegotiationEl.innerHTML = `
         <div class="insight-line">Ritmo médio de fala: ${wpmSession} palavras/min</div>
-        <div class="insight-line">Pausas longas (mais de 20s): ${sessionPauseCount}</div>
-        ${sessionActiveListeningCount > 0 ? `<div class="insight-line tip-positive">Momentos de escuta ativa (mais de 25s): ${sessionActiveListeningCount}</div>` : ""}
+        <div class="insight-line">Pausas longas (mais de 1min30): ${sessionPauseCount}</div>
+        ${sessionActiveListeningCount > 0 ? `<div class="insight-line tip-positive">Momentos de escuta ativa (mais de 1min30): ${sessionActiveListeningCount}</div>` : ""}
         <div style="margin-top:8px">${keywordTagsHtml || '<span class="insight-line">Nenhuma palavra-chave de negociação identificada.</span>'}</div>
       `;
 
@@ -2397,13 +2397,13 @@
     let activeListeningAlreadyFlagged = false;
 
     const SILENCE_RMS_THRESHOLD = 0.02;
-    // Ajustado a partir de teste real: 2s e depois 4s ainda disparavam em
-    // pausas normais de conversa. 20s é bem mais próximo de um silêncio que
-    // realmente pesa numa negociação.
-    const PAUSE_MIN_MS = 20000;
+    // Ajustado a partir de teste real: 2s, 4s e depois 20s ainda disparavam
+    // em pausas normais de conversa. 1min30 é um silêncio que realmente pesa
+    // numa negociação.
+    const PAUSE_MIN_MS = 90000;
     // Um silêncio bem mais longo que isso não é hesitação — é você ficando
     // quieto pra deixar o cliente falar. Vira um sinal positivo, não negativo.
-    const ACTIVE_LISTENING_MIN_MS = 25000;
+    const ACTIVE_LISTENING_MIN_MS = 90000;
 
     // --- Alertas ao vivo: avisos curtos e discretos durante a call ---
     const liveAlertsEl = document.getElementById("liveAlerts");
