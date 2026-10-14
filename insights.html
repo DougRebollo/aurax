@@ -4,193 +4,54 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AuraX — Meus Insights</title>
+<link rel="stylesheet" href="shell.css" />
 <style>
-  :root {
-    --bg-1: #1a2338;
-    --bg-2: #0b0c10;
-    --bg-3: #08080a;
-    --text: #eee;
-    --text-muted: #9aa0ab;
-    --text-dim: #6b7280;
-    --accent-blue: #4f8cff;
-    --accent-green: #7ee787;
-    --accent-teal: #3ddba0;
-    --accent-amber: #ffb648;
-    --accent-red: #e5533d;
-    --accent-purple: #c9a6ff;
-    --card-bg: linear-gradient(160deg, rgba(79, 140, 255, 0.07), rgba(126, 231, 135, 0.025));
-    --card-border: rgba(255, 255, 255, 0.08);
-    --grid: #2c2c2a;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    min-height: 100vh;
-    position: relative;
-  }
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(79, 140, 255, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(79, 140, 255, 0.045) 1px, transparent 1px);
-    background-size: 42px 42px;
-    -webkit-mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
-    mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
-    pointer-events: none;
-  }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 20px 80px; position: relative; }
-
-  .top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 28px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    padding: 14px 0;
-    background: rgba(11, 12, 16, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  .logo {
-    font-size: 1.15rem; font-weight: 700; letter-spacing: 1.5px;
-    background: linear-gradient(90deg, #eaf2ff, var(--accent-green) 55%, var(--accent-blue));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-
-  .card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 14px;
-  }
-
-  button {
-    font-family: inherit;
-    cursor: pointer;
-    border: none;
-    border-radius: 999px;
-    font-weight: 600;
-  }
-  .btn.ghost {
-    padding: 10px 20px;
-    font-size: 0.85rem;
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--text-muted);
-    border: 1px solid var(--card-border);
-  }
-
-  .panel-head { margin-bottom: 22px; }
-  .panel-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-blue); margin-bottom: 6px; }
-  .panel-head h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  .panel-head p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
-
-  .section-title { font-size: 0.95rem; margin: 30px 0 12px; color: #dcdfe4; }
-  .section-title:first-of-type { margin-top: 0; }
-
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-  .stat-card { padding: 16px 18px; text-align: center; }
-
-  /* Anel de oratória média (mesmo visual da tela de gravação) */
-  .stat-card-ring { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
-  .orat-ring {
-    flex-shrink: 0;
-    width: 92px;
-    height: 92px;
-    border-radius: 50%;
-    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), rgba(255, 255, 255, 0.08) 0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .orat-ring-inner {
-    width: 74px;
-    height: 74px;
-    border-radius: 50%;
-    background: #0d0e13;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .orat-ring-value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
-  .orat-ring-label { font-size: 0.6rem; color: #888; margin-top: 2px; }
-
-  .focus-card {
-    margin-top: 16px;
-    padding: 22px 24px;
-    background: linear-gradient(160deg, rgba(255, 182, 72, 0.1), rgba(255, 182, 72, 0.02));
-    border-color: rgba(255, 182, 72, 0.3);
-  }
-  .focus-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-amber); margin-bottom: 8px; }
-  .focus-card h2 { font-size: 1.2rem; margin: 0 0 6px; color: #f5f5f5; }
-  .focus-card p { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
-  .focus-suggestion {
-    margin-top: 14px;
-    padding-left: 12px;
-    border-left: 3px solid var(--accent-amber);
-    font-size: 0.9rem;
-    color: #ddd;
-  }
-  .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--accent-green); }
-  .stat-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
-  .stat-rank { font-size: 0.68rem; font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  :root { --grid: var(--line); --text-dim: var(--ink-faint); }
 
   .chart-card { padding: 20px 22px; }
-  .chart-empty { padding: 20px 0; text-align: center; color: var(--text-dim); font-size: 0.86rem; }
-  .chart-legend { display: flex; gap: 16px; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px; flex-wrap: wrap; }
+  .chart-empty { padding: 20px 0; text-align: center; color: var(--ink-faint); font-size: 13px; }
+  .chart-legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-dim); margin-bottom: 10px; flex-wrap: wrap; }
   .legend-item { display: flex; align-items: center; gap: 6px; }
   .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
+  .stat-card-ring { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; }
+  .orat-ring {
+    flex-shrink: 0; width: 92px; height: 92px; border-radius: 50%;
+    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), var(--line) 0);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .orat-ring-inner {
+    width: 74px; height: 74px; border-radius: 50%; background: var(--surface);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .orat-ring-value { font-size: 24px; font-weight: 700; line-height: 1; font-family: var(--mono); }
+  .orat-ring-label { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+  #insightsBody { display: flex; flex-direction: column; gap: 20px; }
+
   .language-swap-list { display: flex; flex-direction: column; gap: 8px; }
   .language-swap-card {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: rgba(255, 182, 72, 0.08);
-    border-left: 3px solid var(--accent-amber);
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 14px; border-radius: 10px; background: var(--warn-soft); border-left: 3px solid var(--warn);
   }
-  .language-swap-card.slang-swap { background: rgba(179, 136, 255, 0.08); border-left-color: var(--accent-purple); }
-  .language-swap-word { font-size: 0.95rem; font-weight: 700; color: #f2f2f2; }
-  .language-swap-count { font-size: 0.7rem; color: var(--text-dim); margin-left: 6px; }
-  .language-swap-arrow { color: #666; margin: 0 8px; }
-  .language-swap-suggestion { font-size: 0.85rem; font-weight: 600; color: var(--accent-green); }
+  .language-swap-card.slang-swap { background: var(--purple-soft); border-left-color: var(--purple); }
+  .language-swap-word { font-size: 14px; font-weight: 700; }
+  .language-swap-count { font-size: 12px; color: var(--ink-faint); margin-left: 6px; }
+  .language-swap-arrow { color: var(--ink-faint); margin: 0 8px; }
+  .language-swap-suggestion { font-size: 13px; font-weight: 600; color: var(--good); }
 
   .tip-freq-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.03);
-    margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 14px; border-radius: 10px; background: var(--surface-2); margin-bottom: 8px;
   }
-  .tip-freq-row.positive { border-left: 3px solid var(--accent-green); }
-  .tip-freq-row.improve { border-left: 3px solid var(--accent-amber); }
-  .tip-freq-label { font-size: 0.88rem; }
-  .tip-freq-count { font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; }
+  .tip-freq-row.positive { border-left: 3px solid var(--good); }
+  .tip-freq-row.improve { border-left: 3px solid var(--warn); }
+  .tip-freq-label { font-size: 13px; }
+  .tip-freq-count { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
 
-  .talk-split-bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: #333; margin-top: 6px; }
-  .talk-split-you { background: linear-gradient(90deg, var(--accent-blue), #7ba9ff); }
-  .talk-split-other { background: linear-gradient(90deg, var(--accent-amber), #ffcf80); }
-  .talk-split-labels { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; }
-
-  .empty-state { padding: 30px 18px; text-align: center; color: var(--text-dim); font-size: 0.88rem; }
-
-  #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-  #gate p { color: var(--text-muted); font-size: 0.9rem; }
-
-  [hidden] { display: none !important; }
+  .talk-split-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--line); margin-top: 6px; }
+  .talk-split-you { background: var(--accent); }
+  .talk-split-other { background: var(--warn); }
+  .talk-split-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-dim); margin-top: 6px; }
 </style>
 <script>
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -203,19 +64,16 @@
 <body>
   <div id="gate"><p>Carregando...</p></div>
 
-  <div class="wrap" id="app" hidden>
-    <div class="top-bar">
-      <span class="logo">AuraX</span>
-      <div style="display:flex; gap:10px;">
-        <a class="btn ghost" href="index.html" style="text-decoration:none; display:inline-block;">← Voltar ao AuraX</a>
-        <button type="button" class="btn ghost" id="logoutBtn">Sair</button>
-      </div>
-    </div>
+  <div class="shell" id="app" hidden>
+    <aside class="sidebar" id="shellSidebar"></aside>
+    <div class="shell-main">
+      <main class="content">
 
-    <div class="panel-head">
-      <div class="panel-eyebrow">Sua evolução</div>
-      <h1>Meus Insights</h1>
-      <p>Como você tem evoluído nas suas próprias reuniões, sessão após sessão.</p>
+    <div class="page-head">
+      <div>
+        <h1>Meus Insights</h1>
+        <p>Como você tem evoluído nas suas próprias reuniões, sessão após sessão.</p>
+      </div>
     </div>
 
     <div id="emptyState" class="card empty-state" hidden>
@@ -226,7 +84,7 @@
       <div class="stat-grid">
         <div class="card stat-card"><div class="stat-value" id="statTotalSessions">0</div><div class="stat-label">Sessões</div></div>
         <div class="card stat-card stat-card-ring">
-          <div class="orat-ring" id="oratRing" style="--score:0; --score-color:#8b93a3">
+          <div class="orat-ring" id="oratRing" style="--score:0; --score-color:var(--ink-faint)">
             <div class="orat-ring-inner">
               <div class="orat-ring-value" id="statAvgOratoria">—</div>
               <div class="orat-ring-label">/100</div>
@@ -254,9 +112,9 @@
       <div class="section-title">Padrão emocional ao longo do tempo</div>
       <div class="card chart-card">
         <div class="chart-legend">
-          <span class="legend-item"><span class="swatch" style="background:#3987e5"></span>Cansado</span>
-          <span class="legend-item"><span class="swatch" style="background:#199e70"></span>Constância</span>
-          <span class="legend-item"><span class="swatch" style="background:#c98500"></span>Motivado</span>
+          <span class="legend-item"><span class="swatch" style="background:var(--accent)"></span>Cansado</span>
+          <span class="legend-item"><span class="swatch" style="background:var(--good)"></span>Constância</span>
+          <span class="legend-item"><span class="swatch" style="background:var(--warn)"></span>Motivado</span>
         </div>
         <div id="emotionChartWrap"></div>
       </div>
@@ -278,9 +136,12 @@
       <div class="section-title">Gírias recorrentes</div>
       <div class="card chart-card" id="slangFreqWrap"></div>
     </div>
+      </main>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="shell.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
@@ -361,10 +222,10 @@
 
     // Mesmo ranking usado no app principal (index.html).
     const ORATORIA_RANK_TIERS = [
-      { min: 90, label: "Excelente", color: "#7ee787" },
-      { min: 70, label: "Bom", color: "#7ee787" },
-      { min: 50, label: "Médio", color: "#ffb648" },
-      { min: 0, label: "Precisa de atenção", color: "#ff6b5b" },
+      { min: 90, label: "Excelente", color: "var(--good)" },
+      { min: 70, label: "Bom", color: "var(--good)" },
+      { min: 50, label: "Médio", color: "var(--warn)" },
+      { min: 0, label: "Precisa de atenção", color: "var(--bad)" },
     ];
 
     function oratoriaScoreRank(score) {
@@ -409,8 +270,8 @@
           const cy = y(p.value);
           // Sobe o rótulo quando o ponto está perto do topo, pra não cortar no viewBox.
           const labelY = cy - 8 < 10 ? cy + 15 : cy - 8;
-          svg += `<circle cx="${cx}" cy="${cy}" r="3" fill="${s.color}" stroke="#0d0e13" stroke-width="1.5" />`;
-          svg += `<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${s.color}" stroke="#0d0e13" stroke-width="3" paint-order="stroke" stroke-linejoin="round">${formatValue(p.value)}</text>`;
+          svg += `<circle cx="${cx}" cy="${cy}" r="3" fill="${s.color}" stroke="var(--surface)" stroke-width="1.5" />`;
+          svg += `<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${s.color}" stroke="var(--surface)" stroke-width="3" paint-order="stroke" stroke-linejoin="round">${formatValue(p.value)}</text>`;
         });
       });
 
@@ -487,7 +348,7 @@
       }
       renderLineChart(
         document.getElementById("oratoriaChartWrap"),
-        [{ points: oratoriaPoints, color: "#7ee787" }],
+        [{ points: oratoriaPoints, color: "var(--good)" }],
         { maxY: 100 }
       );
       if (!oratoriaPoints.length) {
@@ -502,9 +363,9 @@
       renderLineChart(
         document.getElementById("emotionChartWrap"),
         [
-          { points: tiredPoints, color: "#3987e5" },
-          { points: focusedPoints, color: "#199e70" },
-          { points: motivatedPoints, color: "#c98500" },
+          { points: tiredPoints, color: "var(--accent)" },
+          { points: focusedPoints, color: "var(--good)" },
+          { points: motivatedPoints, color: "var(--warn)" },
         ],
         { maxY: 1 }
       );
@@ -526,7 +387,7 @@
         : 10;
       renderLineChart(
         document.getElementById("fillerTrendWrap"),
-        [{ points: fillerTrendPoints, color: "#c9a6ff" }],
+        [{ points: fillerTrendPoints, color: "var(--purple)" }],
         { maxY: fillerMaxY }
       );
 
@@ -608,10 +469,6 @@
       document.getElementById("slangFreqWrap").innerHTML = renderLanguageSwapCards(slangTotals, SLANG_LIBRARY, "slang-swap");
     }
 
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      await supabaseClient.auth.signOut();
-      window.location.href = "login.html";
-    });
 
     async function init() {
       const { data: { session } } = await supabaseClient.auth.getSession();
@@ -630,6 +487,7 @@
 
       document.getElementById("gate").hidden = true;
       document.getElementById("app").hidden = false;
+      AuraShell.init({ active: "insights", client: supabaseClient, session });
 
       if (error) {
         document.getElementById("emptyState").hidden = false;
