@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AuraX — Painel do Gestor</title>
 <link rel="stylesheet" href="shell.css" />
+<script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
   .add-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 18px; }
   .add-row input[type="email"] { flex: 1; min-width: 220px; }
@@ -43,10 +44,13 @@
   .rank-badge.silver { background: #eceef2; color: #596173; border-color: #cfd4dd; }
   .rank-badge.bronze { background: #fae3cf; color: #8a4a1c; border-color: #e6bd9a; }
   @media (prefers-color-scheme: dark) {
-    .rank-badge.gold { background: #3a3010; color: #f0d36a; border-color: #5c4d1a; }
-    .rank-badge.silver { background: #2a2f38; color: #c3cad6; border-color: #3d4452; }
-    .rank-badge.bronze { background: #3a2515; color: #e6a572; border-color: #5a3b24; }
+    :root:not([data-theme="light"]) .rank-badge.gold { background: #3a3010; color: #f0d36a; border-color: #5c4d1a; }
+    :root:not([data-theme="light"]) .rank-badge.silver { background: #2a2f38; color: #c3cad6; border-color: #3d4452; }
+    :root:not([data-theme="light"]) .rank-badge.bronze { background: #3a2515; color: #e6a572; border-color: #5a3b24; }
   }
+  :root[data-theme="dark"] .rank-badge.gold { background: #3a3010; color: #f0d36a; border-color: #5c4d1a; }
+  :root[data-theme="dark"] .rank-badge.silver { background: #2a2f38; color: #c3cad6; border-color: #3d4452; }
+  :root[data-theme="dark"] .rank-badge.bronze { background: #3a2515; color: #e6a572; border-color: #5a3b24; }
 
   .account-blocked-banner { padding: 14px 18px; background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); color: var(--bad); font-size: 13px; }
   #agendaBox { font-size: 13px; color: var(--ink-faint); }
