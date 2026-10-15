@@ -734,6 +734,8 @@
   .saved-card .focus-next { text-align: left; margin: 16px 0 4px; }
   .saved-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
   .saved-actions .btn { text-decoration: none; display: inline-block; }
+  .saved-link { display: block; margin: 14px auto 0; background: none; border: 0; color: var(--accent); font-weight: 600; font-size: 13px; cursor: pointer; }
+  .saved-link:hover { text-decoration: underline; }
   .talk-split-labels {
     display: flex;
     justify-content: space-between;
@@ -1727,7 +1729,14 @@
           <div class="saved-actions">
             <a class="btn" id="savedViewBtn" href="${href}">Ver análise completa desta sessão</a>
             <button type="button" class="btn ghost" id="savedCloseBtn">Fazer nova sessão</button>
-          </div>`;
+          </div>
+          ${ctx.note ? `<button type="button" class="saved-link" id="savedCopyBtn" title="Copia um resumo (sem transcrição) pra colar numa nota do CRM">📋 Copiar resumo para o CRM</button>` : ""}`;
+        const copyBtn = document.getElementById("savedCopyBtn");
+        if (copyBtn) copyBtn.addEventListener("click", async () => {
+          const ok = await AuraFocus.copyText(ctx.note);
+          copyBtn.textContent = ok ? "✓ Resumo copiado — é só colar no CRM" : "Não consegui copiar";
+          if (ok) posthog.capture("crm_note_copied", { source: "modal" });
+        });
         const viewBtn = document.getElementById("savedViewBtn");
         viewBtn.addEventListener("click", () => posthog.capture("saved_modal_view_analysis"));
         viewBtn.focus({ preventScroll: true });
@@ -2254,6 +2263,7 @@
         dynamics,
       };
       const summaryFocusEl = document.getElementById("summaryFocus");
+      let lastPrevRows = [];
       if (window.AuraFocus) {
         summaryFocusEl.innerHTML = AuraFocus.render(focusInput, []);
         try {
@@ -2263,7 +2273,10 @@
             .eq("user_id", currentUserId)
             .order("date", { ascending: false })
             .limit(5);
-          if (prevRows && prevRows.length) summaryFocusEl.innerHTML = AuraFocus.render(focusInput, prevRows);
+          if (prevRows && prevRows.length) {
+            lastPrevRows = prevRows;
+            summaryFocusEl.innerHTML = AuraFocus.render(focusInput, prevRows);
+          }
         } catch (e) { /* sem comparação: o cartão continua útil sozinho */ }
       }
 
@@ -2293,6 +2306,9 @@
         client: currentClientName,
         duration,
         focusHtml: summaryFocusEl.innerHTML,
+        note: window.AuraFocus
+          ? AuraFocus.crmNote({ ...focusInput, client_name: currentClientName, date: new Date().toISOString(), duration, id: saveResult && saveResult.id }, lastPrevRows)
+          : "",
       });
     }
 

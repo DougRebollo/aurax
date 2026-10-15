@@ -357,6 +357,7 @@
             <div class="detail-meta">${formatDateBR(h.date)} · ${formatDuration(h.duration || 0)}</div>
           </div>
           <div style="display:flex; gap:2px; flex-wrap:wrap; justify-content:flex-end">
+            <button type="button" class="link-btn" data-act="crm" title="Copia um resumo (sem transcrição) pra colar numa nota do CRM">Copiar resumo p/ CRM</button>
             <button type="button" class="link-btn" data-act="edit">Editar nome</button>
             <button type="button" class="link-btn" data-act="comment">${h.notes ? "Ver comentário" : "Comentar"}</button>
             <button type="button" class="link-btn danger" data-act="delete">Excluir</button>
@@ -471,7 +472,15 @@
       const btn = e.target.closest("[data-act]");
       if (!btn) return;
       const id = btn.closest("[data-id]").dataset.id;
-      if (btn.dataset.act === "edit") startEditingClientName(id);
+      if (btn.dataset.act === "crm") {
+        const h = allSessions.find((x) => String(x.id) === String(id));
+        if (!h || !window.AuraFocus) return;
+        const ok = await AuraFocus.copyText(AuraFocus.crmNote(h, previousSessionsOf(h)));
+        const original = btn.textContent;
+        btn.textContent = ok ? "Copiado ✓" : "Não consegui copiar";
+        setTimeout(() => { btn.textContent = original; }, 2000);
+        if (ok) posthog.capture("crm_note_copied", { source: "sessoes" });
+      } else if (btn.dataset.act === "edit") startEditingClientName(id);
       else if (btn.dataset.act === "comment") openCommentModal(id);
       else if (btn.dataset.act === "delete") {
         if (!confirm("Excluir esta sessão? Essa ação não pode ser desfeita.")) return;
