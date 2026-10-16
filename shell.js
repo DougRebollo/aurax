@@ -203,5 +203,14 @@
     });
   }
 
-  window.AuraShell = { init };
+  // Sessões antigas guardaram "então" como vício de linguagem; hoje ele não conta.
+  // Usado nas telas que somam/mostram os vícios já salvos.
+  const IGNORED_FILLERS = ["então"];
+  function cleanFillers(counts) {
+    const out = {};
+    Object.entries(counts || {}).forEach(([w, c]) => { if (!IGNORED_FILLERS.includes(w)) out[w] = c; });
+    return out;
+  }
+
+  window.AuraShell = { init, cleanFillers };
 })();

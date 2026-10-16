@@ -64,6 +64,32 @@
     return t.split(/(\s+)/).map((tok) => (set.has(cleanTok(tok)) ? `<mark>${esc(tok)}</mark>` : esc(tok))).join("");
   }
 
+  // "então" não é vício; "é" só é vício quando puxado ("éé") ou repetido ("é é").
+  const STRETCHED_E = /^é{2,}$/;
+  const clean = (counts) => {
+    const out = {};
+    Object.entries(counts || {}).forEach(([w, c]) => { if (w !== "então") out[w] = c; });
+    return out;
+  };
+  function fillerFlags(toks, keys) {
+    return toks.map((t, i) => {
+      if (STRETCHED_E.test(t)) return true;
+      if (t === "é") return toks[i - 1] === "é" || toks[i + 1] === "é" || STRETCHED_E.test(toks[i - 1] || "") || STRETCHED_E.test(toks[i + 1] || "");
+      return keys.includes(t);
+    });
+  }
+  // Igual ao quote(), mas destaca por posição da palavra (flags[i] = a i-ésima palavra é vício).
+  function quoteFlags(text, flags) {
+    let t = text.trim();
+    if (t.length > 200) t = t.slice(0, 200).replace(/\s+\S*$/, "") + "…";
+    let wi = 0;
+    return t.split(/(\s+)/).map((tok) => {
+      if (/^\s+$/.test(tok) || !tok) return esc(tok);
+      const hit = flags[wi++];
+      return hit ? `<mark>${esc(tok)}</mark>` : esc(tok);
+    }).join("");
+  }
+
   function pickCandidate(h) {
     const cands = [];
     (h.oratoria_subscores || []).forEach((s) => {
@@ -80,24 +106,25 @@
   // Cada builder devolve { title, why, example?: {label, html}, goal } — a ação vem de ACTIONS[key].
   const BUILDERS = {
     vicios(h) {
-      const counts = h.filler_counts || {};
+      const counts = clean(h.filler_counts);
       const total = Object.values(counts).reduce((a, b) => a + b, 0);
       const words = totalWords(h);
       const rate = words >= 50 ? Math.round((total / words) * 100) : null; // transcrição curta demais: taxa não é confiável
       const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-      const fillers = Object.keys(counts).filter((k) => !k.includes(" "));
+      const keys = Object.keys(counts).filter((k) => !k.includes(" ") && k !== "é");
       let best = null;
       youLines(h).forEach((l) => {
         const toks = l.text.split(/\s+/).map(cleanTok);
-        const n = toks.filter((t) => fillers.includes(t)).length;
-        if (n >= 2 && toks.length >= 6 && (!best || n > best.n)) best = { n, line: l };
+        const flags = fillerFlags(toks, keys);
+        const n = flags.filter(Boolean).length;
+        if (n >= 2 && toks.length >= 6 && (!best || n > best.n)) best = { n, line: l, flags };
       });
       return {
         title: "Vícios de linguagem",
         why: total
           ? `${total} ocorrências${rate != null ? ` (${rate} a cada 100 palavras)` : ""}` + (top.length ? ` — mais frequentes: ${top.map(([w, c]) => `“${esc(w)}” ×${c}`).join(", ")}.` : ".")
           : "Vícios de linguagem acima do ideal.",
-        example: best ? { label: `Um trecho seu (${clock(best.line.t)})`, html: quote(best.line.text, fillers) } : null,
+        example: best ? { label: `Um trecho seu (${clock(best.line.t)})`, html: quoteFlags(best.line.text, best.flags) } : null,
         goal: rate != null ? `Meta: ${Math.max(3, Math.round(rate * 0.7))} vícios a cada 100 palavras (hoje: ${rate}).` : "Meta: reduzir pela metade o vício mais frequente.",
       };
     },

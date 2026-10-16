@@ -1166,7 +1166,6 @@
     const FILLER_LIBRARY = {
       "né": "corte a palavra ou faça uma pausa",
       "tipo": "por exemplo",
-      "então": "diante disso / dessa forma",
       "é": "uma pausa silenciosa",
       "an": "uma pausa silenciosa",
       "hã": "uma pausa silenciosa",
@@ -1178,9 +1177,24 @@
     };
     const FILLER_WORDS = Object.keys(FILLER_LIBRARY);
 
+    // "então" não conta como vício (é conectivo normal). "é" só conta quando é
+    // hesitação: puxado ("éé", "ééé") ou repetido em sequência ("é é"). Um "é"
+    // sozinho é o verbo ("o preço é…") e o reconhecimento de fala não deixa
+    // distinguir de outro jeito.
+    const STRETCHED_E = /^é{2,}$/;
     function detectFillerWords(text) {
       const tokens = tokenizeWords(text);
-      return tokens.filter((t) => FILLER_WORDS.includes(t));
+      const found = [];
+      tokens.forEach((t, i) => {
+        if (STRETCHED_E.test(t)) { found.push("é"); return; }
+        if (t === "é") {
+          const prev = tokens[i - 1], next = tokens[i + 1];
+          if (prev === "é" || next === "é" || STRETCHED_E.test(prev || "") || STRETCHED_E.test(next || "")) found.push("é");
+          return;
+        }
+        if (FILLER_WORDS.includes(t)) found.push(t);
+      });
+      return found;
     }
 
     const video = document.getElementById("video");
@@ -1598,6 +1612,9 @@
     let sessionFillerCounts = {};
     let sessionSilentSamples = 0;
     let sessionTotalSamples = 0;
+    let sessionSpeechSamples = 0;   // amostras com voz, contando pausas curtas entre palavras como fala
+    let lastVoiceAt = 0;
+    const SPEECH_HANGOVER_MS = 2000;
     let sessionConfidences = [];
     let sessionVolumes = [];
     let sessionOpenQuestions = 0;
@@ -1677,6 +1694,8 @@
       sessionFillerCounts = {};
       sessionSilentSamples = 0;
       sessionTotalSamples = 0;
+      sessionSpeechSamples = 0;
+      lastVoiceAt = 0;
       sessionConfidences = [];
       sessionVolumes = [];
       sessionOpenQuestions = 0;
@@ -1826,14 +1845,14 @@
       // na transcrição, então contar palavras dá "você falou ~100%" mesmo
       // quando ele falou quase tudo. Se quase não há palavras do "outro"
       // (sinal de que o áudio dele não vaza pro mic), a divisão passa a ser
-      // por tempo: o quanto o seu mic ficou ativo x quieto (cliente falando).
+      // por tempo: o quanto o seu mic ficou com voz (pausas de até 2s contam como fala) x quieto.
       // Sem fone o áudio dele vaza, e a contagem por palavras continua válida.
       const otherWordShare = totalWords ? wordsOther / totalWords : 0;
       let basis = "palavras";
       if (sessionTotalSamples >= 20 && otherWordShare < 0.25) {
         basis = "tempo";
-        pctYou = 100 - silencePct;
-        pctOther = silencePct;
+        pctYou = Math.min(100, Math.round((sessionSpeechSamples / sessionTotalSamples) * 100));
+        pctOther = 100 - pctYou;
       }
 
       return { pctYou, pctOther, turnsPerMinute, longestYou, longestOther, silencePct, basis };
@@ -2861,6 +2880,10 @@
       if (sessionActive) {
         sessionTotalSamples++;
         if (volume < SILENCE_RMS_THRESHOLD) sessionSilentSamples++;
+        // Pausas curtas entre palavras e frases são parte da fala, não silêncio.
+        const nowTs = Date.now();
+        if (volume >= SILENCE_RMS_THRESHOLD) lastVoiceAt = nowTs;
+        if (nowTs - lastVoiceAt < SPEECH_HANGOVER_MS) sessionSpeechSamples++;
       }
 
       if (volume < SILENCE_RMS_THRESHOLD) {

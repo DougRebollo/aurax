@@ -379,7 +379,7 @@
         .map((s) => {
           const words = (s.wpm || 0) * ((s.duration || 0) / 60);
           if (!words) return null;
-          const totalFiller = Object.values(s.filler_counts || {}).reduce((a, b) => a + b, 0);
+          const totalFiller = Object.values(AuraShell.cleanFillers(s.filler_counts)).reduce((a, b) => a + b, 0);
           return { date: s.date, value: (totalFiller / words) * 100 };
         })
         .filter(Boolean);
@@ -463,7 +463,7 @@
       const fillerTotals = {};
       const slangTotals = {};
       chronological.forEach((s) => {
-        accumulateCounts(fillerTotals, s.filler_counts);
+        accumulateCounts(fillerTotals, AuraShell.cleanFillers(s.filler_counts));
         accumulateCounts(slangTotals, s.slang_counts);
       });
       document.getElementById("fillerFreqWrap").innerHTML = renderLanguageSwapCards(fillerTotals, FILLER_LIBRARY, "filler-swap");

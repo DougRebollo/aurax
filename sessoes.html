@@ -284,7 +284,7 @@
             <td class="mono">${formatDateBR(h.date)}</td>
             <td class="mono">${formatDuration(h.duration || 0)}</td>
             <td>${oratoriaPillHtml(h.oratoria_score)}</td>
-            <td class="mono">${sumCounts(h.filler_counts)}</td>
+            <td class="mono">${sumCounts(AuraShell.cleanFillers(h.filler_counts))}</td>
             <td class="mono">${perguntas}</td>
           </tr>`;
       });
@@ -334,7 +334,7 @@
 
       const negotiationTagsHtml = renderKeywordTags(h.keyword_counts);
       const slangTagsHtml = renderSlangTags(h.slang_counts);
-      const fillerTagsHtml = renderKeywordTags(h.filler_counts);
+      const fillerTagsHtml = renderKeywordTags(AuraShell.cleanFillers(h.filler_counts));
 
       const aiHtml = h.ai_summary
         ? `<div class="ai-box"><h3>Resumo por IA</h3>
