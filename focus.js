@@ -292,39 +292,36 @@
   /* h: sessão no formato da tabela (client_name, date, duration, id, ...).
    * Não leva a transcrição: só nota, números e foco — nada falado pelo cliente. */
   function crmNote(h, prev) {
+    // Cada linha começa com "•": se o CRM juntar tudo num parágrafo (perdendo as
+    // quebras de linha), os tópicos continuam separados e legíveis.
+    const SHORT = { ritmo: "Ritmo", pausas: "Pausas", vicios: "Vícios", clareza: "Clareza", projecao: "Projeção" };
     const L = [];
     const when = h.date ? new Date(h.date) : new Date();
-    const dur = h.duration ? ` · ${fmtS(h.duration)}` : "";
-    L.push("AuraX — Análise da call");
-    L.push(`${h.client_name ? "Cliente: " + h.client_name + " · " : ""}${when.toLocaleDateString("pt-BR")}${dur}`);
+    L.push(`AuraX · Análise da call${h.client_name ? " — " + h.client_name : ""} · ${when.toLocaleDateString("pt-BR")}${h.duration ? " · " + fmtS(h.duration) : ""}`);
     if (h.oratoria_score != null) {
       const rank = RANKS.find(([min]) => h.oratoria_score >= min)[1];
-      L.push(`Nota de oratória: ${h.oratoria_score}/100 (${rank})`);
+      L.push(`• Nota de oratória: ${h.oratoria_score}/100 (${rank})`);
     }
     const subs = h.oratoria_subscores || [];
-    if (subs.length) L.push("Critérios: " + subs.map((s) => `${SUB_LABELS[s.key] || s.label} ${Math.round(s.score)}`).join(" · "));
+    if (subs.length) L.push("• Critérios: " + subs.map((x) => `${SHORT[x.key] || x.label} ${Math.round(x.score)}`).join(" · "));
     const facts = [];
-    if (h.wpm) facts.push(`Ritmo: ${h.wpm} palavras/min`);
-    if (h.pauses != null) facts.push(`Pausas longas: ${h.pauses}`);
-    if (h.open_questions != null || h.closed_questions != null) facts.push(`Perguntas: ${h.open_questions || 0} ${(h.open_questions || 0) === 1 ? "aberta" : "abertas"} / ${h.closed_questions || 0} ${(h.closed_questions || 0) === 1 ? "fechada" : "fechadas"}`);
-    if (facts.length) L.push(facts.join(" · "));
+    if (h.wpm) facts.push(`${h.wpm} palavras/min`);
+    if (h.pauses) facts.push(`${h.pauses} ${h.pauses === 1 ? "pausa longa" : "pausas longas"}`);
+    const open = h.open_questions || 0, closed = h.closed_questions || 0;
+    if (open + closed > 0) facts.push(`perguntas: ${open} ${open === 1 ? "aberta" : "abertas"} / ${closed} ${closed === 1 ? "fechada" : "fechadas"}`);
+    if (facts.length) L.push("• Ritmo e perguntas: " + facts.join(" · "));
     if (h.objections && h.objections.length) {
-      L.push("Objeções: " + h.objections.map((o) => `${clock(o.t)} "${o.phrase}" → ${o.result}`).join("; "));
+      L.push("• Objeções: " + h.objections.map((o) => `${clock(o.t)} "${o.phrase}" → ${o.result}`).join("; "));
     }
     const f = build(h, prev);
     if (f) {
-      L.push("");
-      L.push(`${f.eyebrow}: ${f.title}`);
-      L.push("- " + plain(f.why));
-      L.push("- O que fazer: " + f.action);
-      L.push("- " + f.goal);
-      if (f.compare) L.push(`- Comparação: média das últimas ${f.compare.n} sessões em ${f.compare.label}: ${f.compare.mean}; hoje: ${f.compare.now}`);
-      if (f.strength) L.push(`Ponto forte: ${f.strength.label} (${f.strength.score}/100)`);
+      L.push(`• Foco para a próxima reunião: ${f.title} — ${plain(f.why).split(" — mais frequentes")[0].replace(/\.$/, "")}`);
+      L.push(`• ${f.goal}`);
     }
     if (h.id) {
       let link = "sessoes.html?id=" + encodeURIComponent(h.id);
       try { link = new URL(link, location.href).href; } catch (e) { /* mantém o link relativo */ }
-      L.push("", "Análise completa: " + link);
+      L.push("• Análise completa: " + link);
     }
     return L.join("\n");
   }
