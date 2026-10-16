@@ -157,7 +157,7 @@
     const isGestor = role === "gestor";
 
     el.innerHTML =
-      '<a class="brand" href="index.html"><div class="brand-mark">A</div><div class="brand-name">AuraX</div></a>' +
+      '<a class="brand" href="index.html"><div class="brand-name">AuraX</div></a>' +
       '<nav class="nav-group" aria-label="Principal"><div class="nav-label">Principal</div>' +
         item("gravar", "index.html", "record", "Gravar sessão", active) +
         item("sessoes", "sessoes.html", "list", "Minhas Sessões", active) +
