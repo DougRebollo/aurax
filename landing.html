@@ -30,8 +30,8 @@
   /* Hero */
   .lp-hero { padding-block: 72px 56px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 56px; align-items: center; }
   .lp-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 18px; }
-  .lp-hero h1 { font-size: clamp(2.4rem, 5vw, 3.7rem); line-height: 1.04; letter-spacing: -0.03em; font-weight: 700; margin: 0 0 20px; text-wrap: balance; }
-  .lp-hero h1 span { color: var(--accent); }
+  .lp-hero h2 { font-size: clamp(2.4rem, 5vw, 3.7rem); line-height: 1.04; letter-spacing: -0.03em; font-weight: 700; margin: 0 0 20px; text-wrap: balance; }
+  .lp-hero h2 span { color: var(--accent); }
   .lp-sub { font-size: 1.08rem; color: var(--ink-dim); max-width: 520px; margin: 0 0 28px; }
   .lp-sub strong { color: var(--ink); font-weight: 600; }
   .lp-cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -187,6 +187,49 @@
   @media (prefers-reduced-motion: reduce) { .float { animation: none; } }
   @media (min-width: 1780px) { .float { display: flex; } }
   @media (max-width: 640px) { .lp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; } .lp-stat { padding: 12px; } .lp-stat b { font-size: 20px; } }
+
+  /* ===== Abertura cinematográfica (estilo "HUD de voz") ===== */
+  .lp-nav { margin-bottom: -65px; transition: background 0.3s, border-color 0.3s; }
+  .lp-nav .lp-brand { transition: opacity 0.3s; }
+  .lp-nav.on-dark { background: rgba(5, 7, 13, 0.4); border-bottom-color: rgba(255, 255, 255, 0.07); }
+  .lp-nav.on-dark .lp-brand { color: #fff; }
+  .lp-nav.on-dark .lp-links a { color: #9aa4b8; }
+  .lp-nav.on-dark .lp-links a:hover { color: #fff; }
+  .lp-nav.on-dark .lp-btn.ghost { background: rgba(255, 255, 255, 0.06); color: #e9edf4; border-color: rgba(255, 255, 255, 0.18); }
+
+  .cine { --c-bg: #05070d; --c-ink: #f2f5fb; --c-dim: #8d97ab; --c-line: rgba(255, 255, 255, 0.1); --c-blue: #6c8cff; --c-cyan: #4fd1e8;
+    position: relative; background: var(--c-bg); color: var(--c-ink); }
+  .cine-mono { font-family: var(--font); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-dim); }
+  .cine-hero { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 clamp(20px, 4vw, 56px) clamp(28px, 5vh, 56px); isolation: isolate; }
+  #heroCanvas, #heroFx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  .cine-cols { position: absolute; z-index: 2; top: 92px; left: clamp(20px, 4vw, 56px); right: clamp(20px, 4vw, 56px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .cine-cols p { margin: 0; max-width: 230px; line-height: 1.6; }
+  .cine-cols b { display: block; color: var(--c-ink); font-weight: 500; margin-bottom: 6px; }
+  .cine-hud { position: absolute; z-index: 2; right: clamp(20px, 4vw, 56px); top: 34%; width: 230px; border-left: 1px solid var(--c-line); padding-left: 18px; }
+  .cine-hud .row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--c-line); }
+  .cine-hud .row span:last-child { color: var(--c-ink); font-variant-numeric: tabular-nums; }
+  .cine-hud .score { margin-top: 14px; font-size: 54px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; color: var(--c-ink); font-family: var(--font); }
+  .cine-hud .score small { font-size: 14px; color: var(--c-dim); font-weight: 400; letter-spacing: 0; }
+  .cine-hud .scan { margin-top: 10px; color: var(--c-cyan); }
+  .cine-title { position: relative; z-index: 2; margin: 0; font-size: clamp(2.4rem, 7vw, 6.6rem); line-height: 0.93; letter-spacing: -0.04em; font-weight: 600; text-transform: uppercase; text-wrap: balance; max-width: 15ch; }
+  .cine-title em { font-style: normal; color: var(--c-blue); }
+  .cine-foot { position: relative; z-index: 2; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: clamp(18px, 3vh, 30px); }
+  .cine-foot .lp-btn { background: #fff; color: #05070d; border-color: #fff; }
+  .cine-foot .lp-btn.ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.35); }
+  .cine-hero .rise { opacity: 0; transform: translateY(18px); animation: cineRise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+  @keyframes cineRise { to { opacity: 1; transform: none; } }
+
+  /* liga a abertura escura à landing original (que é clara) */
+  .cine-fade { height: 240px; margin-top: -1px; background: linear-gradient(to bottom, var(--c-bg) 0%, color-mix(in srgb, var(--c-bg) 55%, var(--bg)) 40%, var(--bg) 100%); }
+
+  @media (max-width: 860px) {
+    .cine-cols { grid-template-columns: 1fr 1fr; top: 84px; }
+    .cine-cols p:nth-child(n+3) { display: none; }
+    .cine-hud { position: relative; right: auto; top: auto; width: auto; margin: 0 0 18px; z-index: 2; }
+    .cine-hud .row { display: none; }
+    .cine-hud .score { font-size: 38px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .cine-hero .rise { animation: none; opacity: 1; transform: none; } }
 </style>
 <script>
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -213,11 +256,40 @@
   </div>
 </nav>
 
+<section class="cine" id="cine">
+  <div class="cine-hero" id="cineHero">
+    <canvas id="heroCanvas" aria-hidden="true"></canvas>
+    <canvas id="heroFx" aria-hidden="true"></canvas>
+    <div class="cine-cols cine-mono rise" style="animation-delay:.2s">
+      <p><b>O que medimos</b>Ritmo · Pausas · Vícios · Clareza · Projeção.</p>
+      <p><b>Como funciona</b>Roda no navegador. Sem bot na sua call.</p>
+      <p><b>Para quem</b>Heads comerciais, gestores e líderes de equipe.</p>
+    </div>
+    <div class="cine-hud cine-mono rise" id="hud" style="animation-delay:.6s" aria-hidden="true">
+      <div class="row"><span>Ritmo</span><span><i id="hRitmo">132</i> pal/min</span></div>
+      <div class="row"><span>Pausas longas</span><span id="hPausas">1</span></div>
+      <div class="row"><span>Vícios</span><span id="hVicios">3</span></div>
+      <div class="row"><span>Clareza</span><span id="hClareza">79</span></div>
+      <div class="row"><span>Projeção</span><span id="hProj">62</span></div>
+      <div class="score"><span id="hScore">82</span><small> /100</small></div>
+      <div class="scan" id="hScan">● Analisando fala</div>
+    </div>
+    <h1 class="cine-title rise" style="animation-delay:.35s">Sua oratória, medida em <em>cada call.</em></h1>
+    <div class="cine-foot rise" style="animation-delay:.55s">
+      <a class="lp-btn big" id="cineCta" href="#" target="_blank" rel="noopener">Falar com o time comercial</a>
+      <a class="lp-btn big ghost" href="#funcionalidades">Ver funcionalidades</a>
+      <span class="cine-mono">[ Role para explorar ]</span>
+    </div>
+  </div>
+
+  <div class="cine-fade"></div>
+</section>
+
 <div class="lp-band">
 <header class="lp-wrap lp-hero">
   <div>
     <p class="lp-eyebrow">Para heads comerciais, gestores e líderes de equipe</p>
-    <h1>Sua oratória, medida <span>em cada call.</span></h1>
+    <h2>Sua oratória, medida <span>em cada call.</span></h2>
     <p class="lp-sub">O AuraX é uma <strong>IA de desenvolvimento pessoal em negociação</strong>. Ele acompanha a sua própria call, aponta vícios de linguagem e gírias na hora e fecha cada reunião com uma nota e o que melhorar na próxima.</p>
     <div class="lp-cta-row">
       <a class="lp-btn big" id="heroCta" href="#" target="_blank" rel="noopener">Falar com o time comercial</a>
@@ -454,7 +526,7 @@
   const waUrl = (msg) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   const whatsappUrl = waUrl("Olá! Quero falar com o time comercial sobre o AuraX.");
 
-  ["navCta", "heroCta", "finalCta"].forEach((id) => {
+  ["navCta", "cineCta", "heroCta", "finalCta"].forEach((id) => {
     const el = document.getElementById(id);
     el.href = whatsappUrl;
     el.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: id }));
@@ -468,6 +540,256 @@
   const enterpriseLink = document.getElementById("enterpriseSalesLink");
   enterpriseLink.href = waUrl("Olá! Minha equipe tem mais de 6 pessoas e preciso de um plano sob medida pro AuraX.");
   enterpriseLink.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: "enterpriseSalesLink" }));
+</script>
+<script>
+(function () {
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const nav = document.querySelector(".lp-nav");
+  const cine = document.getElementById("cine");
+
+  // Barra de cima escura enquanto a seção cinematográfica está atrás dela.
+  let navTick = false;
+  function updateNav() {
+    navTick = false;
+    const r = document.getElementById("cineHero").getBoundingClientRect();
+    nav.classList.toggle("on-dark", r.bottom > nav.offsetHeight + 40);
+  }
+  window.addEventListener("scroll", () => { if (!navTick) { navTick = true; requestAnimationFrame(updateNav); } }, { passive: true });
+  updateNav();
+
+  // ===== Hero: a foto em 2.5D (profundidade) que vira partículas onde o cursor passa =====
+  const hero = document.getElementById("cineHero");
+  const glCanvas = document.getElementById("heroCanvas");
+  const fx = document.getElementById("heroFx");
+  const fctx = fx.getContext("2d");
+  const FACE_SRC = "assets/hero-face.jpg", MASK_SRC = "assets/hero-face-mask.png";
+  const IMG_W = 540, IMG_H = 899, TW = 108, TH = 180;
+  const BUCKETS = 6;
+
+  let gl = null, prog = null, tex = {}, faceReady = false, lumA = null, maskA = null, depthA = null;
+  let photoImg = null, maskImg = null, cutCanvas = null;
+
+  function boxBlur(src, w, h, r) {  // desfoque de caixa separável (2 passadas ≈ gaussiana)
+    const tmp = new Float32Array(w * h), out = new Float32Array(w * h), k = 1 / (2 * r + 1);
+    for (let y = 0; y < h; y++) {
+      let acc = 0; const row = y * w;
+      for (let x = -r; x <= r; x++) acc += src[row + Math.min(w - 1, Math.max(0, x))];
+      for (let x = 0; x < w; x++) { tmp[row + x] = acc * k; acc += src[row + Math.min(w - 1, x + r + 1)] - src[row + Math.max(0, x - r)]; }
+    }
+    for (let x = 0; x < w; x++) {
+      let acc = 0;
+      for (let y = -r; y <= r; y++) acc += tmp[Math.min(h - 1, Math.max(0, y)) * w + x];
+      for (let y = 0; y < h; y++) { out[y * w + x] = acc * k; acc += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x]; }
+    }
+    return out;
+  }
+
+  function buildDepth() {  // profundidade aproximada: o rosto "estufa" para frente, nariz e testa mais perto
+    let m = Float32Array.from(maskA);
+    m = boxBlur(boxBlur(m, IMG_W, IMG_H, 26), IMG_W, IMG_H, 26);
+    const lb = boxBlur(boxBlur(lumA, IMG_W, IMG_H, 9), IMG_W, IMG_H, 9);
+    depthA = new Uint8Array(IMG_W * IMG_H);
+    for (let y = 0; y < IMG_H; y++) for (let x = 0; x < IMG_W; x++) {
+      const i = y * IMG_W + x;
+      const gx = (x - 275) / 120, gy = (y - 400) / 170, nose = Math.exp(-(gx * gx + gy * gy));
+      const gx2 = (x - 275) / 190, gy2 = (y - 300) / 240, face = Math.exp(-(gx2 * gx2 + gy2 * gy2));
+      depthA[i] = Math.round(255 * clamp(0.10 + 0.40 * m[i] + 0.22 * lb[i] + 0.22 * face + 0.22 * nose, 0, 1));
+    }
+  }
+
+  function initGL() {
+    gl = glCanvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: true }) || null;
+    if (!gl) return false;
+    const vs = "attribute vec2 a_pos;uniform vec4 u_rect;uniform vec2 u_res;varying vec2 v_uv;void main(){vec2 p=u_rect.xy+a_pos*u_rect.zw;vec2 c=p/u_res*2.0-1.0;gl_Position=vec4(c.x,-c.y,0.0,1.0);v_uv=a_pos;}";
+    const fs = "precision mediump float;uniform sampler2D u_photo,u_mask,u_depth,u_trail;uniform vec2 u_mouse;varying vec2 v_uv;" +
+      "void main(){float d=texture2D(u_depth,v_uv).r;vec2 off=u_mouse*(d-0.42)*vec2(0.042,0.034);vec2 uv=v_uv-off;" +
+      "vec4 c=texture2D(u_photo,uv);float m=texture2D(u_mask,uv).r;float t=texture2D(u_trail,v_uv).r;" +
+      "float keep=1.0-smoothstep(0.08,0.85,t);float light=1.0+(d-0.5)*u_mouse.x*0.22+u_mouse.y*(0.5-v_uv.y)*0.06;" +
+      "float a=m*keep*smoothstep(1.0,0.78,v_uv.y)*smoothstep(0.0,0.06,v_uv.y);gl_FragColor=vec4(c.rgb*light*a,a);}";
+    const sh = (type, src) => { const s_ = gl.createShader(type); gl.shaderSource(s_, src); gl.compileShader(s_); return gl.getShaderParameter(s_, gl.COMPILE_STATUS) ? s_ : null; };
+    const v = sh(gl.VERTEX_SHADER, vs), f = sh(gl.FRAGMENT_SHADER, fs);
+    if (!v || !f) return false;
+    prog = gl.createProgram(); gl.attachShader(prog, v); gl.attachShader(prog, f); gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return false;
+    gl.useProgram(prog);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, "a_pos"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const mk = (unit, name) => {
+      const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.uniform1i(gl.getUniformLocation(prog, name), unit); tex[name] = t; return t;
+    };
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    mk(0, "u_photo"); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, photoImg);
+    mk(1, "u_mask"); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, maskImg);
+    mk(2, "u_depth"); gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, IMG_W, IMG_H, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, depthA);
+    mk(3, "u_trail"); gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, TW, TH, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(TW * TH));
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    return true;
+  }
+
+  function loadFace(done) {
+    const a = new Image(), b = new Image(); let n = 0;
+    const fin = () => {
+      if (++n < 2) return;
+      photoImg = a; maskImg = b;
+      const c = document.createElement("canvas"); c.width = IMG_W; c.height = IMG_H;
+      const x = c.getContext("2d", { willReadFrequently: true });
+      x.drawImage(a, 0, 0, IMG_W, IMG_H); const pa = x.getImageData(0, 0, IMG_W, IMG_H).data;
+      x.clearRect(0, 0, IMG_W, IMG_H); x.drawImage(b, 0, 0, IMG_W, IMG_H); const pb = x.getImageData(0, 0, IMG_W, IMG_H).data;
+      lumA = new Float32Array(IMG_W * IMG_H); maskA = new Uint8Array(IMG_W * IMG_H);
+      for (let i = 0; i < lumA.length; i++) { lumA[i] = (pa[i*4] * 0.299 + pa[i*4+1] * 0.587 + pa[i*4+2] * 0.114) / 255; maskA[i] = pb[i*4] > 128 ? 1 : 0; }
+      buildDepth();
+      if (!initGL()) {  // sem WebGL: recorte plano em 2D
+        cutCanvas = document.createElement("canvas"); cutCanvas.width = IMG_W; cutCanvas.height = IMG_H;
+        const cx2 = cutCanvas.getContext("2d"); cx2.drawImage(b, 0, 0, IMG_W, IMG_H); cx2.globalCompositeOperation = "source-in"; cx2.drawImage(a, 0, 0, IMG_W, IMG_H);
+      }
+      faceReady = true; done();
+    };
+    a.onload = b.onload = fin; a.onerror = b.onerror = () => {};
+    a.src = FACE_SRC; b.src = MASK_SRC;
+  }
+
+  let W = 0, H = 0, dpr = 1, s = 1, ox = 0, oy = 0, P = [], trail = new Float32Array(TW * TH), trailU8 = new Uint8Array(TW * TH);
+  let mx = -999, my = -999, lmx = null, lmy = null, pointerOn = false, mouseX = 0, mouseY = 0, tMouseX = 0, tMouseY = 0, lastMoveAt = 0;
+
+  function layout() {
+    if (!faceReady) return;
+    const r = hero.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = r.width; H = r.height;
+    glCanvas.width = fx.width = Math.round(W * dpr); glCanvas.height = fx.height = Math.round(H * dpr);
+    fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const mobile = W < 860;
+    s = mobile ? Math.min(W * 0.8 / IMG_W, 390 / IMG_H) : (H - 70) / IMG_H;
+    ox = W * (mobile ? 0.5 : 0.6) - (IMG_W * s) / 2;
+    oy = mobile ? 150 : 66;
+    // partículas: uma por célula da grade onde há pessoa
+    const step = mobile ? 5 : 3;
+    P = [];
+    for (let y = 2; y < IMG_H - 2; y += step) for (let x = 2; x < IMG_W - 2; x += step) {
+      const jx = Math.min(IMG_W - 2, x + Math.random() * step), jy = Math.min(IMG_H - 2, y + Math.random() * step);
+      const idx = (jy | 0) * IMG_W + (jx | 0);
+      if (!maskA[idx]) continue;
+      const l = Math.pow(lumA[idx], 0.7);
+      if (Math.random() > 0.38 + l * 0.42) continue;
+      const gi = Math.min(TH - 1, (jy / IMG_H * TH) | 0) * TW + Math.min(TW - 1, (jx / IMG_W * TW) | 0);
+      P.push({ u: jx, v: jy, l, b: Math.min(BUCKETS - 1, Math.floor(l * BUCKETS)), gi, d: depthA[idx] / 255, ang: Math.random() * 6.283, mag: 14 + Math.random() * 46, ph: Math.random() * 6.283 });
+    }
+    P.sort((p, q) => p.b - q.b);
+    if (gl) gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+  }
+
+  function envelope(t) {
+    const e = 0.5 + 0.28 * Math.sin(t * 1.1) + 0.22 * Math.sin(t * 2.7 + 1.3);
+    return clamp(e + Math.max(0, Math.sin(t * 0.63) * Math.sin(t * 3.1 + 0.4)) * 0.45, 0.12, 1.3);
+  }
+
+  function stamp(gx, gy, rad) {  // pinta no mapa de dissolução em volta do cursor
+    const x0 = Math.max(0, Math.floor(gx - rad)), x1 = Math.min(TW - 1, Math.ceil(gx + rad));
+    const y0 = Math.max(0, Math.floor(gy - rad)), y1 = Math.min(TH - 1, Math.ceil(gy + rad));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const d = Math.hypot(x - gx, y - gy) / rad;
+      if (d < 1) { const v = Math.pow(1 - d, 1.5) * 0.9, i = y * TW + x; trail[i] = Math.min(1, trail[i] + v * 0.55); }
+    }
+  }
+
+  let active = false;
+  function drawHero(t) {
+    fctx.clearRect(0, 0, W, H);
+    if (!faceReady) return false;
+    const faceW = IMG_W * s, faceH = IMG_H * s;
+
+    // inclinação 3D: segue o cursor; sem cursor, balança devagar sozinha
+    const idle = performance.now() - lastMoveAt > 2500;
+    if (reduce) { tMouseX = 0.25; tMouseY = 0; }
+    else if (!pointerOn || idle) { tMouseX = Math.sin(t * 0.45) * 0.55; tMouseY = Math.cos(t * 0.33) * 0.25; }
+    mouseX += (tMouseX - mouseX) * 0.06; mouseY += (tMouseY - mouseY) * 0.06;
+
+    // mapa de dissolução: pinta onde o cursor passa e vai apagando
+    if (!reduce) {
+      const cellW = faceW / TW, cellH = faceH / TH, rad = (W < 860 ? 55 : 78) / cellW;
+      if (pointerOn) {
+        const gx = (mx - ox) / cellW, gy = (my - oy) / cellH;
+        if (gx > -rad && gx < TW + rad && gy > -rad && gy < TH + rad) {
+          const segs = lmx === null ? 1 : Math.max(1, Math.ceil(Math.hypot(gx - lmx, gy - lmy) / (rad * 0.45)));
+          for (let k = 1; k <= segs; k++) { const f = k / segs; stamp(lmx === null ? gx : lmx + (gx - lmx) * f, lmy === null ? gy : lmy + (gy - lmy) * f, rad); }
+        }
+        lmx = gx; lmy = gy;
+      } else { lmx = lmy = null; }
+      let any = 0;
+      for (let i = 0; i < trail.length; i++) { const v = trail[i] * 0.972; trail[i] = v < 0.01 ? 0 : v; trailU8[i] = Math.min(255, v * 255); if (v > 0.02) any++; }
+      active = any > 12;
+    }
+
+    // foto em 2.5D
+    if (gl) {
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform4f(gl.getUniformLocation(prog, "u_rect"), ox, oy, faceW, faceH);
+      gl.uniform2f(gl.getUniformLocation(prog, "u_res"), W, H);
+      gl.uniform2f(gl.getUniformLocation(prog, "u_mouse"), mouseX, mouseY);
+      gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, tex.u_trail);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, TW, TH, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, trailU8);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    } else if (cutCanvas) {
+      const c2 = glCanvas.getContext("2d"); c2.setTransform(dpr, 0, 0, dpr, 0, 0); c2.clearRect(0, 0, W, H); c2.drawImage(cutCanvas, ox, oy, faceW, faceH);
+    }
+
+    // partículas onde a foto se desfez
+    if (!reduce && active) {
+      const offK = faceW;
+      let i = 0;
+      fctx.globalCompositeOperation = "lighter";
+      for (let b = 0; b < BUCKETS; b++) {
+        const lv = (b + 0.5) / BUCKETS;
+        fctx.fillStyle = `rgb(${Math.round(135 + 90 * lv)},${Math.round(175 + 65 * lv)},255)`;
+        const size = 1.2 + lv * 1.1;
+        while (i < P.length && P[i].b === b) {
+          const p = P[i++], tr = trail[p.gi];
+          if (tr < 0.06) continue;
+          const e = tr * tr;
+          const sx = mouseX * (p.d - 0.42) * 0.042 * offK, sy = mouseY * (p.d - 0.42) * 0.034 * offK;
+          const x = ox + p.u * s + sx + Math.cos(p.ang) * p.mag * e + Math.sin(t * 2 + p.ph) * 0.8 * tr;
+          const y = oy + p.v * s + sy + Math.sin(p.ang) * p.mag * e - 10 * e;
+          fctx.globalAlpha = Math.min(0.8, tr * 1.6) * (0.4 + 0.6 * p.l);
+          fctx.fillRect(x - size / 2, y - size / 2, size, size);
+        }
+      }
+      fctx.globalAlpha = 1; fctx.globalCompositeOperation = "source-over";
+    }
+    return active;
+  }
+
+  // HUD que "respira" junto com a fala
+  const el = (id) => document.getElementById(id);
+  let hudT = 0;
+  function updateHud(t, scanning) {
+    if (t - hudT < 0.25) return; hudT = t;
+    const env = envelope(t);
+    el("hRitmo").textContent = Math.round(128 + Math.sin(t * 0.9) * 5 + env * 5);
+    el("hClareza").textContent = 78 + Math.round(Math.sin(t * 0.5) * 1.2 + 1);
+    el("hProj").textContent = 61 + Math.round(Math.sin(t * 0.7 + 1) * 1.2 + 1);
+    el("hScan").textContent = scanning ? "● Analisando fala" : "● Pronto";
+    el("hScan").style.opacity = scanning ? 1 : 0.55;
+  }
+
+  let heroVisible = true, raf = 0, running = false;
+  function loop(ms) { if (!running) return; const t = ms / 1000; const sc = drawHero(t); updateHud(t, sc); raf = requestAnimationFrame(loop); }
+  function start() { if (reduce || running || !heroVisible || document.hidden) return; running = true; raf = requestAnimationFrame(loop); }
+  function stop() { running = false; cancelAnimationFrame(raf); }
+  loadFace(() => { layout(); drawHero(2); start(); });
+  window.addEventListener("resize", () => { layout(); if (!running) drawHero(2); });
+  hero.addEventListener("pointermove", (e) => { const r = hero.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; pointerOn = true; lastMoveAt = performance.now(); tMouseX = clamp((mx / r.width - 0.6) * 2.4, -1, 1); tMouseY = clamp((my / r.height - 0.5) * 2, -1, 1); });
+  hero.addEventListener("pointerleave", () => { pointerOn = false; });
+  document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
+  window.addEventListener("scroll", () => { heroVisible = hero.getBoundingClientRect().bottom > 0; heroVisible ? start() : stop(); }, { passive: true });
+  start();
+
+})();
 </script>
 </body>
 </html>
