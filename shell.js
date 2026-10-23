@@ -4,7 +4,7 @@
   const WHATSAPP_URL = "https://wa.me/5551984026354?text=" + encodeURIComponent("Olá! Quero falar com o time comercial sobre o AuraX.");
   const SUPPORT_WHATSAPP_URL = "https://wa.me/5551984026354?text=" + encodeURIComponent("Olá! Preciso de ajuda com o AuraX.");
   // Preencher quando o e-mail da AuraX existir: aparece como alternativa no suporte.
-  const SUPPORT_EMAIL = "";
+  const SUPPORT_EMAIL = "auraxcontato@gmail.com";
   // Ligar (true) depois do deploy da Edge Function support-notify, que manda o aviso por e-mail.
   const SUPPORT_NOTIFY_ENABLED = false;
 
