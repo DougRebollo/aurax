@@ -949,11 +949,10 @@
       <div id="transcript-header">
         <h2>Transcrição ao vivo</h2>
         <div style="display:flex; gap:6px;">
-          <button type="button" id="calibrateVoiceBtn" class="ghost">Calibrar minha voz</button>
           <button id="micToggleBtn">Ativar microfone</button>
         </div>
       </div>
-      <div id="transcript-note">"Você" / "Outro participante" é uma aproximação pelo volume da voz, não identificação real. Calibre sua voz antes da call e use fone de ouvido para o resultado ficar bem mais confiável.</div>
+      <div id="transcript-note">Análise individual: tudo o que o seu microfone captar é considerado fala sua. Use fone de ouvido na call para a voz de quem fala com você não entrar na sua análise.</div>
       <div id="transcriptMeta">
         <span id="micPulse" class="mic-pulse hidden"></span>
         <span id="transcriptStatus"></span>
@@ -1802,55 +1801,14 @@
       });
     }
 
-    // Métricas de dinâmica da conversa (inspiradas em ferramentas de call
-    // intelligence): quem falou mais, quantas trocas de turno, maior fala de
-    // cada um (em palavras, já que não medimos duração exata por fala) e
-    // quanto da sessão foi silêncio.
+    // Dinâmica da sessão (análise individual): quanto do tempo você ficou falando
+    // x ouvindo/em silêncio. Pausas de até 2s entre palavras contam como fala.
     function computeConversationDynamics(transcript) {
-      if (!transcript.length) return null;
-
-      let wordsYou = 0;
-      let wordsOther = 0;
-      let longestYou = 0;
-      let longestOther = 0;
-      let turnChanges = 0;
-
-      transcript.forEach((line, i) => {
-        const wc = line.text.split(/\s+/).filter(Boolean).length;
-        if (line.speaker === "Outro participante") {
-          wordsOther += wc;
-          longestOther = Math.max(longestOther, wc);
-        } else {
-          wordsYou += wc;
-          longestYou = Math.max(longestYou, wc);
-        }
-        if (i > 0 && line.speaker !== transcript[i - 1].speaker) turnChanges++;
-      });
-
-      const totalWords = wordsYou + wordsOther;
-      let pctYou = totalWords ? Math.round((wordsYou / totalWords) * 100) : 0;
-      let pctOther = 100 - pctYou;
-      const durationMin = sessionTranscript.length
-        ? Math.max(sessionTranscript[sessionTranscript.length - 1].t / 60, 0.05)
-        : 0.05;
-      const turnsPerMinute = (turnChanges / durationMin).toFixed(1);
-      const silencePct = sessionTotalSamples ? Math.round((sessionSilentSamples / sessionTotalSamples) * 100) : 0;
-
-      // De fone, o microfone só capta a SUA voz: a fala do cliente não entra
-      // na transcrição, então contar palavras dá "você falou ~100%" mesmo
-      // quando ele falou quase tudo. Se quase não há palavras do "outro"
-      // (sinal de que o áudio dele não vaza pro mic), a divisão passa a ser
-      // por tempo: o quanto o seu mic ficou com voz (pausas de até 2s contam como fala) x quieto.
-      // Sem fone o áudio dele vaza, e a contagem por palavras continua válida.
-      const otherWordShare = totalWords ? wordsOther / totalWords : 0;
-      let basis = "palavras";
-      if (sessionTotalSamples >= 20 && otherWordShare < 0.25) {
-        basis = "tempo";
-        pctYou = Math.min(100, Math.round((sessionSpeechSamples / sessionTotalSamples) * 100));
-        pctOther = 100 - pctYou;
-      }
-
-      return { pctYou, pctOther, turnsPerMinute, longestYou, longestOther, silencePct, basis };
+      if (!transcript.length || sessionTotalSamples < 20) return null;
+      const pctYou = Math.min(100, Math.round((sessionSpeechSamples / sessionTotalSamples) * 100));
+      const silencePct = Math.round((sessionSilentSamples / sessionTotalSamples) * 100);
+      const longestYou = transcript.reduce((m, l) => Math.max(m, l.text.split(/\s+/).filter(Boolean).length), 0);
+      return { pctYou, pctOther: 100 - pctYou, turnsPerMinute: "0.0", longestYou, longestOther: 0, silencePct, basis: "tempo" };
     }
 
     // Nota de oratória: combina sinais que já coletamos (ritmo, pausas,
@@ -2061,9 +2019,9 @@
 
       if (dynamics) {
         if (dynamics.pctYou >= 75) {
-          tips.push({ key: "dominou_conversa", type: "melhorar", text: `Você dominou ${dynamics.pctYou}% da conversa — abra mais espaço para o outro participante.` });
+          tips.push({ key: "dominou_conversa", type: "melhorar", text: `Você falou ${dynamics.pctYou}% do tempo da sessão — abra mais espaço para o cliente falar.` });
         } else if (dynamics.pctOther >= 35) {
-          tips.push({ key: "boa_escuta", type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o outro participante falar.` });
+          tips.push({ key: "boa_escuta", type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o cliente falar.` });
         }
         // De fone, o silêncio do SEU mic é o cliente falando (escuta), não
         // hesitação — o aviso só faz sentido quando a divisão é por palavras.
@@ -2222,10 +2180,7 @@
             <div class="talk-split-you" style="width:${dynamics.pctYou}%"></div>
             <div class="talk-split-other" style="width:${dynamics.pctOther}%"></div>
           </div>
-          <div class="talk-split-labels"><span>Você ${dynamics.pctYou}%${dynamics.basis === "tempo" ? " do tempo" : ""}</span><span>${dynamics.basis === "tempo" ? "Outro participante / silêncio" : "Outro participante"} ${dynamics.pctOther}%</span></div>
-          ${dynamics.basis === "tempo" ? "" : `<div class="insight-line" style="margin-top:10px">Trocas de turno: ${dynamics.turnsPerMinute}/min</div>
-          <div class="insight-line">Maior fala sua: ${dynamics.longestYou} palavras · do outro: ${dynamics.longestOther} palavras</div>
-          <div class="insight-line">Silêncio na sessão: ${dynamics.silencePct}%</div>`}
+          <div class="talk-split-labels"><span>Você falou ${dynamics.pctYou}% do tempo</span><span>Ouvindo ou em silêncio ${dynamics.pctOther}%</span></div>
           <div class="insight-line">Suas perguntas: ${sessionOpenQuestions} aberta${sessionOpenQuestions === 1 ? "" : "s"} · ${sessionClosedQuestions} fechada${sessionClosedQuestions === 1 ? "" : "s"}</div>
         `;
       } else {
@@ -2341,9 +2296,7 @@
             .map((w) => `<span class="slang-tag">${w}${SLANG_LIBRARY[w] ? ` → ${SLANG_LIBRARY[w]}` : ""}</span>`)
             .join("")}</div>`
         : "";
-      const speakerTagHtml = line.speaker
-        ? `<span class="speaker-tag ${line.speaker === "Outro participante" ? "speaker-other" : "speaker-you"}">${line.speaker}</span>`
-        : "";
+      const speakerTagHtml = "";  // análise individual: não há mais "outro participante"
       const flagClass = hasKeywords ? " transcript-flagged" : hasSlang ? " transcript-slang" : "";
       return `
         <div class="transcript-line${flagClass}">
@@ -2523,7 +2476,6 @@
 
     // --- Transcrição ao vivo (Web Speech API) ---
     const micToggleBtn = document.getElementById("micToggleBtn");
-    const calibrateVoiceBtn = document.getElementById("calibrateVoiceBtn");
     const transcriptStatusEl = document.getElementById("transcriptStatus");
     const transcriptLogEl = document.getElementById("transcriptLog");
     const micPulseEl = document.getElementById("micPulse");
@@ -2601,229 +2553,13 @@
     let lowVolumeAlreadyFlagged = false;
     let highVolumeAlreadyFlagged = false;
 
-    // --- Distinção de falantes (aproximada, por volume) ---
-    // Não é diarização de verdade — não há como isolar vozes só com um
-    // microfone no navegador quando as duas vozes saem pela mesma caixa de som
-    // e voltam pelo mesmo mic (sem fone). É uma aproximação por agrupamento:
-    // ao longo da call, as falas vão se dividindo em dois grupos que se
-    // ajustam sozinhos (você / outro participante) em vez de comparar com um
-    // número fixo travado no momento da calibração — um limiar fixo quebra
-    // fácil, porque o volume "normal" muda de call pra call (ambiente,
-    // volume da caixa de som etc.), e tudo acaba caindo do lado errado.
+    // --- Análise individual ---
+    // O microfone capta a sua voz (de fone, só a sua): tudo o que é transcrito é fala
+    // do usuário. Não tentamos mais separar "outro participante" por volume — a
+    // aproximação errava e a análise é de uma pessoa só.
     let currentUtteranceVolumes = [];
-    const VOICE_BASELINE_KEY = "aurax_voice_baseline";
-    const CALIBRATION_DURATION_MS = 3000;
-    const CLUSTER_LEARNING_RATE = 0.2;
-    const OTHER_CLUSTER_SEED_RATIO = 0.7; // só marca "outro participante" se soar bem mais baixo que você
-    const OTHER_CLUSTER_CONFIRM_STREAK = 4; // exige 4 falas baixas seguidas antes de confirmar outra voz
-    // A calibração (3s "declamando" frases) tende a sair um pouco mais alta
-    // que o tom relaxado de conversa real — sem isso, suas próprias falas
-    // mais naturais pareceriam "mais baixas que o calibrado" e confirmariam
-    // uma outra voz que não existe. Essa taxa deixa a referência da sua
-    // própria voz se ajustar pro volume real da call, mesmo enquanto uma
-    // fala ainda está "abaixo do limiar" mas não confirmada como outra voz.
-    const OWN_BASELINE_SELF_CORRECT_RATE = 0.05;
-    // Sua própria voz varia de volume entre frases — se comparar cada fala só
-    // pela distância "crua" até a média de cada cluster, uma fala num volume
-    // de meio-termo troca de dono ao acaso, mesmo com os clusters separados.
-    // Essa margem dá um viés de continuidade: só troca de quem está falando
-    // se a outra opção for claramente mais próxima, não só um pouco.
-    const SPEAKER_SWITCH_MARGIN = 1.5;
-    // Só que essa mesma resistência, se um trecho seu (mais baixo/recostado,
-    // por exemplo) já tiver sido classificado errado como "outro", também
-    // atrapalha a volta — em vez de se corrigir na fala seguinte, fica preso
-    // no rótulo errado por minutos. Por isso a margem enfraquece com o tempo:
-    // nos primeiros 45s no mesmo rótulo, resistência cheia (segura contra
-    // ruído fala-a-fala); depois disso, cai ao longo de mais 60s até quase
-    // nenhuma resistência — se estiver preso errado, tem bastante chance de
-    // se corrigir sozinho em ~1-2min em vez de ficar preso a call inteira.
-    const SPEAKER_SWITCH_MARGIN_MIN = 1.05;
-    const STREAK_DECAY_START_MS = 45000;
-    const STREAK_DECAY_DURATION_MS = 60000;
-    let ownVoiceBaseline = Number(localStorage.getItem(VOICE_BASELINE_KEY)) || null;
-    let ownClusterAvg = null;
-    let otherClusterAvg = null;
-    let lastSpeaker = null;
-    let lastSpeakerSince = 0;
-    let belowSeedThresholdStreak = 0;
-
-    function currentSwitchMargin() {
-      if (!lastSpeakerSince) return SPEAKER_SWITCH_MARGIN;
-      const elapsed = Date.now() - lastSpeakerSince;
-      if (elapsed <= STREAK_DECAY_START_MS) return SPEAKER_SWITCH_MARGIN;
-      const progress = Math.min(1, (elapsed - STREAK_DECAY_START_MS) / STREAK_DECAY_DURATION_MS);
-      return SPEAKER_SWITCH_MARGIN - (SPEAKER_SWITCH_MARGIN - SPEAKER_SWITCH_MARGIN_MIN) * progress;
-    }
-
-    // Se os dois grupos de volume ficarem parecidos demais — ou se nenhum
-    // "outro participante" aparecer depois de várias falas — a distinção de
-    // vozes deixa de ser confiável (normalmente sinal de call sem fone de
-    // ouvido, com o volume da caixa de som alto). Avisa uma vez por sessão.
-    const LOW_SEPARATION_RATIO = 0.75;
-    const NO_OTHER_VOICE_STREAK = 14; // maior que antes pq confirmar outra voz agora exige mais evidência
-    let lowSeparationAlertShown = false;
-    let utteranceCountSinceReset = 0;
-
-    function resetSpeakerClusters() {
-      ownClusterAvg = ownVoiceBaseline;
-      otherClusterAvg = null;
-      lastSpeaker = null;
-      lastSpeakerSince = 0;
-      belowSeedThresholdStreak = 0;
-      lowSeparationAlertShown = false;
-      utteranceCountSinceReset = 0;
-    }
-
-    function setLastSpeaker(speaker) {
-      if (speaker !== lastSpeaker) lastSpeakerSince = Date.now();
-      lastSpeaker = speaker;
-    }
-
-    function maybeWarnLowSeparation() {
-      if (lowSeparationAlertShown) return;
-      if (otherClusterAvg !== null && ownClusterAvg > 0 && otherClusterAvg / ownClusterAvg > LOW_SEPARATION_RATIO) {
-        lowSeparationAlertShown = true;
-        pushLiveAlert("Sua voz e a do outro participante estão com volume parecido — use fone de ouvido pra melhorar a distinção.");
-        return;
-      }
-      if (otherClusterAvg === null && utteranceCountSinceReset >= NO_OTHER_VOICE_STREAK) {
-        lowSeparationAlertShown = true;
-        pushLiveAlert("Não estou distinguindo outra voz até agora — se tiver mais alguém na call, use fone de ouvido pra melhorar a distinção.");
-      }
-    }
-
-    function classifySpeaker(avgVolume) {
-      if (avgVolume === 0) return "Você";
-      utteranceCountSinceReset++;
-
-      if (ownClusterAvg === null) {
-        ownClusterAvg = avgVolume;
-        setLastSpeaker("Você");
-        return "Você";
-      }
-
-      if (otherClusterAvg === null) {
-        if (avgVolume < ownClusterAvg * OTHER_CLUSTER_SEED_RATIO) {
-          belowSeedThresholdStreak++;
-          if (belowSeedThresholdStreak >= OTHER_CLUSTER_CONFIRM_STREAK) {
-            otherClusterAvg = avgVolume;
-            setLastSpeaker("Outro participante");
-            return "Outro participante";
-          }
-          // Só uma fala mais baixa ainda não confirma outra voz — pode ser
-          // só uma variação natural da sua própria fala (ex: trecho mais
-          // calmo de uma frase longa). Ainda assim, puxa a referência da sua
-          // voz um pouco pra baixo — se for realmente você, isso evita que a
-          // mesma calibração "alta" continue gerando falsos positivos.
-          ownClusterAvg += OWN_BASELINE_SELF_CORRECT_RATE * (avgVolume - ownClusterAvg);
-          return "Você";
-        }
-        belowSeedThresholdStreak = 0;
-        ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
-        setLastSpeaker("Você");
-        maybeWarnLowSeparation();
-        return "Você";
-      }
-
-      const distToOwn = Math.abs(avgVolume - ownClusterAvg);
-      const distToOther = Math.abs(avgVolume - otherClusterAvg);
-      const switchMargin = currentSwitchMargin();
-      let speaker;
-      if (lastSpeaker === "Você" && distToOwn <= distToOther * switchMargin) {
-        speaker = "Você";
-      } else if (lastSpeaker === "Outro participante" && distToOther <= distToOwn * switchMargin) {
-        speaker = "Outro participante";
-      } else {
-        speaker = distToOwn <= distToOther ? "Você" : "Outro participante";
-      }
-
-      if (speaker === "Você") {
-        ownClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - ownClusterAvg);
-      } else {
-        otherClusterAvg += CLUSTER_LEARNING_RATE * (avgVolume - otherClusterAvg);
-      }
-      setLastSpeaker(speaker);
-      maybeWarnLowSeparation();
-      return speaker;
-    }
-
-    async function calibrateVoice() {
-      if (calibrateVoiceBtn.disabled) return;
-      const originalLabel = calibrateVoiceBtn.textContent;
-      calibrateVoiceBtn.disabled = true;
-
-      let tempStream = null;
-      let tempContext = null;
-      let readVolume;
-
-      if (analyserNode) {
-        // Transcrição já está ativa — reaproveita a análise em andamento.
-        readVolume = getCurrentVolume;
-      } else {
-        try {
-          tempStream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
-          });
-        } catch (err) {
-          calibrateVoiceBtn.textContent = originalLabel;
-          calibrateVoiceBtn.disabled = false;
-          alert("Não foi possível acessar o microfone para calibrar.");
-          return;
-        }
-        tempContext = new (window.AudioContext || window.webkitAudioContext)();
-        const tempSource = tempContext.createMediaStreamSource(tempStream);
-        const tempAnalyser = tempContext.createAnalyser();
-        tempAnalyser.fftSize = 2048;
-        const tempSamples = new Uint8Array(tempAnalyser.fftSize);
-        tempSource.connect(tempAnalyser);
-        readVolume = () => {
-          tempAnalyser.getByteTimeDomainData(tempSamples);
-          let sumSquares = 0;
-          for (let i = 0; i < tempSamples.length; i++) {
-            const normalized = (tempSamples[i] - 128) / 128;
-            sumSquares += normalized * normalized;
-          }
-          return Math.sqrt(sumSquares / tempSamples.length);
-        };
-      }
-
-      const readings = [];
-      calibrateVoiceBtn.textContent = "Fale algumas frases...";
-      const startedAt = Date.now();
-
-      await new Promise((resolve) => {
-        const intervalId = setInterval(() => {
-          const v = readVolume();
-          if (v >= SILENCE_RMS_THRESHOLD) readings.push(v);
-          if (Date.now() - startedAt >= CALIBRATION_DURATION_MS) {
-            clearInterval(intervalId);
-            resolve();
-          }
-        }, 100);
-      });
-
-      if (tempStream) tempStream.getTracks().forEach((t) => t.stop());
-      if (tempContext) tempContext.close();
-
-      if (readings.length >= 3) {
-        // Usa um percentil baixo (não a média) como referência: a fala tem
-        // trechos naturalmente mais baixos, e se a referência for a média
-        // "cheia", esses trechos ficam parecendo outra pessoa falando.
-        const sorted = [...readings].sort((a, b) => a - b);
-        ownVoiceBaseline = sorted[Math.floor(sorted.length * 0.25)];
-        localStorage.setItem(VOICE_BASELINE_KEY, String(ownVoiceBaseline));
-        calibrateVoiceBtn.textContent = "Voz calibrada ✓";
-      } else {
-        calibrateVoiceBtn.textContent = "Não captou sua voz, tente de novo";
-      }
-
-      setTimeout(() => {
-        calibrateVoiceBtn.textContent = originalLabel;
-        calibrateVoiceBtn.disabled = false;
-      }, 2200);
-    }
-
-    calibrateVoiceBtn.addEventListener("click", calibrateVoice);
+    function classifySpeaker() { return "Você"; }
+    function resetSpeakerClusters() {}
 
     async function setupAudioAnalyser() {
       // echoCancellation ajuda a reduzir o som da própria caixa de som voltando
@@ -3015,7 +2751,7 @@
         objectionWindowEnd = Date.now() + OBJECTION_WINDOW_MS;
         objectionWindowSamples = [];
         objectionWindowStartT = sessionActive ? (Date.now() - sessionStartTime) / 1000 : 0;
-        pushLiveAlert(`Possível objeção (${speaker}): "${objectionPhrase}" — observando resposta`);
+        pushLiveAlert(`Possível objeção: "${objectionPhrase}" — observando resposta`);
       }
 
       // Aviso ao vivo só para gíria de peso médio/forte — as leves não valem interromper a fala.
@@ -3325,17 +3061,15 @@
         consent: true,
       },
       {
-        eyebrow: "Passo 2 de 4 · Calibração e oratória",
-        title: "Calibre sua voz e acompanhe sua oratória ao vivo",
+        eyebrow: "Passo 2 de 4 · Oratória ao vivo",
+        title: "Acompanhe sua oratória ao vivo",
         body: `
-          <p>Pra distinguir sua voz da voz de quem mais estiver na call, o AuraX precisa saber como o seu microfone capta a SUA voz. O card "Nota de oratória" na coluna da esquerda também vai atualizando em tempo real — ritmo, pausas, vícios de linguagem, clareza e projeção de voz.</p>
+          <p>O card "Nota de oratória" na coluna da esquerda vai atualizando em tempo real: ritmo, pausas, vícios e gírias, clareza e projeção de voz. A análise é só da sua fala.</p>
           <ul>
-            <li>Clique em "Calibrar agora" e fale uma frase qualquer por 3 segundos.</li>
-            <li>Recalibre se trocar de computador, microfone ou ambiente.</li>
-            <li>Use fone de ouvido na call — deixa a distinção de vozes e a nota de oratória bem mais confiáveis.</li>
+            <li>Ative o microfone antes de iniciar a sessão.</li>
+            <li>Use fone de ouvido na call — assim só a sua voz entra na análise e a nota fica bem mais confiável.</li>
           </ul>
         `,
-        action: { label: "Calibrar agora", handler: () => calibrateVoice() },
       },
       {
         eyebrow: "Passo 3 de 4 · Durante a call",

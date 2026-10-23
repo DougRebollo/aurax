@@ -231,9 +231,7 @@
       const hasSlang = line.slang && line.slang.length;
       const tagsHtml = (hasKeywords ? `<div class="keyword-tags">${line.keywords.map((k) => `<span class="keyword-tag">${escapeHtml(k)}</span>`).join("")}</div>` : "") +
         (hasSlang ? `<div class="keyword-tags">${line.slang.map((w) => `<span class="slang-tag">${escapeHtml(w)}${SLANG_LIBRARY[w] ? ` → ${escapeHtml(SLANG_LIBRARY[w])}` : ""}</span>`).join("")}</div>` : "");
-      const speakerTagHtml = line.speaker
-        ? `<span class="speaker-tag ${line.speaker === "Outro participante" ? "speaker-other" : "speaker-you"}">${escapeHtml(line.speaker)}</span>`
-        : "";
+      const speakerTagHtml = "";  // análise individual: sem rótulo de quem falou
       const flagClass = hasKeywords ? " transcript-flagged" : hasSlang ? " transcript-slang" : "";
       return `
         <div class="transcript-line${flagClass}">
@@ -345,9 +343,7 @@
 
       const dynamicsHtml = h.dynamics
         ? `<div class="talk-bar"><div style="width:${h.dynamics.pctYou}%; background:var(--accent)"></div><div style="width:${h.dynamics.pctOther}%; background:var(--warn)"></div></div>
-           <div class="session-secondary-stats">${h.dynamics.basis === "tempo"
-             ? `Você falou ${h.dynamics.pctYou}% do tempo · Outro participante / silêncio ${h.dynamics.pctOther}%`
-             : `Você ${h.dynamics.pctYou}% · Outro ${h.dynamics.pctOther}% · Trocas ${h.dynamics.turnsPerMinute}/min · Silêncio ${h.dynamics.silencePct}%`}</div>`
+           <div class="session-secondary-stats">Você falou ${h.dynamics.pctYou}% do tempo · ouvindo ou em silêncio ${h.dynamics.pctOther}%</div>`
         : '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
 
       panel.innerHTML = `

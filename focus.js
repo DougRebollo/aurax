@@ -47,7 +47,7 @@
   const fmtS = (n) => { const v = Math.round(n || 0); return v < 60 ? v + "s" : Math.floor(v / 60) + "min" + String(v % 60).padStart(2, "0"); };
   const cleanTok = (t) => t.toLowerCase().replace(/[.,!?;:"'()]/g, "");
 
-  const youLines = (h) => (h.transcript || []).filter((l) => l && l.text && l.speaker !== "Outro participante");
+  const youLines = (h) => (h.transcript || []).filter((l) => l && l.text);   // análise individual: toda fala transcrita é do usuário
   const wordCount = (text) => text.split(/\s+/).filter(Boolean).length;
   const totalWords = (h) => youLines(h).reduce((n, l) => n + wordCount(l.text), 0);
   const subScore = (h, key) => {
