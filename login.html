@@ -259,7 +259,9 @@
             // consistente, mesmo em logins seguintes.
             queryParams: {
               access_type: "offline",
-              prompt: "consent",
+              // select_account: sempre mostra a escolha de conta do Google (sem
+              // ela, quem tem uma conta só entra direto, sem poder trocar de usuário).
+              prompt: "select_account consent",
             },
           },
         });
