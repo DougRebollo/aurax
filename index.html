@@ -671,6 +671,9 @@
     border-left: 3px solid var(--warn);
   }
   .language-swap-card.slang-swap { background: var(--purple-soft); border-left-color: var(--purple); }
+  .lang-chip { font-size: 0.68rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-dim); background: var(--surface); white-space: nowrap; margin-left: auto; }
+  .lang-chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); background: var(--warn-soft); }
+  .lang-chip.good { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, var(--line)); background: var(--good-soft); }
   .language-swap-word { font-size: 0.95rem; font-weight: 700; color: var(--ink); }
   .language-swap-count { font-size: 0.7rem; color: var(--ink-dim); margin-left: 6px; }
   .language-swap-arrow { color: var(--ink-faint); margin: 0 8px; }
@@ -1007,6 +1010,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js"></script>
   <script src="focus.js"></script>
+  <script src="lang.js"></script>
   <script>
     const EMOTION_LABELS_PT = {
       neutral: "Focado",
@@ -1083,6 +1087,21 @@
         .join("");
     }
 
+    // Gírias com peso: mostra TUDO que foi detectado e deixa claro o que pesou na nota e o que não.
+    function renderSlangCards(rows) {
+      if (!rows.length) return "";
+      return rows.map((r) => {
+        const status = r.status === "pesa" ? `<span class="lang-chip warn">pesa na nota</span>`
+          : r.status === "neutra" ? `<span class="lang-chip">neutra · só aparece</span>`
+          : `<span class="lang-chip good">dentro do normal</span>`;
+        const swap = r.status === "pesa" && r.swap ? `<span><span class="language-swap-arrow">→</span><span class="language-swap-suggestion">${r.swap}</span></span>` : "";
+        return `<div class="language-swap-card slang-swap">
+          <span><span class="language-swap-word">"${r.key}"</span><span class="language-swap-count">× ${r.count} · peso ${r.label}</span></span>
+          ${swap}${status}
+        </div>`;
+      }).join("");
+    }
+
     // Frases comuns de objeção em vendas — detecção por gatilho, não entendimento
     // real de linguagem. Serve pra aproximar "isso soa como uma objeção".
     const OBJECTION_PHRASES = [
@@ -1130,34 +1149,10 @@
         .filter(Boolean);
     }
 
-    // Gírias/informalidades comuns que soam pouco profissionais numa call de
-    // vendas, com uma sugestão de troca. Lista pequena e editável, não exaustiva.
-    const SLANG_LIBRARY = {
-      "beleza": "perfeito",
-      "valeu": "obrigado",
-      "sussa": "tranquilo",
-      "da hora": "interessante",
-      "show": "ótimo",
-      "top": "excelente",
-      "galera": "equipe",
-      "de boa": "sem problema",
-      "mano": "",
-      "bagulho": "assunto",
-      "treco": "item",
-      "pô": "",
-    };
-
-    function detectSlang(text) {
-      const lower = text.toLowerCase();
-      const tokens = tokenizeWords(text);
-      const found = [];
-      for (const slang in SLANG_LIBRARY) {
-        const isPhrase = slang.includes(" ");
-        const matched = isPhrase ? lower.includes(slang) : tokens.includes(slang);
-        if (matched) found.push(slang);
-      }
-      return found;
-    }
+    // Gírias: o dicionário (com peso, tolerância e contexto) vive em lang.js.
+    // Detectar tudo, mas só descontar o que pesa de verdade (frequência, contexto, impacto).
+    const SLANG_LIBRARY = AuraLang.swaps;   // chave -> troca sugerida
+    function detectSlang(text) { return AuraLang.detectSlang(text); }
 
     // Vícios de linguagem: contados pro resumo, mas sem alerta ao vivo — são
     // frequentes demais na fala natural pra avisar toda vez sem virar ruído.
@@ -1866,7 +1861,7 @@
     // monótona x mais expressiva). Com fone de ouvido, isso fica bem mais
     // confiável, já que o mic só capta a sua própria voz de verdade.
     // por isso o fone continua sendo recomendado pra maior precisão.
-    function computeOratoriaScore({ wpm, pauseCount, fillerCounts, wordCount, ownConfidences, ownVolumes }) {
+    function computeOratoriaScore({ wpm, pauseCount, fillerCounts, slangCounts, wordCount, ownConfidences, ownVolumes }) {
       const subScores = [];
 
       if (wpm > 0) {
@@ -1880,10 +1875,9 @@
       const pauseScore = clamp01(1 - Math.max(0, pauseCount - 2) / 10) * 100;
       subScores.push({ key: "pausas", label: "Pausas", score: pauseScore });
 
-      const totalFiller = Object.values(fillerCounts || {}).reduce((a, b) => a + b, 0);
-      const fillerRate = wordCount > 0 ? (totalFiller / wordCount) * 100 : 0;
-      const fillerScore = clamp01(1 - fillerRate / 12) * 100;
-      subScores.push({ key: "vicios", label: "Vícios de linguagem", score: fillerScore });
+      // Vícios pela taxa por 100 palavras; gírias só pelo que pesa (peso x frequência acima da tolerância).
+      const language = AuraLang.languageScore(fillerCounts, slangCounts, wordCount);
+      subScores.push({ key: "vicios", label: "Vícios e gírias", score: language.score });
 
       if (ownConfidences.length >= 3) {
         subScores.push({ key: "clareza", label: "Clareza/dicção", score: clamp01(average(ownConfidences)) * 100 });
@@ -2026,6 +2020,7 @@
         wpm,
         pauseCount: sessionPauseCount,
         fillerCounts: sessionFillerCounts,
+        slangCounts: sessionSlangCounts,
         wordCount: sessionWordCount,
         ownConfidences: sessionConfidences,
         ownVolumes: sessionVolumes,
@@ -2077,9 +2072,11 @@
         }
       }
 
-      const totalSlang = Object.values(slangCounts || {}).reduce((a, b) => a + b, 0);
-      if (totalSlang >= 3) {
-        tips.push({ key: "muitas_girias", type: "melhorar", text: `${totalSlang} gírias/informalidades identificadas — considere termos mais profissionais.` });
+      // Gíria só vira dica quando pesa na nota (frequência acima da tolerância do peso dela).
+      const heavySlang = AuraLang.analyze(slangCounts, sessionWordCount).filter((r) => r.status === "pesa");
+      if (heavySlang.length) {
+        const list = heavySlang.slice(0, 3).map((r) => `"${r.key}" ×${r.count}`).join(", ");
+        tips.push({ key: "muitas_girias", type: "melhorar", text: `Gírias que pesaram na nota: ${list} — troque por termos mais profissionais.` });
       }
 
       const totalFiller = Object.values(fillerCounts || {}).reduce((a, b) => a + b, 0);
@@ -2198,6 +2195,7 @@
         wpm: wpmSession,
         pauseCount: sessionPauseCount,
         fillerCounts: sessionFillerCounts,
+        slangCounts: sessionSlangCounts,
         wordCount: sessionWordCount,
         ownConfidences: sessionConfidences,
         ownVolumes: sessionVolumes,
@@ -2235,7 +2233,7 @@
       }
 
       const fillerSwapHtml = renderLanguageSwapCards(sessionFillerCounts, FILLER_LIBRARY, "filler-swap");
-      const slangSwapHtml = renderLanguageSwapCards(sessionSlangCounts, SLANG_LIBRARY, "slang-swap");
+      const slangSwapHtml = renderSlangCards(AuraLang.analyze(sessionSlangCounts, sessionWordCount));
       summaryLanguageEl.innerHTML = `
         <div class="language-block-title">Vícios de linguagem ("é", "né", "tipo"...)</div>
         <div class="language-swap-list">${fillerSwapHtml || '<div class="insight-line">Nenhum vício de linguagem identificado — fala limpa.</div>'}</div>
@@ -2339,7 +2337,7 @@
         ? `<div class="keyword-tags">${line.keywords.map((k) => `<span class="keyword-tag">${k}</span>`).join("")}</div>`
         : "";
       const slangTagsHtml = hasSlang
-        ? `<div class="keyword-tags">${line.slang
+        ? `<div class="keyword-tags">${[...new Set(line.slang)]
             .map((w) => `<span class="slang-tag">${w}${SLANG_LIBRARY[w] ? ` → ${SLANG_LIBRARY[w]}` : ""}</span>`)
             .join("")}</div>`
         : "";
@@ -3020,11 +3018,11 @@
         pushLiveAlert(`Possível objeção (${speaker}): "${objectionPhrase}" — observando resposta`);
       }
 
-      if (slangMatches.length) {
-        const suggestion = SLANG_LIBRARY[slangMatches[0]];
-        pushLiveAlert(
-          `Gíria: "${slangMatches[0]}"${suggestion ? ` → tente "${suggestion}"` : ""}`
-        );
+      // Aviso ao vivo só para gíria de peso médio/forte — as leves não valem interromper a fala.
+      const alertSlang = slangMatches.find((k) => AuraLang.weightOf(k) >= 2);
+      if (alertSlang) {
+        const suggestion = SLANG_LIBRARY[alertSlang];
+        pushLiveAlert(`Gíria: "${alertSlang}"${suggestion ? ` → tente "${suggestion}"` : ""}`);
       }
 
       if (sessionActive) {
