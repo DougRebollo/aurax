@@ -1113,8 +1113,8 @@
       calToken = session && session.provider_token;
       wireCalendar();
       if (!calToken) {
-        document.getElementById("calBody").innerHTML = "";
-        box.textContent = "Para ver sua agenda, saia e entre de novo com o Google (autorizando o acesso à agenda).";
+        // Sem login com Google não há token da agenda: esconde a seção inteira.
+        document.querySelectorAll(".cal-head, #agendaBox, #calBody").forEach((el) => { el.style.display = "none"; });
         return;
       }
       loadCalendarView();
