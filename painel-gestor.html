@@ -724,10 +724,7 @@
       const y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
       const base = H - m.b;
 
-      let svg = `<defs>
-        <linearGradient id="gYou" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--purple)" stop-opacity="0.22"/><stop offset="1" style="stop-color:var(--purple)" stop-opacity="0"/></linearGradient>
-        <linearGradient id="gTeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent)" stop-opacity="0.22"/><stop offset="1" style="stop-color:var(--accent)" stop-opacity="0"/></linearGradient>
-      </defs>`;
+      let svg = "";
       const step = hi - lo <= 40 ? 10 : 20;
       for (let v = lo; v <= hi; v += step) {
         svg += `<line x1="${m.l}" y1="${y(v)}" x2="${W - m.r}" y2="${y(v)}" style="stroke:var(--line)" stroke-width="1"/>`;
@@ -754,7 +751,6 @@
         segs.forEach((seg) => {
           if (seg.length < 2) return;
           const d = seg.map((pt, k) => (k ? "L" : "M") + pt[0].toFixed(1) + " " + pt[1].toFixed(1)).join(" ");
-          svg += `<path d="${d} L${seg[seg.length - 1][0].toFixed(1)} ${base} L${seg[0][0].toFixed(1)} ${base} Z" fill="url(#${s.grad})"/>`;
           svg += `<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
         });
         points.forEach((p, i) => {
