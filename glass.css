@@ -202,3 +202,14 @@ body.glass .card .logo { letter-spacing: -0.02em; }
       radial-gradient(30% 30% at 8% 88%, rgba(200, 80, 150, 0.40), transparent 70%);
   }
 }
+
+/* Celular: a barra lateral vira uma faixa de vidro no topo (o shell.css já tira o menu para a horizontal;
+ * aqui só desfazemos o "sticky de tela cheia" do desktop, que empurrava o conteúdo para fora da tela). */
+@media (max-width: 820px) {
+  body.glass .shell { padding: 10px; gap: 10px; }
+  body.glass .sidebar {
+    position: sticky; top: 10px; z-index: 30; height: auto;
+    padding: 8px 10px; border-radius: 20px; border-bottom: 1px solid var(--glass-border);
+  }
+  body.glass .content { padding: 8px 4px 40px; }
+}
