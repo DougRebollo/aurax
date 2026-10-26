@@ -25,7 +25,7 @@ const supabaseAdmin = createClient(
 );
 
 const PRICE_ID = Deno.env.get("STRIPE_PRICE_ID") ?? "";
-const SITE_URL = Deno.env.get("SITE_URL") ?? "https://dougrebollo.github.io/aurax";
+const SITE_URL = Deno.env.get("SITE_URL") ?? "https://auraxoficial.com.br";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

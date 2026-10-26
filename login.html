@@ -266,7 +266,7 @@
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: "https://dougrebollo.github.io/aurax/login.html",
+            redirectTo: new URL("login.html", location.href).href,
             // Pede permissão de leitura da agenda, além do login básico.
             scopes: "https://www.googleapis.com/auth/calendar.readonly",
             // access_type=offline + prompt=consent garantem que o Google
