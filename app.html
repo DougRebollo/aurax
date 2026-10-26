@@ -1,0 +1,3482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AuraX</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="shortcut icon" href="favicon.ico" />
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<link rel="stylesheet" href="shell.css" />
+<link rel="stylesheet" href="glass.css" />
+<script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse 1200px 800px at 50% -10%, var(--bg) 0%, var(--bg) 55%, var(--bg) 100%);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+    position: relative;
+  }
+  /* Grade sutil tipo HUD atrás do conteúdo, só pra dar um ar mais "tecnológico". */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: linear-gradient(var(--accent-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--accent-soft) 1px, transparent 1px);
+    background-size: 42px 42px;
+    -webkit-mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
+    mask-image: radial-gradient(ellipse 900px 700px at 50% 0%, black, transparent 75%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  h1 {
+    font-size: 1.8rem;
+    margin: 8px 0 2px;
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--ink), var(--good) 55%, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  #status { margin-bottom: 12px; font-size: 0.9rem; color: var(--ink-dim); text-align: center; }
+  #accountBlockedBanner {
+    max-width: 640px;
+    margin: 0 auto 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--bad-soft);
+    border: 1px solid color-mix(in srgb, var(--bad) 40%, var(--line));
+    color: var(--bad);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  #profileIncompleteBanner {
+    max-width: 640px;
+    margin: 0 auto 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--warn-soft);
+    border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
+    color: var(--warn);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  #profileIncompleteBanner button {
+    margin-left: 8px;
+    background: var(--warn-soft);
+    border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
+    color: var(--warn);
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #container {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    border-radius: 18px;
+    --aura-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 0 50px -10px var(--aura-color);
+    transition: box-shadow 0.7s ease;
+    overflow: hidden;
+  }
+  video, canvas {
+    width: 100%;
+    max-width: 640px;
+    border-radius: 18px;
+  }
+  canvas { position: absolute; top: 0; left: 0; }
+
+  .scan-sweep {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 45%;
+    background: linear-gradient(to bottom, transparent, var(--good-soft) 50%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  #container.is-live .scan-sweep { opacity: 1; animation: scanSweep 5s ease-in-out infinite; }
+  @keyframes scanSweep {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(220%); }
+  }
+
+  .reticle { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
+  #container.is-live .reticle { opacity: 0.6; }
+  .corner {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--aura-color, var(--accent));
+    transition: border-color 0.6s ease;
+  }
+  .corner-tl { top: 10px; left: 10px; border-right: none; border-bottom: none; border-radius: 4px 0 0 0; }
+  .corner-tr { top: 10px; right: 10px; border-left: none; border-bottom: none; border-radius: 0 4px 0 0; }
+  .corner-bl { bottom: 10px; left: 10px; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
+  .corner-br { bottom: 10px; right: 10px; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
+
+  #fillerBubbleLayer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .filler-bubble {
+    position: absolute;
+    bottom: 18%;
+    transform: translateX(-50%);
+    background: var(--warn-soft);
+    border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
+    color: var(--warn);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 5px 14px;
+    border-radius: 999px;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    white-space: nowrap;
+    animation: fillerFloat 4s ease-out forwards;
+  }
+  @keyframes fillerFloat {
+    0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.85); }
+    12% { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-110px) scale(1.05); }
+  }
+
+  .live-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--ink);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  #container.is-live .live-badge { opacity: 1; }
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff5c5c;
+    animation: micPulse 1.4s infinite;
+  }
+
+  #switchCam {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    margin-top: 0;
+    padding: 6px 14px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid var(--line);
+    box-shadow: none;
+    z-index: 2;
+  }
+  #switchCam:hover { background: rgba(0, 0, 0, 0.65); transform: none; box-shadow: none; }
+
+  #stage {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    width: 100%;
+    max-width: 1440px;
+  }
+  #videoColumn {
+    flex: 1 1 640px;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #statusColumn {
+    flex: 1 1 340px;
+    max-width: 360px;
+    min-width: 280px;
+    order: -1;
+  }
+  #status-panel {
+    background: linear-gradient(160deg, var(--accent-soft), var(--good-soft));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px 18px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  }
+  #status-panel h2 { font-size: 1rem; margin: 0; }
+  .status-panel-header { margin-bottom: 10px; }
+  .status-panel-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .status-panel-nav .ghost {
+    margin-top: 0;
+    padding: 6px 13px;
+    font-size: 0.74rem;
+    box-shadow: none;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .status-panel-nav .ghost:hover { background: var(--surface-2); }
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--ink-dim);
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .status-value { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  input[type="text"].status-client-input {
+    max-width: 130px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    text-align: right;
+    margin: 0;
+  }
+  #statTiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .stat-tile {
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+  .stat-tile .stat-value { font-size: 1.05rem; font-weight: 700; color: var(--good); }
+  .stat-label { font-size: 0.62rem; color: var(--ink-faint); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  #liveAlerts { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .live-alert {
+    font-size: 0.72rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--warn-soft);
+    border-left: 2px solid var(--warn);
+    color: var(--warn);
+    animation: transcriptFadeIn 0.25s ease;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    max-width: 280px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--ink);
+    font-size: 0.85rem;
+    outline: none;
+    font-family: inherit;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--ink-faint); }
+
+  #emotions {
+    margin-top: 16px;
+    width: 100%;
+    max-width: 640px;
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    margin: 6px 0;
+    font-size: 0.9rem;
+  }
+  .bar-label { width: 90px; text-transform: capitalize; }
+  .bar-track {
+    flex: 1;
+    background: var(--line);
+    border-radius: 6px;
+    height: 14px;
+    overflow: hidden;
+    margin: 0 8px;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--good));
+    width: 0%;
+    transition: width 0.15s ease-out;
+  }
+  .bar-pct { width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+  #dominant {
+    margin-top: 14px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-align: center;
+    transition: color 0.4s ease;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 640px;
+    margin-top: 20px;
+    padding: 16px 18px;
+    background: linear-gradient(160deg, var(--accent-soft), var(--good-soft));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  #estimated-section {
+    width: 100%;
+    max-width: 640px;
+    margin-top: 20px;
+    border: 1px dashed color-mix(in srgb, var(--warn) 40%, var(--line));
+    border-radius: 16px;
+    padding: 16px 18px;
+    background: linear-gradient(160deg, var(--warn-soft), var(--warn-soft));
+  }
+  #estimated-title {
+    font-size: 0.85rem;
+    color: var(--warn);
+    margin-bottom: 8px;
+  }
+  #estimated-note {
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    margin-top: 8px;
+  }
+  #transcript-note { font-size: 0.7rem; color: var(--ink-faint); margin: 6px 0 2px; }
+
+  /* Onboarding: tutorial + consentimento LGPD na primeira visita */
+  #onboardingOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 6, 10, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+  }
+  #onboardingOverlay.hidden { display: none; }
+  .onboarding-card {
+    width: 100%;
+    max-width: 460px;
+    background: linear-gradient(160deg, var(--accent-soft), var(--good-soft));
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 32px 28px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  }
+  .onboarding-eyebrow {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .onboarding-card h2 { font-size: 1.25rem; margin: 0 0 12px; color: var(--ink); }
+  .onboarding-card p { font-size: 0.88rem; color: var(--ink); line-height: 1.6; margin: 0 0 10px; }
+  .onboarding-card ul { padding-left: 18px; margin: 10px 0; }
+  .onboarding-card li { font-size: 0.85rem; color: var(--ink); line-height: 1.6; margin-bottom: 4px; }
+  .onboarding-consent-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 12px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    font-size: 0.8rem;
+    color: var(--ink-dim);
+  }
+  .onboarding-consent-row input { margin-top: 3px; }
+  .onboarding-dots { display: flex; gap: 6px; justify-content: center; margin-top: 24px; }
+  .onboarding-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--surface-2); }
+  .onboarding-dot.active { background: var(--accent); }
+  .onboarding-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 22px; }
+  .onboarding-actions button { margin-top: 0; }
+  .onboarding-skip { background: none; box-shadow: none; color: var(--ink-faint); padding: 11px 4px; }
+  .onboarding-skip:hover { background: none; box-shadow: none; color: var(--ink-dim); transform: none; }
+  button {
+    margin-top: 16px;
+    padding: 11px 22px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent));
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(79, 140, 255, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79, 140, 255, 0.45); }
+  button:active { transform: translateY(0); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
+  button.danger { background: linear-gradient(135deg, var(--bad), var(--bad)); box-shadow: 0 4px 14px rgba(229, 83, 61, 0.35); }
+  button.ghost { background: var(--surface-2); box-shadow: none; }
+  button.ghost:hover { background: var(--surface-2); box-shadow: none; }
+  #session-controls { text-align: center; }
+  #sessionTimer { margin-top: 8px; font-size: 1rem; color: var(--good); }
+  #summary-section h2 { font-size: 1.1rem; margin-bottom: 4px; }
+  #summaryDuration { font-size: 0.85rem; color: var(--ink-dim); margin-bottom: 12px; }
+  #saveErrorBanner {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--bad-soft);
+    border: 1px solid color-mix(in srgb, var(--bad) 40%, var(--line));
+    color: var(--bad);
+    font-size: 0.85rem;
+  }
+  #summary-section h3 { font-size: 0.9rem; margin: 16px 0 4px; color: var(--ink); }
+
+  :root {
+    --series-tired: var(--accent);
+    --series-focused: var(--good);
+    --series-motivated: var(--warn);
+    --grid: var(--line);
+    --muted: var(--ink-faint);
+    --text-secondary: var(--ink-faint);
+  }
+  #trend-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  #trendChart { width: 100%; height: auto; touch-action: none; }
+  #trendTooltip {
+    position: fixed;
+    display: none;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    color: var(--ink);
+    pointer-events: none;
+    z-index: 10;
+  }
+  .tooltip-time { font-weight: 600; margin-bottom: 4px; color: #fff; }
+  .tooltip-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  #peakInsights { font-size: 0.85rem; color: var(--ink); margin: 10px 0 4px; }
+  .insight-line { margin: 4px 0; padding-left: 10px; border-left: 2px solid var(--accent); }
+  .tip-positive { border-left-color: var(--good); }
+  .tip-improve { border-left-color: var(--warn); }
+
+  #loadingOverlay {
+    position: fixed;
+    inset: 0;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    z-index: 100;
+    transition: opacity 0.6s ease;
+  }
+  #loadingOverlay.hidden { opacity: 0; pointer-events: none; }
+  .scan-ring { animation: auraxRotate 2.4s linear infinite; transform-origin: 60px 60px; }
+  .scan-line { animation: auraxScan 1.8s ease-in-out infinite; }
+  @keyframes auraxRotate { to { transform: rotate(360deg); } }
+  @keyframes auraxScan {
+    0% { transform: translateY(0); opacity: 0; }
+    12% { opacity: 1; }
+    88% { opacity: 1; }
+    100% { transform: translateY(108px); opacity: 0; }
+  }
+  #loadingTitle {
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: 8px;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  #loadingOverlay #status { font-size: 0.8rem; color: var(--ink-faint); letter-spacing: 1px; margin: 0; }
+
+  #transcript-section {
+    flex: 1 1 320px;
+    max-width: 380px;
+    min-width: 260px;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(160deg, var(--accent-soft), var(--good-soft));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px 16px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  }
+  #transcript-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  #transcript-section h2 { font-size: 1rem; margin: 0; }
+  #transcript-header button { margin-top: 0; padding: 8px 14px; font-size: 0.85rem; }
+  #transcriptMeta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    margin: 8px 0;
+    min-height: 16px;
+  }
+  .mic-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff5c5c;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 0 rgba(255, 92, 92, 0.6);
+    animation: micPulse 1.4s infinite;
+  }
+  .mic-pulse.hidden { display: none; }
+  @keyframes micPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 92, 92, 0.55); }
+    70% { box-shadow: 0 0 0 8px rgba(255, 92, 92, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 92, 92, 0); }
+  }
+  #transcriptCount { margin-left: auto; color: var(--ink-faint); }
+  #transcriptLog {
+    flex: 1;
+    max-height: 420px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .transcript-line {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--line);
+    animation: transcriptFadeIn 0.25s ease;
+  }
+  @keyframes transcriptFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .transcript-time { color: var(--good); margin-right: 8px; font-variant-numeric: tabular-nums; }
+  .transcript-interim { color: var(--ink-faint); font-style: italic; }
+  .transcript-expression { color: var(--ink-dim); font-size: 0.78rem; margin-left: 6px; }
+  .expr-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  .speaker-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 999px;
+    margin-right: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .speaker-you { background: var(--accent-soft); color: var(--accent); }
+  .speaker-other { background: var(--warn-soft); color: var(--warn); }
+
+  #voiceMeta {
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+    min-height: 16px;
+  }
+  .transcript-flagged {
+    border-left: 2px solid var(--warn);
+    padding-left: 8px;
+    background: var(--warn-soft);
+  }
+  .keyword-tags { margin-top: 4px; }
+  .keyword-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    background: var(--warn-soft);
+    color: var(--warn);
+    border-radius: 999px;
+    padding: 2px 9px;
+    margin: 2px 4px 0 0;
+  }
+  .slang-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    background: var(--purple-soft);
+    color: var(--purple);
+    border-radius: 999px;
+    padding: 2px 9px;
+    margin: 2px 4px 0 0;
+  }
+  .transcript-slang {
+    border-left: 2px solid var(--purple);
+    padding-left: 8px;
+    background: var(--purple-soft);
+  }
+
+  .language-block-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ink-dim);
+    margin: 4px 0 8px;
+  }
+  .language-swap-list { display: flex; flex-direction: column; gap: 8px; }
+  .language-swap-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--warn-soft);
+    border-left: 3px solid var(--warn);
+  }
+  .language-swap-card.slang-swap { background: var(--purple-soft); border-left-color: var(--purple); }
+  .lang-chip { font-size: 0.68rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-dim); background: var(--surface); white-space: nowrap; margin-left: auto; }
+  .lang-chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); background: var(--warn-soft); }
+  .lang-chip.good { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, var(--line)); background: var(--good-soft); }
+  .language-swap-word { font-size: 0.95rem; font-weight: 700; color: var(--ink); }
+  .language-swap-count { font-size: 0.7rem; color: var(--ink-dim); margin-left: 6px; }
+  .language-swap-arrow { color: var(--ink-faint); margin: 0 8px; }
+  .language-swap-suggestion { font-size: 0.88rem; font-weight: 600; color: var(--good); }
+
+  .oratoria-card { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .oratoria-score-badge {
+    flex-shrink: 0;
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* anel oco: só a borda colorida (o miolo deixa o vidro aparecer) */
+  .oratoria-score-badge::before {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), color-mix(in srgb, var(--ink-faint) 28%, transparent) 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px)); mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
+  }
+  .oratoria-score-inner {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .oratoria-score-value { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+  .oratoria-score-label { font-size: 0.65rem; color: var(--ink-faint); margin-top: 2px; }
+  .oratoria-breakdown { flex: 1 1 260px; min-width: 240px; }
+  .oratoria-breakdown .bar-label { width: 150px; font-size: 0.8rem; text-transform: none; }
+  .oratoria-rank-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid;
+    border-radius: 999px;
+    padding: 3px 11px;
+    margin-bottom: 10px;
+  }
+  .oratoria-disclaimer { font-size: 0.72rem; color: var(--ink-faint); margin-top: 10px; }
+
+  .talk-split-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--line);
+  }
+  .talk-split-you { background: linear-gradient(90deg, var(--accent), var(--accent)); }
+  .talk-split-other { background: linear-gradient(90deg, var(--warn), var(--warn)); }
+  .saved-overlay { position: fixed; inset: 0; z-index: 1000; background: var(--overlay); display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+  .saved-overlay.hidden { display: none; }
+  .saved-card { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; padding: 26px 26px 22px; width: min(560px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.5); text-align: center; }
+  .saved-card h3 { margin: 6px 0 4px; font-size: 20px; }
+  .saved-sub { margin: 0 0 6px; color: var(--ink-dim); font-size: 14px; }
+  .saved-check { width: 46px; height: 46px; margin: 0 auto; border-radius: 50%; background: var(--good-soft); color: var(--good); display: grid; place-items: center; font-size: 24px; font-weight: 700; }
+  .saved-spinner { width: 34px; height: 34px; margin: 4px auto 10px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: savedSpin 0.8s linear infinite; }
+  @keyframes savedSpin { to { transform: rotate(360deg); } }
+  .saved-card .focus-next { text-align: left; margin: 16px 0 4px; }
+  .saved-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+  .saved-actions .btn { text-decoration: none; display: inline-block; }
+  .saved-link { display: block; margin: 14px auto 0; background: none; border: 0; color: var(--accent); font-weight: 600; font-size: 13px; cursor: pointer; }
+  .saved-link:hover { text-decoration: underline; }
+  .talk-split-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--ink-dim);
+    margin-top: 6px;
+  }
+  .oratoria-live-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--good);
+    background: var(--good-soft);
+    border-radius: 999px;
+    padding: 2px 8px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  /* ===== Novo layout (sidebar + tema claro/escuro) ===== */
+  body { display: block; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--font); position: static; }
+  body::before { display: none; }
+  h1 { display: none; }
+  #loadingOverlay { background: var(--bg); }
+  #loadingOverlay circle[stroke="#20293a"] { stroke: var(--line); }
+  #stage { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 20px; align-items: start; width: 100%; max-width: none; }
+  #statusColumn { grid-column: 1; grid-row: 1 / span 2; max-width: none; min-width: 0; order: 0; }
+  #videoColumn { grid-column: 2; grid-row: 1; max-width: none; align-items: flex-start; min-width: 0; }
+  #transcript-section { grid-column: 2; grid-row: 2; max-width: none; width: auto; flex: none; min-width: 0; }
+  #container { max-width: 720px; }
+  .card, #status-panel, .onboarding-card { box-shadow: var(--shadow); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  #status-panel { background: var(--surface); border-color: var(--line); border-radius: 12px; }
+  .card { background: var(--surface); border-color: var(--line); border-radius: 12px; margin-top: 0; max-width: none; }
+  #statusColumn { display: flex; flex-direction: column; gap: 16px; }
+  #oratoriaCard, #leftSummaryCards { margin-top: 0; }
+  #summary-section { max-width: none; }
+  .onboarding-card { background: var(--surface); border-color: var(--line); border-radius: 14px; }
+  #onboardingOverlay { background: var(--overlay); }
+  #transcript-section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  #transcriptLog { background: var(--surface-2); border: 1px solid var(--line); }
+
+  /* botões: retangulares e sólidos, como no resto do app */
+  button { margin-top: 0; padding: 9px 16px; border-radius: 8px; background: var(--accent); color: #fff; box-shadow: none; font-size: 0.9rem; transform: none; }
+  button:hover { transform: none; box-shadow: none; filter: brightness(0.94); }
+  button.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
+  button.ghost:hover { background: var(--surface-2); filter: none; }
+  button.danger { background: var(--bad); color: #fff; box-shadow: none; }
+  #session-controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .sidebar button.nav-item { margin: 0; padding: 8px 10px; background: transparent; color: var(--ink-dim); box-shadow: none; border-radius: 8px; filter: none; font-size: 14px; }
+  .sidebar button.nav-item:hover { background: var(--surface-2); color: var(--ink); }
+
+  /* navegação agora vive na sidebar; o botão "Atualizar cadastro" continua aqui */
+  .status-panel-nav .ghost:not(#updateProfileBtn) { display: none !important; }
+  .status-panel-nav { margin-bottom: 10px; }
+
+  /* elementos sobre o vídeo continuam escuros nos dois temas */
+  .live-badge { color: #fff; }
+  .filler-bubble { background: rgba(255, 182, 72, 0.2); border: 1px solid rgba(255, 182, 72, 0.6); color: #ffd9a0; }
+  #switchCam { color: #fff; }
+  #container { box-shadow: 0 0 0 1px var(--line), 0 0 40px -14px var(--aura-color); }
+
+  /* Tela larga: transcrição ao lado do vídeo, com "Calibrar" e "Ativar microfone" sempre à vista */
+  @media (min-width: 1400px) {
+    #stage { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(320px, 420px); }
+    #statusColumn { grid-row: 1; }
+    #transcript-section { grid-column: 3; grid-row: 1; position: sticky; top: 20px; }
+    #transcriptLog { max-height: min(62vh, 560px); }
+  }
+  @media (max-width: 1100px) {
+    #stage { grid-template-columns: minmax(0, 1fr); }
+    #statusColumn, #videoColumn, #transcript-section { grid-column: 1; grid-row: auto; }
+  }
+
+</style>
+<script>
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  posthog.init('phc_vyVJ7sTb6kpXhAdzVbWcyBCf4epgvTv7UnnuiPqnFCpm', {
+    api_host: 'https://us.i.posthog.com',
+    person_profiles: 'identified_only',
+  });
+</script>
+</head>
+<body class="glass">
+  <div id="onboardingOverlay" class="hidden">
+    <div class="onboarding-card">
+      <div id="onboardingStepBody"></div>
+      <div class="onboarding-dots" id="onboardingDots"></div>
+      <div class="onboarding-actions">
+        <button type="button" id="onboardingBackBtn" class="ghost" style="visibility:hidden">Voltar</button>
+        <button type="button" id="onboardingSkipBtn" class="onboarding-skip">Pular</button>
+        <button type="button" id="onboardingNextBtn">Avançar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loadingOverlay">
+    <svg viewBox="0 0 120 120" width="120" height="120">
+      <defs>
+        <linearGradient id="scanGradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#4f8cff" stop-opacity="0" />
+          <stop offset="50%" stop-color="#7ee787" stop-opacity="0.9" />
+          <stop offset="100%" stop-color="#4f8cff" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <circle cx="60" cy="60" r="52" fill="none" stroke="#20293a" stroke-width="2" />
+      <circle cx="60" cy="60" r="52" fill="none" stroke="#4f8cff" stroke-width="2" stroke-dasharray="40 286" class="scan-ring" />
+      <circle cx="42" cy="52" r="4" fill="#4f8cff" opacity="0.85" />
+      <circle cx="78" cy="52" r="4" fill="#4f8cff" opacity="0.85" />
+      <path d="M40 76 Q60 90 80 76" stroke="#4f8cff" stroke-width="2" fill="none" opacity="0.6" />
+      <rect x="8" y="0" width="104" height="4" fill="url(#scanGradient)" class="scan-line" />
+    </svg>
+    <div id="loadingTitle">AuraX</div>
+    <div id="status">Carregando modelos...</div>
+  </div>
+
+  <div class="shell">
+    <aside class="sidebar" id="shellSidebar"></aside>
+    <div class="shell-main">
+      <main class="content">
+  <h1>AuraX</h1>
+  <div id="accountBlockedBanner" hidden>
+    ⚠️ Assinatura pausada — pagamento falhou ou foi cancelado. Seus dados antigos continuam disponíveis, mas não é possível gravar novas sessões até reativar.
+  </div>
+  <div id="profileIncompleteBanner" hidden>
+    ⚠️ Complete seu cadastro para usar o AuraX.
+    <button type="button" id="bannerUpdateBtn">Atualizar cadastro</button>
+  </div>
+  <div id="stage">
+    <div id="statusColumn">
+      <div id="status-panel">
+        <div class="status-panel-header">
+          <h2>Status ao vivo</h2>
+        </div>
+        <div class="status-panel-nav">
+          <button type="button" id="howItWorksBtn" class="ghost">Como funciona</button>
+          <button type="button" id="insightsBtn" class="ghost">Meus Insights</button>
+          <button type="button" id="sessionsBtn" class="ghost">Minhas Sessões</button>
+          <button type="button" id="updateProfileBtn" class="ghost">Atualizar cadastro</button>
+          <button type="button" id="backToGestorBtn" class="ghost" style="display:none">Painel do Gestor</button>
+          <button type="button" id="logoutBtn" class="ghost">Sair</button>
+        </div>
+        <div class="status-row">
+          <span class="status-label">Cliente</span>
+          <input type="text" id="clientNameInput" placeholder="Nome (opcional)" class="status-client-input" />
+        </div>
+        <div class="status-row"><span class="status-label">Câmera ativa</span><span id="cameraUptime" class="status-value">00:00</span></div>
+        <div class="status-row"><span class="status-label">Confiança da detecção</span><span id="detectionConfidence" class="status-value">—</span></div>
+        <div class="status-row"><span class="status-label">Sessão</span><span id="sessionStatusText" class="status-value">Inativa</span></div>
+
+        <div id="statTiles">
+          <div class="stat-tile"><div class="stat-value" id="tileFocused">0%</div><div class="stat-label">Constância</div></div>
+          <div class="stat-tile"><div class="stat-value" id="tileMotivated">0%</div><div class="stat-label">Motivação</div></div>
+          <div class="stat-tile"><div class="stat-value" id="tileTired">0%</div><div class="stat-label">Cansaço</div></div>
+        </div>
+
+        <div id="liveAlerts"></div>
+      </div>
+
+      <div id="oratoriaCard" class="card">
+        <h3 style="margin-top:0">Nota de oratória <span class="oratoria-live-badge">ao vivo</span></h3>
+        <div id="summaryOratoria"><div class="insight-line">Inicie a sessão e fale um pouco pra ver sua nota aqui.</div></div>
+      </div>
+
+      <div id="leftSummaryCards" class="card" style="display:none">
+        <div id="summaryFocus"></div>
+        <h3 style="margin-top:0">Dicas de melhoria</h3>
+        <div id="summaryTips"></div>
+
+        <h3>Vícios de linguagem e gírias</h3>
+        <div id="summaryLanguage"></div>
+      </div>
+    </div>
+
+    <div id="videoColumn">
+      <div id="container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div class="scan-sweep"></div>
+        <div class="reticle">
+          <span class="corner corner-tl"></span>
+          <span class="corner corner-tr"></span>
+          <span class="corner corner-bl"></span>
+          <span class="corner corner-br"></span>
+        </div>
+        <div class="live-badge"><span class="live-dot"></span>AO VIVO</div>
+        <div id="fillerBubbleLayer"></div>
+        <button id="switchCam" style="display:none">Trocar câmera</button>
+      </div>
+
+      <div id="session-controls">
+        <button id="startSessionBtn">Iniciar sessão</button>
+        <button id="endSessionBtn" class="danger" style="display:none">Finalizar sessão</button>
+        <div id="sessionTimer"></div>
+      </div>
+
+      <div id="dominant"></div>
+      <div id="emotions"></div>
+
+      <div id="estimated-section">
+        <div id="estimated-title">Estimativas experimentais (beta) — aproximações, não reconhecidas diretamente pela IA</div>
+        <div id="estimated"></div>
+        <div id="estimated-note">Calculadas a partir de sinais indiretos (abertura dos olhos, estabilidade da cabeça, expressão sustentada). Podem não ser precisas.</div>
+      </div>
+
+    </div>
+
+    <div id="transcript-section">
+      <div id="transcript-header">
+        <h2>Transcrição ao vivo</h2>
+        <div style="display:flex; gap:6px;">
+          <button id="micToggleBtn">Ativar microfone</button>
+        </div>
+      </div>
+      <div id="transcript-note">Análise individual: tudo o que o seu microfone captar é considerado fala sua. Use fone de ouvido na call para a voz de quem fala com você não entrar na sua análise.</div>
+      <div id="transcriptMeta">
+        <span id="micPulse" class="mic-pulse hidden"></span>
+        <span id="transcriptStatus"></span>
+        <span id="transcriptCount"></span>
+      </div>
+      <div id="voiceMeta"></div>
+      <div id="transcriptLog"></div>
+    </div>
+  </div>
+
+  <div id="summary-section" class="card" style="display:none">
+    <h2>Resumo da sessão</h2>
+    <div id="saveErrorBanner" hidden></div>
+    <div id="summaryDuration"></div>
+
+    <h3>Como evoluiu ao longo da sessão</h3>
+    <div id="trend-legend">
+      <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Constância</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
+    </div>
+    <svg id="trendChart" viewBox="0 0 640 240"></svg>
+    <div id="peakInsights"></div>
+
+    <h3>Dinâmica da conversa</h3>
+    <div id="summaryDynamics"></div>
+
+    <h3>Emoções (média da sessão)</h3>
+    <div id="summaryEmotions"></div>
+    <h3>Estimativas (média da sessão)</h3>
+    <div id="summaryEstimated"></div>
+    <h3>Transcrição da sessão</h3>
+    <div id="summaryTranscript"></div>
+    <h3>Insights de negociação</h3>
+    <div id="summaryNegotiation"></div>
+    <h3>Objeções e respostas</h3>
+    <div id="summaryObjections"></div>
+    <button id="downloadCsvBtn" class="ghost">Baixar dados (CSV)</button>
+    <button id="downloadPdfBtn" class="ghost">Baixar PDF</button>
+  </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="savedOverlay" class="saved-overlay hidden" role="dialog" aria-modal="true" aria-label="Sessão gravada">
+    <div class="saved-card"><div id="savedBody"></div></div>
+  </div>
+
+  <div id="trendTooltip"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="shell.js"></script>
+  <script src="focus.js"></script>
+  <script src="lang.js"></script>
+  <script>
+    const EMOTION_LABELS_PT = {
+      neutral: "Focado",
+      happy: "Feliz",
+      sad: "Triste",
+      angry: "Bravo",
+      fearful: "Nervoso/Medo",
+      disgusted: "Enjoado",
+      surprised: "Surpreso",
+    };
+
+    // Mesma paleta usada nas barras/gráficos, para o "ponto" de expressão na transcrição.
+    const EXPRESSION_COLORS = {
+      Feliz: "#7ee787",
+      Triste: "#4f8cff",
+      Bravo: "#e5533d",
+      "Nervoso/Medo": "#ffb648",
+      Enjoado: "#b388ff",
+      Surpreso: "#ffe066",
+      Focado: "#3ddba0",
+    };
+
+    function expressionColor(tag) {
+      const label = tag.split("—")[0].trim();
+      return EXPRESSION_COLORS[label] || "#777";
+    }
+
+    // Palavras que costumam sinalizar um momento de negociação na conversa.
+    const NEGOTIATION_KEYWORDS = [
+      "preço", "preco", "desconto", "prazo", "concorrente", "concorrência", "concorrencia",
+      "cancelar", "cancelamento", "orçamento", "orcamento", "contrato", "proposta",
+      "fechar", "fechamento", "sinal", "pagamento", "parcelar", "urgente", "urgência", "urgencia",
+    ];
+
+    function detectKeywords(text) {
+      const lower = text.toLowerCase();
+      return NEGOTIATION_KEYWORDS.filter((kw) => lower.includes(kw));
+    }
+
+    function renderKeywordTags(counts) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      return entries.map(([kw, count]) => `<span class="keyword-tag">${kw} × ${count}</span>`).join(" ");
+    }
+
+    function renderSlangTags(counts) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      return entries
+        .map(([word, count]) => {
+          const suggestion = SLANG_LIBRARY[word];
+          const suggestionText = suggestion ? ` → ${suggestion}` : "";
+          return `<span class="slang-tag">${word}${suggestionText} × ${count}</span>`;
+        })
+        .join(" ");
+    }
+
+    // Cards maiores e mais visíveis pra "palavra/vício → troca sugerida",
+    // usados no resumo da sessão (em vez das tag-pills discretas acima,
+    // que continuam servindo pra transcrição linha a linha e o histórico).
+    function renderLanguageSwapCards(counts, library, variantClass) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return "";
+      return entries
+        .map(([word, count]) => {
+          const suggestion = library[word] || "reduzir ou fazer uma pausa no lugar";
+          return `
+            <div class="language-swap-card ${variantClass}">
+              <span><span class="language-swap-word">"${word}"</span><span class="language-swap-count">× ${count}</span></span>
+              <span><span class="language-swap-arrow">→</span><span class="language-swap-suggestion">${suggestion}</span></span>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    // Gírias com peso: mostra TUDO que foi detectado e deixa claro o que pesou na nota e o que não.
+    function renderSlangCards(rows) {
+      if (!rows.length) return "";
+      return rows.map((r) => {
+        const status = r.status === "pesa" ? `<span class="lang-chip warn">pesa na nota</span>`
+          : r.status === "neutra" ? `<span class="lang-chip">neutra · só aparece</span>`
+          : `<span class="lang-chip good">dentro do normal</span>`;
+        const swap = r.status === "pesa" && r.swap ? `<span><span class="language-swap-arrow">→</span><span class="language-swap-suggestion">${r.swap}</span></span>` : "";
+        return `<div class="language-swap-card slang-swap">
+          <span><span class="language-swap-word">"${r.key}"</span><span class="language-swap-count">× ${r.count} · peso ${r.label}</span></span>
+          ${swap}${status}
+        </div>`;
+      }).join("");
+    }
+
+    // Frases comuns de objeção em vendas — detecção por gatilho, não entendimento
+    // real de linguagem. Serve pra aproximar "isso soa como uma objeção".
+    const OBJECTION_PHRASES = [
+      "tá caro", "ta caro", "está caro", "muito caro",
+      "não tenho orçamento", "sem orçamento",
+      "vou pensar", "preciso pensar", "deixa eu pensar",
+      "não é prioridade", "não é o momento", "não é a hora",
+      "não tenho certeza", "não confio",
+      "já uso", "uso outro fornecedor", "outro fornecedor",
+      "não posso agora", "agora não dá",
+      "preciso conversar com", "preciso falar com",
+      "não faz sentido", "não vejo valor",
+      "muito complicado", "complicado demais",
+      "não tenho tempo",
+    ];
+
+    function detectObjectionPhrase(text) {
+      const lower = text.toLowerCase();
+      return OBJECTION_PHRASES.find((p) => lower.includes(p)) || null;
+    }
+
+    // Pergunta aberta ("o que", "como"...) abre espaço pro cliente falar;
+    // fechada ("você pode", "faz sentido"...) tende a gerar só sim/não.
+    // Só classifica como pergunta quando o reconhecimento de voz colocou um
+    // "?" no fim — sem isso, palavras como "quando"/"como" aparecem demais em
+    // frases que não são perguntas (são conjunções, não interrogação).
+    const OPEN_QUESTION_STARTERS = [
+      "o que", "que", "como", "por que", "porque", "qual", "quais",
+      "quando", "onde", "quem", "quanto", "quantos", "quantas",
+    ];
+
+    function classifyQuestion(text) {
+      const trimmed = text.trim();
+      if (!trimmed.endsWith("?")) return null;
+      const lower = trimmed.toLowerCase();
+      const isOpen = OPEN_QUESTION_STARTERS.some((w) => lower.startsWith(w + " ") || lower === `${w}?`);
+      return isOpen ? "aberta" : "fechada";
+    }
+
+    function tokenizeWords(text) {
+      return text
+        .toLowerCase()
+        .replace(/[.,!?;:"'()]/g, "")
+        .split(/\s+/)
+        .filter(Boolean);
+    }
+
+    // Gírias: o dicionário (com peso, tolerância e contexto) vive em lang.js.
+    // Detectar tudo, mas só descontar o que pesa de verdade (frequência, contexto, impacto).
+    const SLANG_LIBRARY = AuraLang.swaps;   // chave -> troca sugerida
+    function detectSlang(text) { return AuraLang.detectSlang(text); }
+
+    // Vícios de linguagem: contados pro resumo, mas sem alerta ao vivo — são
+    // frequentes demais na fala natural pra avisar toda vez sem virar ruído.
+    // Sons de hesitação pura ("an", "hã"...) não têm sinônimo real — a troca
+    // sugerida pra eles é uma pausa silenciosa, não outra palavra.
+    const FILLER_LIBRARY = {
+      "né": "corte a palavra ou faça uma pausa",
+      "tipo": "por exemplo",
+      "é": "uma pausa silenciosa",
+      "an": "uma pausa silenciosa",
+      "hã": "uma pausa silenciosa",
+      "ahn": "uma pausa silenciosa",
+      "eh": "uma pausa silenciosa",
+      "hum": "uma pausa silenciosa",
+      "assim": "dessa forma",
+      "sabe": "entende / compreende",
+    };
+    const FILLER_WORDS = Object.keys(FILLER_LIBRARY);
+
+    // "então" não conta como vício (é conectivo normal). "é" só conta quando é
+    // hesitação: puxado ("éé", "ééé") ou repetido em sequência ("é é"). Um "é"
+    // sozinho é o verbo ("o preço é…") e o reconhecimento de fala não deixa
+    // distinguir de outro jeito.
+    const STRETCHED_E = /^é{2,}$/;
+    function detectFillerWords(text) {
+      const tokens = tokenizeWords(text);
+      const found = [];
+      tokens.forEach((t, i) => {
+        if (STRETCHED_E.test(t)) { found.push("é"); return; }
+        if (t === "é") {
+          const prev = tokens[i - 1], next = tokens[i + 1];
+          if (prev === "é" || next === "é" || STRETCHED_E.test(prev || "") || STRETCHED_E.test(next || "")) found.push("é");
+          return;
+        }
+        if (FILLER_WORDS.includes(t)) found.push(t);
+      });
+      return found;
+    }
+
+    const video = document.getElementById("video");
+    const overlay = document.getElementById("overlay");
+    const fillerBubbleLayerEl = document.getElementById("fillerBubbleLayer");
+
+    // Balãozinho flutuante quando você fala um vício de linguagem — feedback
+    // visual imediato, some sozinho depois da animação (4s).
+    function showFillerBubble(word) {
+      const bubble = document.createElement("span");
+      bubble.className = "filler-bubble";
+      bubble.textContent = `"${word}"`;
+      bubble.style.left = `${25 + Math.random() * 50}%`;
+      fillerBubbleLayerEl.appendChild(bubble);
+      setTimeout(() => bubble.remove(), 4000);
+    }
+    const statusEl = document.getElementById("status");
+    const dominantEl = document.getElementById("dominant");
+    const emotionsEl = document.getElementById("emotions");
+    const estimatedEl = document.getElementById("estimated");
+    const switchBtn = document.getElementById("switchCam");
+    const ctx = overlay.getContext("2d");
+
+    // --- Coluna de status ao vivo ---
+    const cameraUptimeEl = document.getElementById("cameraUptime");
+    const detectionConfidenceEl = document.getElementById("detectionConfidence");
+    const sessionStatusTextEl = document.getElementById("sessionStatusText");
+    const tileFocusedEl = document.getElementById("tileFocused");
+    const tileMotivatedEl = document.getElementById("tileMotivated");
+    const tileTiredEl = document.getElementById("tileTired");
+    let cameraStartTime = 0;
+
+    function updateSessionStatusDisplay() {
+      sessionStatusTextEl.textContent = sessionActive
+        ? "Ativa — " + formatClock((Date.now() - sessionStartTime) / 1000)
+        : "Inativa";
+    }
+
+    let currentFacingMode = "user";
+    let stream = null;
+
+    // Quantos frames seguidos sem rosto até avisar "nenhum rosto detectado".
+    // Isso evita o "piscar" quando uma única leitura falha por instante.
+    const MISS_GRACE_FRAMES = 12;
+    let missedFrames = 0;
+
+    // Histórico recente para calcular as estimativas (cansaço/foco/motivação).
+    const HISTORY_SIZE = 60; // ~poucos segundos de janela
+    const history = {
+      ear: [],       // abertura dos olhos (Eye Aspect Ratio)
+      neutral: [],   // score de expressão neutra
+      happy: [],     // score de expressão feliz
+      surprised: [], // score de expressão surpresa
+      headX: [],     // posição horizontal da cabeça
+      headY: [],     // posição vertical da cabeça
+    };
+    let runningMaxEAR = 0;
+
+    const MODEL_URL = "https://cdn.jsdelivr.net/gh/vladmandic/face-api/model";
+
+    async function loadModels() {
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+    }
+
+    function pushHistory(key, value) {
+      const arr = history[key];
+      arr.push(value);
+      if (arr.length > HISTORY_SIZE) arr.shift();
+    }
+
+    function average(arr) {
+      if (!arr.length) return 0;
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    function variance(arr) {
+      if (arr.length < 2) return 0;
+      const avg = average(arr);
+      return average(arr.map((v) => (v - avg) ** 2));
+    }
+
+    function distance(p1, p2) {
+      return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    }
+
+    // Eye Aspect Ratio: quanto menor, mais fechado o olho está.
+    function eyeAspectRatio(points) {
+      const vertical1 = distance(points[1], points[5]);
+      const vertical2 = distance(points[2], points[4]);
+      const horizontal = distance(points[0], points[3]);
+      if (horizontal === 0) return 0;
+      return (vertical1 + vertical2) / (2 * horizontal);
+    }
+
+    function updateEstimates(landmarks, expressions, box) {
+      const leftEye = landmarks.getLeftEye();
+      const rightEye = landmarks.getRightEye();
+      const ear = (eyeAspectRatio(leftEye) + eyeAspectRatio(rightEye)) / 2;
+
+      pushHistory("ear", ear);
+      pushHistory("neutral", expressions.neutral);
+      pushHistory("happy", expressions.happy);
+      pushHistory("surprised", expressions.surprised);
+      // Normalizado pelo tamanho do rosto na tela (não em pixels absolutos),
+      // pra funcionar igual em qualquer resolução/distância de câmera.
+      pushHistory("headX", (box.x + box.width / 2) / box.width);
+      pushHistory("headY", (box.y + box.height / 2) / box.height);
+
+      runningMaxEAR = Math.max(runningMaxEAR * 0.995, ear); // decai bem devagar, se adapta com o tempo
+
+      const avgEAR = average(history.ear);
+      const avgNeutral = average(history.neutral);
+      const avgHappy = average(history.happy);
+      const avgSurprised = average(history.surprised);
+      const headVariance = variance(history.headX) + variance(history.headY);
+
+      // Cansado: olhos consistentemente bem mais fechados que o "normal" observado.
+      const earRatio = runningMaxEAR > 0 ? avgEAR / runningMaxEAR : 1;
+      const tired = clamp01((0.85 - earRatio) / 0.35);
+
+      // Focado: cabeça parada + expressão neutra sustentada.
+      // Peso maior pra expressão neutra do que pra estabilidade sozinha —
+      // antes, ficar parado já bastava pra "Focado" ganhar de qualquer outra
+      // expressão (mesmo sorrindo/falando), porque a estabilidade quase
+      // sempre satura perto do máximo.
+      const stability = clamp01(1 - headVariance / 0.05);
+      const focused = clamp01(stability * 0.35 + avgNeutral * 0.65);
+
+      // Motivado: felicidade/energia positiva sustentada.
+      const motivated = clamp01(avgHappy * 0.8 + avgSurprised * 0.3);
+
+      return { tired, focused, motivated };
+    }
+
+    function clamp01(v) {
+      return Math.max(0, Math.min(1, v));
+    }
+
+    // O modelo pronto costuma confundir "triste" com rosto neutro/parado (por
+    // isso o peso reduzido), e "bravo" quase nunca passa de um valor baixo a
+    // menos que a pessoa faça uma expressão bem exagerada (por isso o reforço).
+    const EXPRESSION_CALIBRATION = { sad: 0.5, angry: 1.8 };
+
+    function calibrateExpressions(expressions) {
+      const calibrated = { ...expressions };
+      for (const key in EXPRESSION_CALIBRATION) {
+        calibrated[key] = clamp01(calibrated[key] * EXPRESSION_CALIBRATION[key]);
+      }
+      return calibrated;
+    }
+
+    // --- Sessão: coleta dados ao longo do tempo e monta um resumo no final ---
+    const clientNameInputEl = document.getElementById("clientNameInput");
+    let currentClientName = "";
+    const startSessionBtn = document.getElementById("startSessionBtn");
+    const endSessionBtn = document.getElementById("endSessionBtn");
+    const sessionTimerEl = document.getElementById("sessionTimer");
+    const summarySection = document.getElementById("summary-section");
+    const leftSummaryCardsEl = document.getElementById("leftSummaryCards");
+    const summaryDurationEl = document.getElementById("summaryDuration");
+    const summaryEmotionsEl = document.getElementById("summaryEmotions");
+    const summaryEstimatedEl = document.getElementById("summaryEstimated");
+    const summaryTranscriptEl = document.getElementById("summaryTranscript");
+    const summaryNegotiationEl = document.getElementById("summaryNegotiation");
+    const summaryObjectionsEl = document.getElementById("summaryObjections");
+    const summaryDynamicsEl = document.getElementById("summaryDynamics");
+    const summaryTipsEl = document.getElementById("summaryTips");
+    const summaryOratoriaEl = document.getElementById("summaryOratoria");
+    const summaryLanguageEl = document.getElementById("summaryLanguage");
+    const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    const trendChartEl = document.getElementById("trendChart");
+    const trendTooltipEl = document.getElementById("trendTooltip");
+    const peakInsightsEl = document.getElementById("peakInsights");
+
+    const TREND_SERIES = [
+      { key: "tired", label: "Cansado", color: "var(--series-tired)" },
+      { key: "focused", label: "Constância", color: "var(--series-focused)" },
+      { key: "motivated", label: "Motivado", color: "var(--series-motivated)" },
+    ];
+
+    function formatTimeMMSS(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = Math.floor(totalSeconds % 60);
+      return `${m}m${String(s).padStart(2, "0")}s`;
+    }
+
+    function renderTrendChart(data) {
+      const W = 640;
+      const H = 240;
+      const margin = { top: 16, right: 16, bottom: 24, left: 34 };
+      const plotW = W - margin.left - margin.right;
+      const plotH = H - margin.top - margin.bottom;
+      const duration = data[data.length - 1].t || 1;
+
+      const x = (t) => margin.left + (t / duration) * plotW;
+      const y = (v) => margin.top + (1 - v) * plotH;
+
+      let svg = "";
+
+      [0, 0.5, 1].forEach((v) => {
+        const yy = y(v);
+        svg += `<line x1="${margin.left}" y1="${yy}" x2="${W - margin.right}" y2="${yy}" stroke="var(--grid)" stroke-width="1" />`;
+        svg += `<text x="${margin.left - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${Math.round(v * 100)}%</text>`;
+      });
+
+      TREND_SERIES.forEach((series) => {
+        const points = data.map((d) => `${x(d.t)},${y(d[series.key] || 0)}`).join(" ");
+        const last = data[data.length - 1];
+        svg += `<polyline points="${points}" fill="none" stroke="${series.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
+        svg += `<circle cx="${x(last.t)}" cy="${y(last[series.key] || 0)}" r="4" fill="${series.color}" stroke="var(--surface)" stroke-width="2" />`;
+        svg += `<text x="${x(last.t) + 6}" y="${y(last[series.key] || 0) + 3}" font-size="10" fill="var(--text-secondary)">${series.label}</text>`;
+      });
+
+      svg += `<line id="trendCrosshair" x1="0" y1="${margin.top}" x2="0" y2="${margin.top + plotH}" stroke="var(--muted)" stroke-width="1" style="display:none" />`;
+      svg += `<rect id="trendHoverArea" x="${margin.left}" y="${margin.top}" width="${plotW}" height="${plotH}" fill="transparent" />`;
+
+      trendChartEl.innerHTML = svg;
+
+      const hoverArea = trendChartEl.querySelector("#trendHoverArea");
+      const crosshair = trendChartEl.querySelector("#trendCrosshair");
+
+      hoverArea.addEventListener("mousemove", (evt) => {
+        const rect = trendChartEl.getBoundingClientRect();
+        const scaleX = W / rect.width;
+        const mouseX = (evt.clientX - rect.left) * scaleX;
+        const t = clamp01((mouseX - margin.left) / plotW) * duration;
+
+        let nearest = data[0];
+        let minDiff = Infinity;
+        for (const d of data) {
+          const diff = Math.abs(d.t - t);
+          if (diff < minDiff) {
+            minDiff = diff;
+            nearest = d;
+          }
+        }
+
+        crosshair.style.display = "block";
+        crosshair.setAttribute("x1", x(nearest.t));
+        crosshair.setAttribute("x2", x(nearest.t));
+
+        trendTooltipEl.style.display = "block";
+        trendTooltipEl.style.left = evt.clientX + 12 + "px";
+        trendTooltipEl.style.top = evt.clientY - 12 + "px";
+        trendTooltipEl.innerHTML =
+          `<div class="tooltip-time">${formatTimeMMSS(nearest.t)}</div>` +
+          TREND_SERIES.map(
+            (s) =>
+              `<div><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}: ${((nearest[s.key] || 0) * 100).toFixed(0)}%</div>`
+          ).join("");
+      });
+
+      hoverArea.addEventListener("mouseleave", () => {
+        crosshair.style.display = "none";
+        trendTooltipEl.style.display = "none";
+      });
+    }
+
+    function renderInsights(data) {
+      const peakFocus = data.reduce((a, b) => (b.focused > a.focused ? b : a));
+      const peakTired = data.reduce((a, b) => (b.tired > a.tired ? b : a));
+      const mid = data[data.length - 1].t / 2;
+      const firstHalf = data.filter((d) => d.t < mid);
+      const secondHalf = data.filter((d) => d.t >= mid);
+
+      const lines = [];
+      lines.push(`Pico de foco: ${(peakFocus.focused * 100).toFixed(0)}% aos ${formatTimeMMSS(peakFocus.t)}`);
+      lines.push(`Pico de cansaço: ${(peakTired.tired * 100).toFixed(0)}% aos ${formatTimeMMSS(peakTired.t)}`);
+
+      if (firstHalf.length && secondHalf.length) {
+        const tiredDelta = average(secondHalf.map((d) => d.tired)) - average(firstHalf.map((d) => d.tired));
+        if (tiredDelta > 0.05) {
+          lines.push(`Você ficou mais cansado na segunda metade da sessão (+${Math.round(tiredDelta * 100)} pontos)`);
+        } else if (tiredDelta < -0.05) {
+          lines.push(`Você ficou menos cansado na segunda metade da sessão (${Math.round(tiredDelta * 100)} pontos)`);
+        }
+      }
+
+      peakInsightsEl.innerHTML = lines.map((l) => `<div class="insight-line">${l}</div>`).join("");
+    }
+
+    // --- Histórico: cada sessão salva na nuvem (Supabase), amarrada ao usuário
+    // logado. A listagem/edição/ranqueamento em si vive em sessoes.html —
+    // aqui só fica o necessário pra SALVAR a sessão que acabou de terminar.
+
+    // Nomes de campo no app (camelCase) não batem 1:1 com as colunas do banco
+    // (snake_case) — essa função faz a conversão na hora de salvar.
+    function toDbPatch(patch) {
+      const out = { ...patch };
+      if ("client" in out) { out.client_name = out.client; delete out.client; }
+      if ("keywordCounts" in out) { out.keyword_counts = out.keywordCounts; delete out.keywordCounts; }
+      if ("slangCounts" in out) { out.slang_counts = out.slangCounts; delete out.slangCounts; }
+      if ("fillerCounts" in out) { out.filler_counts = out.fillerCounts; delete out.fillerCounts; }
+      if ("oratoriaScore" in out) { out.oratoria_score = out.oratoriaScore; delete out.oratoriaScore; }
+      if ("oratoriaSubscores" in out) { out.oratoria_subscores = out.oratoriaSubscores; delete out.oratoriaSubscores; }
+      if ("openQuestions" in out) { out.open_questions = out.openQuestions; delete out.openQuestions; }
+      if ("closedQuestions" in out) { out.closed_questions = out.closedQuestions; delete out.closedQuestions; }
+      return out;
+    }
+
+    const SESSION_BACKUP_KEY = "aurax_unsaved_session_backup";
+
+    // Colunas mais novas que podem ainda não existir no banco em produção
+    // (migração pendente) — um insert com QUALQUER coluna desconhecida falha
+    // por inteiro (a sessão inteira: transcrição, nota de oratória, dicas...
+    // tudo se perde por causa de UM campo novo). Se o erro for exatamente
+    // "coluna não encontrada", tenta de novo sem essas colunas em vez de
+    // perder a sessão toda.
+    const OPTIONAL_NEW_COLUMNS = ["open_questions", "closed_questions", "oratoria_subscores"];
+
+    function isMissingColumnError(error) {
+      return !!error && error.code === "PGRST204";
+    }
+
+    // Sessões de negociação de verdade podem passar de 1h — o token de login
+    // pode expirar no meio da call (o navegador fica em segundo plano
+    // enquanto a reunião roda em outro app/janela, e o refresh automático às
+    // vezes não dá tempo). Antes, uma falha aqui só ia pro console — o
+    // usuário terminava a call achando que salvou e a sessão inteira sumia
+    // sem aviso nenhum. Agora: tenta de novo sem colunas novas desconhecidas,
+    // depois com a sessão renovada, e se mesmo assim falhar, avisa na tela e
+    // guarda uma cópia local.
+    async function saveHistoryEntry(entry) {
+      let payload = { ...toDbPatch(entry), user_id: currentUserId };
+
+      let { data, error } = await supabaseClient.from("sessions").insert(payload).select("id");
+
+      if (isMissingColumnError(error)) {
+        console.error("Coluna nova ainda não existe no banco — tentando salvar sem ela:", error.message);
+        const trimmed = { ...payload };
+        OPTIONAL_NEW_COLUMNS.forEach((col) => delete trimmed[col]);
+        payload = trimmed;
+        ({ data, error } = await supabaseClient.from("sessions").insert(payload).select("id"));
+        if (!error) posthog.capture("session_saved_without_new_columns");
+      }
+
+      if (error) {
+        console.error("Erro ao salvar sessão (1ª tentativa):", error.message);
+        await supabaseClient.auth.refreshSession();
+        ({ data, error } = await supabaseClient.from("sessions").insert(payload).select("id"));
+      }
+
+      if (error) {
+        console.error("Erro ao salvar sessão (2ª tentativa):", error.message);
+        try {
+          localStorage.setItem(SESSION_BACKUP_KEY, JSON.stringify(payload));
+        } catch (storageErr) {
+          console.error("Não foi possível nem guardar backup local:", storageErr);
+        }
+        const banner = document.getElementById("saveErrorBanner");
+        if (banner) {
+          banner.hidden = false;
+          banner.textContent =
+            "⚠️ Não foi possível salvar essa sessão agora (pode ter sido a conexão ou o login expirar numa call longa). Guardamos uma cópia no seu navegador — mande print desta tela e avise o suporte antes de fechar a aba.";
+        }
+        posthog.capture("session_save_failed", { error: error.message });
+      } else {
+        try {
+          localStorage.removeItem(SESSION_BACKUP_KEY);
+        } catch (storageErr) {
+          // sem problema — só não limpou o backup de uma falha anterior
+        }
+        // Dispara em segundo plano — o resumo por IA (objetivo/objeção/
+        // próximo passo) não pode atrasar nem travar o fim da sessão. Se
+        // falhar, a sessão continua salva normal, só sem esse resumo extra.
+        const insertedId = data && data[0] && data[0].id;
+        if (insertedId) requestAiSummary(insertedId);
+        return { ok: true, id: insertedId || null };
+      }
+      return { ok: false, id: null };
+    }
+
+    // Única chamada de IA generativa de verdade no AuraX (o resto é regra
+    // escrita) — pede pra Edge Function gerar objetivo/objeção/próximo passo
+    // a partir da transcrição já salva, e ela mesma atualiza a sessão.
+    async function requestAiSummary(sessionId) {
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/summarize-session`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionId }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error("Resumo por IA não gerado:", body.error || res.status);
+          return;
+        }
+        posthog.capture("ai_summary_generated");
+      } catch (err) {
+        console.error("Erro pedindo resumo por IA:", err);
+      }
+    }
+
+
+    const SAMPLE_INTERVAL_MS = 3000; // guarda uma leitura a cada 3 segundos
+    let sessionActive = false;
+    let sessionStartTime = 0;
+    let lastSampleTime = 0;
+    let sessionData = [];
+    let sessionTranscript = [];
+    let sessionWordCount = 0;
+    let sessionPauseCount = 0;
+    let sessionActiveListeningCount = 0;
+    let sessionKeywordCounts = {};
+    let sessionObjections = [];
+    let sessionSlangCounts = {};
+    let sessionFillerCounts = {};
+    let sessionSilentSamples = 0;
+    let sessionTotalSamples = 0;
+    let sessionSpeechSamples = 0;   // amostras com voz, contando pausas curtas entre palavras como fala
+    let lastVoiceAt = 0;
+    const SPEECH_HANGOVER_MS = 2000;
+    let sessionConfidences = [];
+    let sessionVolumes = [];
+    let sessionOpenQuestions = 0;
+    let sessionClosedQuestions = 0;
+
+    // --- Objeção + resposta: acompanha a expressão por um tempo depois de uma
+    // frase-gatilho de objeção, pra resumir como foi a reação na resposta.
+    const OBJECTION_WINDOW_MS = 20000;
+    let objectionWindowActive = false;
+    let objectionWindowEnd = 0;
+    let objectionWindowSamples = [];
+    let objectionWindowPhrase = "";
+    let objectionWindowStartT = 0;
+
+    function summarizeObjectionWindow(samples) {
+      if (!samples.length) return "Sem dados suficientes durante a resposta";
+      const avgFocused = average(samples.map((s) => s.focused));
+      const avgTired = average(samples.map((s) => s.tired));
+      const negativeCount = samples.filter((s) =>
+        ["Nervoso/Medo", "Triste", "Bravo"].some((label) => s.dominantLabel.startsWith(label))
+      ).length;
+      const negativeRatio = negativeCount / samples.length;
+
+      if (negativeRatio > 0.4) {
+        return `Resposta tensa — sinais de desconforto em ${Math.round(negativeRatio * 100)}% do tempo`;
+      }
+      if (avgFocused > 0.55) {
+        return `Resposta segura — manteve o foco (${Math.round(avgFocused * 100)}%)`;
+      }
+      if (avgTired > 0.5) {
+        return `Resposta com sinais de cansaço (${Math.round(avgTired * 100)}%)`;
+      }
+      return "Resposta neutra, sem sinais fortes";
+    }
+
+    function closeObjectionWindow() {
+      const resultLabel = summarizeObjectionWindow(objectionWindowSamples);
+      pushLiveAlert(`Resultado da resposta: ${resultLabel}`);
+      if (sessionActive) {
+        sessionObjections.push({ t: objectionWindowStartT, phrase: objectionWindowPhrase, result: resultLabel });
+      }
+      objectionWindowActive = false;
+      objectionWindowSamples = [];
+    }
+
+    function formatDuration(totalSeconds) {
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = Math.floor(totalSeconds % 60);
+      const hh = h > 0 ? `${h}h ` : "";
+      return `${hh}${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+    }
+
+    setInterval(() => {
+      if (!sessionActive) return;
+      sessionTimerEl.textContent = "Sessão em andamento: " + formatDuration((Date.now() - sessionStartTime) / 1000);
+      updateSessionStatusDisplay();
+    }, 1000);
+
+    setInterval(() => {
+      if (!cameraStartTime) return;
+      cameraUptimeEl.textContent = formatClock((Date.now() - cameraStartTime) / 1000);
+    }, 1000);
+
+    startSessionBtn.addEventListener("click", () => {
+      sessionActive = true;
+      sessionStartTime = Date.now();
+      lastSampleTime = 0;
+      sessionData = [];
+      sessionTranscript = [];
+      sessionWordCount = 0;
+      sessionPauseCount = 0;
+      sessionActiveListeningCount = 0;
+      sessionKeywordCounts = {};
+      sessionObjections = [];
+      sessionSlangCounts = {};
+      sessionFillerCounts = {};
+      sessionSilentSamples = 0;
+      sessionTotalSamples = 0;
+      sessionSpeechSamples = 0;
+      lastVoiceAt = 0;
+      sessionConfidences = [];
+      sessionVolumes = [];
+      sessionOpenQuestions = 0;
+      sessionClosedQuestions = 0;
+      currentClientName = clientNameInputEl.value.trim();
+      startSessionBtn.style.display = "none";
+      endSessionBtn.style.display = "inline-block";
+      summarySection.style.display = "none";
+      leftSummaryCardsEl.style.display = "none";
+      summaryOratoriaEl.innerHTML = '<div class="insight-line">Fale um pouco pra começar a ver sua nota aqui.</div>';
+      document.getElementById("saveErrorBanner").hidden = true;
+      sessionTimerEl.textContent = "Sessão em andamento: 00m 00s";
+      updateSessionStatusDisplay();
+      posthog.capture("session_started");
+    });
+
+    // ===== Modal "Sessão gravada" =====
+    // Ao encerrar, a tela volta pro zero pra próxima sessão — sem um aviso,
+    // parece que nada foi salvo. O modal confirma o salvamento e leva direto
+    // pra análise daquela sessão em Minhas Sessões.
+    const savedOverlayEl = document.getElementById("savedOverlay");
+    const savedBodyEl = document.getElementById("savedBody");
+    const savedEsc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    function openSavedModal() {
+      savedBodyEl.innerHTML = `<div class="saved-spinner" aria-hidden="true"></div><h3>Salvando sua sessão…</h3><p class="saved-sub">Só um instante.</p>`;
+      savedOverlayEl.classList.remove("hidden");
+    }
+    function closeSavedModal() { savedOverlayEl.classList.add("hidden"); }
+
+    function showSavedResult(result, ctx) {
+      if (!result) {
+        savedBodyEl.innerHTML = `<h3>Sessão encerrada</h3>
+          <p class="saved-sub">Nenhum dado foi coletado (o rosto não foi detectado), então não há nada para salvar.</p>
+          <div class="saved-actions"><button type="button" class="btn" id="savedCloseBtn">Fechar</button></div>`;
+      } else if (!result.ok) {
+        savedBodyEl.innerHTML = `<h3>Não conseguimos salvar a sessão</h3>
+          <p class="saved-sub">Pode ter sido a conexão ou o login que expirou numa call longa. Guardamos uma cópia no seu navegador — não feche esta aba e avise o suporte.</p>
+          <div class="saved-actions"><button type="button" class="btn ghost" id="savedCloseBtn">Fechar</button></div>`;
+      } else {
+        const href = result.id ? `sessoes.html?id=${encodeURIComponent(result.id)}` : "sessoes.html";
+        const bits = [];
+        if (ctx.client) bits.push("Cliente: " + savedEsc(ctx.client));
+        bits.push(formatClock(ctx.duration || 0));
+        if (ctx.score != null) bits.push(`Nota de oratória <b>${ctx.score}</b>`);
+        savedBodyEl.innerHTML = `<div class="saved-check" aria-hidden="true">✓</div>
+          <h3>Sessão gravada</h3>
+          <p class="saved-sub">${bits.join(" · ")}</p>
+          ${ctx.focusHtml || ""}
+          <div class="saved-actions">
+            <a class="btn" id="savedViewBtn" href="${href}">Ver análise completa desta sessão</a>
+            <button type="button" class="btn ghost" id="savedCloseBtn">Fazer nova sessão</button>
+          </div>
+          ${ctx.note ? `<button type="button" class="saved-link" id="savedCopyBtn" title="Copia um resumo (sem transcrição) pra colar numa nota do CRM">📋 Copiar resumo para o CRM</button>` : ""}`;
+        const copyBtn = document.getElementById("savedCopyBtn");
+        if (copyBtn) copyBtn.addEventListener("click", async () => {
+          const ok = await AuraFocus.copyText(ctx.note);
+          copyBtn.textContent = ok ? "✓ Resumo copiado — é só colar no CRM" : "Não consegui copiar";
+          if (ok) posthog.capture("crm_note_copied", { source: "modal" });
+        });
+        const viewBtn = document.getElementById("savedViewBtn");
+        viewBtn.addEventListener("click", () => posthog.capture("saved_modal_view_analysis"));
+        viewBtn.focus({ preventScroll: true });
+      }
+      document.getElementById("savedCloseBtn").addEventListener("click", closeSavedModal);
+    }
+
+    savedOverlayEl.addEventListener("click", (e) => { if (e.target === savedOverlayEl) closeSavedModal(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSavedModal(); });
+
+    endSessionBtn.addEventListener("click", () => {
+      const durationSeconds = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 1000) : 0;
+      sessionActive = false;
+      startSessionBtn.style.display = "inline-block";
+      endSessionBtn.style.display = "none";
+      sessionTimerEl.textContent = "";
+      updateSessionStatusDisplay();
+      openSavedModal();
+      renderSummary();
+      posthog.capture("session_ended", { duration_seconds: durationSeconds });
+
+      // O resumo do que acabou de acontecer já fica salvo (Supabase +
+      // "Minhas Sessões"/"Meus Insights", com nota de oratória, dicas e
+      // vícios de linguagem) — então a tela em si já pode voltar pro zero,
+      // pronta pra próxima sessão, em vez de esperar o próximo "Iniciar".
+      transcriptLogEl.innerHTML = "";
+      liveAlertsEl.innerHTML = "";
+      transcriptFinalCount = 0;
+      transcriptWordCount = 0;
+      updateTranscriptCount();
+      clientNameInputEl.value = "";
+      summarySection.style.display = "none";
+      leftSummaryCardsEl.style.display = "none";
+      summaryOratoriaEl.innerHTML = '<div class="insight-line">Fale um pouco pra começar a ver sua nota aqui.</div>';
+
+    });
+
+    function maybeSampleSession(expressions, estimates) {
+      if (!sessionActive) return;
+      const now = Date.now();
+      if (now - lastSampleTime < SAMPLE_INTERVAL_MS) return;
+      lastSampleTime = now;
+      sessionData.push({
+        t: (now - sessionStartTime) / 1000,
+        ...expressions,
+        tired: estimates.tired,
+        focused: estimates.focused,
+        motivated: estimates.motivated,
+      });
+    }
+
+    // Dinâmica da sessão (análise individual): quanto do tempo você ficou falando
+    // x ouvindo/em silêncio. Pausas de até 2s entre palavras contam como fala.
+    function computeConversationDynamics(transcript) {
+      if (!transcript.length || sessionTotalSamples < 20) return null;
+      const pctYou = Math.min(100, Math.round((sessionSpeechSamples / sessionTotalSamples) * 100));
+      const silencePct = Math.round((sessionSilentSamples / sessionTotalSamples) * 100);
+      const longestYou = transcript.reduce((m, l) => Math.max(m, l.text.split(/\s+/).filter(Boolean).length), 0);
+      return { pctYou, pctOther: 100 - pctYou, turnsPerMinute: "0.0", longestYou, longestOther: 0, silencePct, basis: "tempo" };
+    }
+
+    // Nota de oratória: combina sinais que já coletamos (ritmo, pausas,
+    // vícios) com dois novos, medidos só a partir da SUA fala (nunca do
+    // outro participante): confiança do reconhecimento de voz do
+    // navegador (uma aproximação de clareza/dicção — não é um teste
+    // fonético de verdade) e a variação do volume da voz (fala mais
+    // monótona x mais expressiva). Com fone de ouvido, isso fica bem mais
+    // confiável, já que o mic só capta a sua própria voz de verdade.
+    // por isso o fone continua sendo recomendado pra maior precisão.
+    function computeOratoriaScore({ wpm, pauseCount, fillerCounts, slangCounts, wordCount, ownConfidences, ownVolumes }) {
+      const subScores = [];
+
+      if (wpm > 0) {
+        let paceScore;
+        if (wpm >= 110 && wpm <= 160) paceScore = 100;
+        else if (wpm < 110) paceScore = clamp01(wpm / 110) * 100;
+        else paceScore = clamp01(1 - (wpm - 160) / 120) * 100;
+        subScores.push({ key: "ritmo", label: "Ritmo de fala", score: paceScore });
+      }
+
+      const pauseScore = clamp01(1 - Math.max(0, pauseCount - 2) / 10) * 100;
+      subScores.push({ key: "pausas", label: "Pausas", score: pauseScore });
+
+      // Vícios pela taxa por 100 palavras; gírias só pelo que pesa (peso x frequência acima da tolerância).
+      const language = AuraLang.languageScore(fillerCounts, slangCounts, wordCount);
+      subScores.push({ key: "vicios", label: "Vícios e gírias", score: language.score });
+
+      if (ownConfidences.length >= 3) {
+        subScores.push({ key: "clareza", label: "Clareza/dicção", score: clamp01(average(ownConfidences)) * 100 });
+      }
+
+      if (ownVolumes.length >= 4) {
+        const meanVol = average(ownVolumes);
+        const sd = Math.sqrt(average(ownVolumes.map((v) => (v - meanVol) ** 2)));
+        const cv = meanVol > 0 ? sd / meanVol : 0;
+        let projScore;
+        if (cv >= 0.15 && cv <= 0.45) projScore = 100;
+        else if (cv < 0.15) projScore = clamp01(cv / 0.15) * 100;
+        else projScore = clamp01(1 - (cv - 0.45) / 0.4) * 100;
+        subScores.push({ key: "projecao", label: "Projeção de voz", score: projScore });
+      }
+
+      const overall = subScores.length ? Math.round(average(subScores.map((s) => s.score))) : null;
+      return { overall, subScores };
+    }
+
+    function oratoriaScoreColor(score) {
+      if (score >= 70) return "var(--good)";
+      if (score >= 50) return "var(--warn)";
+      return "var(--bad)";
+    }
+
+    // Ranking simples pra dar um rótulo à nota, não só o número puro.
+    const ORATORIA_RANK_TIERS = [
+      { min: 90, label: "Excelente" },
+      { min: 70, label: "Bom" },
+      { min: 50, label: "Médio" },
+      { min: 0, label: "Precisa de atenção" },
+    ];
+
+    function oratoriaScoreRank(score) {
+      return ORATORIA_RANK_TIERS.find((tier) => score >= tier.min).label;
+    }
+
+    // Compara a primeira metade da sessão com a segunda: se o volume da voz
+    // caiu bastante, é um sinal de cansaço vocal (a energia da fala vai
+    // esvaziando) — complementa o cansaço facial (que já olha pros olhos),
+    // já que uma pessoa pode ficar com a voz mais fraca antes de aparecer no rosto.
+    const VOCAL_FATIGUE_DROP_RATIO = 0.25;
+
+    function detectVocalFatigue(ownVolumes) {
+      if (ownVolumes.length < 6) return null;
+      const mid = Math.floor(ownVolumes.length / 2);
+      const firstHalf = average(ownVolumes.slice(0, mid));
+      const secondHalf = average(ownVolumes.slice(mid));
+      if (firstHalf <= 0) return null;
+      const dropRatio = (firstHalf - secondHalf) / firstHalf;
+      if (dropRatio >= VOCAL_FATIGUE_DROP_RATIO) {
+        return `Sua voz perdeu ${Math.round(dropRatio * 100)}% de energia na segunda metade da sessão — pode ser sinal de cansaço vocal.`;
+      }
+      return null;
+    }
+
+    function oratoriaInsightLines({ subScores, wpm, pauseCount, ownConfidences, ownVolumes }) {
+      const lines = [];
+      subScores
+        .filter((s) => s.score < 60)
+        .sort((a, b) => a.score - b.score)
+        .slice(0, 2)
+        .forEach((s) => {
+          if (s.key === "ritmo") {
+            lines.push(wpm > 160
+              ? `Ritmo acelerado (${wpm} palavras/min) — desacelere um pouco pra passar mais clareza.`
+              : `Ritmo bem devagar (${wpm} palavras/min) — um pouco mais de energia ajuda a prender atenção.`);
+          } else if (s.key === "pausas") {
+            lines.push(`Muitas pausas longas (${pauseCount}) — pode passar hesitação na condução.`);
+          } else if (s.key === "vicios") {
+            lines.push("Vícios de linguagem frequentes — veja os cards abaixo pra saber quais e por que trocar.");
+          } else if (s.key === "clareza") {
+            lines.push("Reconhecimento de fala teve dificuldade de entender parte da sua fala — pode ser dicção, ritmo ou o microfone captando baixo.");
+          } else if (s.key === "projecao") {
+            lines.push("Voz bastante monótona nesta sessão — variar o tom em pontos-chave deixa a fala mais envolvente.");
+          }
+        });
+
+      const fatigueLine = detectVocalFatigue(ownVolumes || []);
+      if (fatigueLine) lines.push(fatigueLine);
+
+      if (!lines.length) {
+        lines.push("Boa entrega nesta sessão — sem pontos fracos fortes na oratória.");
+      }
+      if (!ownConfidences.length) {
+        lines.push("Clareza/dicção não pôde ser medida nesta sessão (navegador não retornou confiança do reconhecimento de fala).");
+      }
+      return lines;
+    }
+
+    function renderOratoriaCard({ overall, subScores }, insightLines) {
+      if (overall === null) {
+        return '<div class="insight-line">Sem fala suficiente pra calcular a nota de oratória nesta sessão.</div>';
+      }
+      const color = oratoriaScoreColor(overall);
+      const rank = oratoriaScoreRank(overall);
+      const barsHtml = subScores
+        .map(
+          (s) => `
+          <div class="bar-row">
+            <div class="bar-label">${s.label}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.score)}%; background:${oratoriaScoreColor(s.score)}"></div></div>
+            <div class="bar-pct">${Math.round(s.score)}%</div>
+          </div>`
+        )
+        .join("");
+      const insightsHtml = insightLines.map((l) => `<div class="insight-line">${l}</div>`).join("");
+      return `
+        <div class="oratoria-card">
+          <div class="oratoria-score-badge" style="--score:${overall}; --score-color:${color}">
+            <div class="oratoria-score-inner">
+              <div class="oratoria-score-value" style="color:${color}">${overall}</div>
+              <div class="oratoria-score-label">/100</div>
+            </div>
+          </div>
+          <div class="oratoria-breakdown">
+            <div class="oratoria-rank-badge" style="color:${color}; border-color:${color}">${rank}</div>
+            ${barsHtml}
+          </div>
+        </div>
+        <div style="margin-top:12px">${insightsHtml}</div>
+        <div class="oratoria-disclaimer">Aproximação a partir de ritmo, pausas, vícios de linguagem, confiança do reconhecimento de fala e variação de volume — não é uma avaliação fonoaudiológica.</div>
+      `;
+    }
+
+    function currentSessionWpm() {
+      if (!sessionStartTime) return 0;
+      const elapsedMin = (Date.now() - sessionStartTime) / 60000;
+      return elapsedMin > 0 ? Math.round(sessionWordCount / elapsedMin) : 0;
+    }
+
+    // Atualiza a nota de oratória ao vivo, a cada fala reconhecida, com os
+    // dados acumulados da sessão até agora — mesma conta usada no resumo
+    // final, só que chamada durante a call em vez de só no fim.
+    function updateLiveOratoria() {
+      if (!sessionActive) return;
+      const wpm = currentSessionWpm();
+      const result = computeOratoriaScore({
+        wpm,
+        pauseCount: sessionPauseCount,
+        fillerCounts: sessionFillerCounts,
+        slangCounts: sessionSlangCounts,
+        wordCount: sessionWordCount,
+        ownConfidences: sessionConfidences,
+        ownVolumes: sessionVolumes,
+      });
+      const insights = oratoriaInsightLines({
+        subScores: result.subScores,
+        wpm,
+        pauseCount: sessionPauseCount,
+        ownConfidences: sessionConfidences,
+        ownVolumes: sessionVolumes,
+      });
+      summaryOratoriaEl.innerHTML = renderOratoriaCard(result, insights);
+    }
+
+    // Dicas de autoavaliação ao final da sessão — regras simples sobre os
+    // dados que já coletamos (nada de IA generativa aqui, é tudo heurística
+    // direta a partir do que foi medido nesta mesma sessão).
+    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated, openQuestions, closedQuestions }) {
+      const tips = [];
+
+      if (wpm > 170) {
+        tips.push({ key: "ritmo_acelerado", type: "melhorar", text: `Ritmo de fala acelerado (${wpm} palavras/min) — desacelerar passa mais segurança.` });
+      } else if (wpm > 0 && wpm < 100) {
+        tips.push({ key: "ritmo_tranquilo", type: "positivo", text: `Ritmo de fala tranquilo (${wpm} palavras/min) — bom controle de pausas.` });
+      }
+
+      if (pauseCount >= 5) {
+        tips.push({ key: "muitas_pausas", type: "melhorar", text: `Muitas pausas longas (${pauseCount}) — pode passar hesitação.` });
+      }
+
+      if (activeListeningCount > 0) {
+        tips.push({
+          key: "escuta_ativa_pausas",
+          type: "positivo",
+          text: `${activeListeningCount} pausa${activeListeningCount > 1 ? "s" : ""} bem longa${activeListeningCount > 1 ? "s" : ""} (mais de 1min) — provavelmente foi você dando espaço pro cliente falar, não hesitação.`,
+        });
+      }
+
+      if (dynamics) {
+        if (dynamics.pctYou >= 75) {
+          tips.push({ key: "dominou_conversa", type: "melhorar", text: `Você falou ${dynamics.pctYou}% do tempo da sessão — abra mais espaço para o cliente falar.` });
+        } else if (dynamics.pctOther >= 35) {
+          tips.push({ key: "boa_escuta", type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o cliente falar.` });
+        }
+        // De fone, o silêncio do SEU mic é o cliente falando (escuta), não
+        // hesitação — o aviso só faz sentido quando a divisão é por palavras.
+        if (dynamics.basis !== "tempo" && dynamics.silencePct >= 15) {
+          tips.push({ key: "silencio_alto", type: "melhorar", text: `Silêncio acima do ideal (${dynamics.silencePct}%) — pode indicar hesitação na condução.` });
+        }
+      }
+
+      // Gíria só vira dica quando pesa na nota (frequência acima da tolerância do peso dela).
+      const heavySlang = AuraLang.analyze(slangCounts, sessionWordCount).filter((r) => r.status === "pesa");
+      if (heavySlang.length) {
+        const list = heavySlang.slice(0, 3).map((r) => `"${r.key}" ×${r.count}`).join(", ");
+        tips.push({ key: "muitas_girias", type: "melhorar", text: `Gírias que pesaram na nota: ${list} — troque por termos mais profissionais.` });
+      }
+
+      const totalFiller = Object.values(fillerCounts || {}).reduce((a, b) => a + b, 0);
+      if (totalFiller >= 15) {
+        tips.push({ key: "muitos_vicios", type: "melhorar", text: `${totalFiller} vícios de linguagem ("é", "né", "tipo"...) — reduzir isso deixa a fala mais assertiva.` });
+      } else if (totalFiller > 0 && totalFiller <= 5) {
+        tips.push({ key: "poucos_vicios", type: "positivo", text: `Poucos vícios de linguagem (${totalFiller}) — fala limpa e direta.` });
+      }
+
+      if (objections && objections.length) {
+        const tense = objections.filter((o) => o.result.startsWith("Resposta tensa")).length;
+        const secure = objections.filter((o) => o.result.startsWith("Resposta segura")).length;
+        if (secure > tense) {
+          tips.push({ key: "objecao_segura", type: "positivo", text: "Boa recuperação em objeções — manteve o foco na maioria das respostas." });
+        } else if (tense > 0) {
+          tips.push({ key: "objecao_tensa", type: "melhorar", text: `Sinais de tensão ao responder objeções (${tense} de ${objections.length}) — treinar essas respostas pode ajudar.` });
+        }
+      }
+
+      const totalQuestions = (openQuestions || 0) + (closedQuestions || 0);
+      if (totalQuestions >= 3) {
+        const openRatio = openQuestions / totalQuestions;
+        if (openRatio < 0.3) {
+          tips.push({
+            key: "poucas_perguntas_abertas",
+            type: "melhorar",
+            text: `Só ${openQuestions} de ${totalQuestions} perguntas foram abertas — perguntas abertas ("o que", "como") abrem mais espaço pro cliente falar.`,
+          });
+        } else if (openRatio >= 0.5) {
+          tips.push({
+            key: "boas_perguntas_abertas",
+            type: "positivo",
+            text: `Boa proporção de perguntas abertas (${openQuestions} de ${totalQuestions}) — ajuda a entender melhor a necessidade do cliente.`,
+          });
+        }
+      }
+
+      if (avgTired >= 0.4) {
+        tips.push({ key: "cansaco", type: "melhorar", text: "Sinais de cansaço ao longo da sessão — considere pausas entre reuniões." });
+      }
+      if (avgMotivated >= 0.5) {
+        tips.push({ key: "boa_energia", type: "positivo", text: "Boa energia/motivação sustentada durante a conversa." });
+      }
+
+      if (!tips.length) {
+        tips.push({ key: "equilibrada", type: "positivo", text: "Sessão equilibrada, sem pontos de atenção fortes identificados." });
+      }
+
+      return tips;
+    }
+
+    function renderCoachingTips(tips) {
+      if (!tips || !tips.length) return "";
+      return tips
+        .map(
+          (t) =>
+            `<div class="insight-line ${t.type === "positivo" ? "tip-positive" : "tip-improve"}">${t.type === "positivo" ? "✓" : "→"} ${t.text}</div>`
+        )
+        .join("");
+    }
+
+    async function renderSummary() {
+      summarySection.style.display = "block";
+      leftSummaryCardsEl.style.display = "block";
+      if (!sessionData.length) {
+        summaryDurationEl.textContent = "Nenhum dado coletado (rosto não foi detectado durante a sessão).";
+        summaryEmotionsEl.innerHTML = "";
+        summaryEstimatedEl.innerHTML = "";
+        summaryTranscriptEl.innerHTML = "";
+        summaryNegotiationEl.innerHTML = "";
+        summaryObjectionsEl.innerHTML = "";
+        summaryDynamicsEl.innerHTML = "";
+        summaryLanguageEl.innerHTML = "";
+        summaryOratoriaEl.innerHTML = "";
+        summaryTipsEl.innerHTML = "";
+        document.getElementById("summaryFocus").innerHTML = "";
+        showSavedResult(null, {});
+        return;
+      }
+
+      const duration = sessionData[sessionData.length - 1].t;
+      summaryDurationEl.textContent = `Duração: ${formatDuration(duration)} — ${sessionData.length} leituras coletadas${currentClientName ? " — Cliente: " + currentClientName : ""}`;
+
+      if (sessionData.length >= 2) {
+        renderTrendChart(sessionData);
+        renderInsights(sessionData);
+      } else {
+        trendChartEl.innerHTML = "";
+        peakInsightsEl.innerHTML = "<div class=\"insight-line\">Sessão curta demais para mostrar a evolução ao longo do tempo.</div>";
+      }
+
+      const emotionAverages = Object.keys(EMOTION_LABELS_PT)
+        .map((key) => [key, average(sessionData.map((d) => d[key] || 0))])
+        .sort((a, b) => b[1] - a[1]);
+      renderBarsInto(summaryEmotionsEl, emotionAverages, DISPLAY_LABELS_PT);
+
+      const estimatedAverages = ["tired", "focused", "motivated"]
+        .map((key) => [key, average(sessionData.map((d) => d[key] || 0))])
+        .sort((a, b) => b[1] - a[1]);
+      renderBarsInto(summaryEstimatedEl, estimatedAverages, ESTIMATED_LABELS_PT);
+
+      summaryTranscriptEl.innerHTML = sessionTranscript.length
+        ? sessionTranscript.map(renderTranscriptLineHtml).join("")
+        : '<div class="insight-line">Nenhuma fala registrada nesta sessão.</div>';
+
+      const wpmSession = duration > 0 ? Math.round(sessionWordCount / (duration / 60)) : 0;
+      const keywordTagsHtml = renderKeywordTags(sessionKeywordCounts);
+      summaryNegotiationEl.innerHTML = `
+        <div class="insight-line">Ritmo médio de fala: ${wpmSession} palavras/min</div>
+        <div class="insight-line">Pausas longas (mais de 1min30): ${sessionPauseCount}</div>
+        ${sessionActiveListeningCount > 0 ? `<div class="insight-line tip-positive">Momentos de escuta ativa (mais de 1min): ${sessionActiveListeningCount}</div>` : ""}
+        <div style="margin-top:8px">${keywordTagsHtml || '<span class="insight-line">Nenhuma palavra-chave de negociação identificada.</span>'}</div>
+      `;
+
+      const oratoriaResult = computeOratoriaScore({
+        wpm: wpmSession,
+        pauseCount: sessionPauseCount,
+        fillerCounts: sessionFillerCounts,
+        slangCounts: sessionSlangCounts,
+        wordCount: sessionWordCount,
+        ownConfidences: sessionConfidences,
+        ownVolumes: sessionVolumes,
+      });
+      const oratoriaInsights = oratoriaInsightLines({
+        subScores: oratoriaResult.subScores,
+        wpm: wpmSession,
+        pauseCount: sessionPauseCount,
+        ownConfidences: sessionConfidences,
+        ownVolumes: sessionVolumes,
+      });
+      summaryOratoriaEl.innerHTML = renderOratoriaCard(oratoriaResult, oratoriaInsights);
+
+      summaryObjectionsEl.innerHTML = sessionObjections.length
+        ? sessionObjections
+            .map((o) => `<div class="insight-line">${formatClock(o.t)} — Objeção: "${o.phrase}" → ${o.result}</div>`)
+            .join("")
+        : '<div class="insight-line">Nenhuma objeção identificada nesta sessão.</div>';
+
+      const dynamics = computeConversationDynamics(sessionTranscript);
+      if (dynamics) {
+        summaryDynamicsEl.innerHTML = `
+          <div class="talk-split-bar">
+            <div class="talk-split-you" style="width:${dynamics.pctYou}%"></div>
+            <div class="talk-split-other" style="width:${dynamics.pctOther}%"></div>
+          </div>
+          <div class="talk-split-labels"><span>Você falou ${dynamics.pctYou}% do tempo</span><span>Ouvindo ou em silêncio ${dynamics.pctOther}%</span></div>
+          <div class="insight-line">Suas perguntas: ${sessionOpenQuestions} aberta${sessionOpenQuestions === 1 ? "" : "s"} · ${sessionClosedQuestions} fechada${sessionClosedQuestions === 1 ? "" : "s"}</div>
+        `;
+      } else {
+        summaryDynamicsEl.innerHTML = '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
+      }
+
+      const fillerSwapHtml = renderLanguageSwapCards(sessionFillerCounts, FILLER_LIBRARY, "filler-swap");
+      const slangSwapHtml = renderSlangCards(AuraLang.analyze(sessionSlangCounts, sessionWordCount));
+      summaryLanguageEl.innerHTML = `
+        <div class="language-block-title">Vícios de linguagem ("é", "né", "tipo"...)</div>
+        <div class="language-swap-list">${fillerSwapHtml || '<div class="insight-line">Nenhum vício de linguagem identificado — fala limpa.</div>'}</div>
+        <div class="language-block-title" style="margin-top:16px">Gírias identificadas</div>
+        <div class="language-swap-list">${slangSwapHtml || '<div class="insight-line">Nenhuma gíria identificada.</div>'}</div>
+      `;
+
+      const avgFocused = average(sessionData.map((d) => d.focused || 0));
+      const avgTired = average(sessionData.map((d) => d.tired || 0));
+      const avgMotivated = average(sessionData.map((d) => d.motivated || 0));
+
+      const tips = generateCoachingTips({
+        dynamics,
+        wpm: wpmSession,
+        pauseCount: sessionPauseCount,
+        activeListeningCount: sessionActiveListeningCount,
+        slangCounts: sessionSlangCounts,
+        fillerCounts: sessionFillerCounts,
+        objections: sessionObjections,
+        avgTired,
+        avgMotivated,
+        openQuestions: sessionOpenQuestions,
+        closedQuestions: sessionClosedQuestions,
+      });
+      summaryTipsEl.innerHTML = tips.length > 1
+        ? `<details class="tips-fold"><summary>Ver todas as dicas (${tips.length})</summary>${renderCoachingTips(tips)}</details>`
+        : renderCoachingTips(tips);
+
+      // Cartão "Foco para a próxima reunião": mostra já, e depois refaz com a
+      // comparação das últimas sessões (busca antes de salvar esta, pra ela
+      // não entrar na própria média).
+      const focusInput = {
+        oratoria_score: oratoriaResult.overall,
+        oratoria_subscores: oratoriaResult.subScores,
+        wpm: wpmSession,
+        pauses: sessionPauseCount,
+        transcript: sessionTranscript,
+        filler_counts: sessionFillerCounts,
+        slang_counts: sessionSlangCounts,
+        open_questions: sessionOpenQuestions,
+        closed_questions: sessionClosedQuestions,
+        objections: sessionObjections,
+        tips,
+        dynamics,
+      };
+      const summaryFocusEl = document.getElementById("summaryFocus");
+      let lastPrevRows = [];
+      if (window.AuraFocus) {
+        summaryFocusEl.innerHTML = AuraFocus.render(focusInput, []);
+        try {
+          const { data: prevRows } = await supabaseClient
+            .from("sessions")
+            .select("oratoria_score, oratoria_subscores")
+            .eq("user_id", currentUserId)
+            .order("date", { ascending: false })
+            .limit(5);
+          if (prevRows && prevRows.length) {
+            lastPrevRows = prevRows;
+            summaryFocusEl.innerHTML = AuraFocus.render(focusInput, prevRows);
+          }
+        } catch (e) { /* sem comparação: o cartão continua útil sozinho */ }
+      }
+
+      const saveResult = await saveHistoryEntry({
+        date: new Date().toISOString(),
+        duration,
+        focused: avgFocused,
+        tired: avgTired,
+        motivated: avgMotivated,
+        transcript: sessionTranscript,
+        wpm: wpmSession,
+        pauses: sessionPauseCount,
+        keywordCounts: sessionKeywordCounts,
+        client: currentClientName,
+        objections: sessionObjections,
+        dynamics,
+        slangCounts: sessionSlangCounts,
+        fillerCounts: sessionFillerCounts,
+        oratoriaScore: oratoriaResult.overall,
+        oratoriaSubscores: oratoriaResult.subScores,
+        openQuestions: sessionOpenQuestions,
+        closedQuestions: sessionClosedQuestions,
+        tips,
+      });
+      showSavedResult(saveResult, {
+        score: oratoriaResult.overall,
+        client: currentClientName,
+        duration,
+        focusHtml: summaryFocusEl.innerHTML,
+        note: window.AuraFocus
+          ? AuraFocus.crmNote({ ...focusInput, client_name: currentClientName, date: new Date().toISOString(), duration, id: saveResult && saveResult.id }, lastPrevRows)
+          : "",
+      });
+    }
+
+    function renderTranscriptLineHtml(line) {
+      const color = expressionColor(line.expression);
+      const hasKeywords = line.keywords && line.keywords.length;
+      const hasSlang = line.slang && line.slang.length;
+      const keywordTagsHtml = hasKeywords
+        ? `<div class="keyword-tags">${line.keywords.map((k) => `<span class="keyword-tag">${k}</span>`).join("")}</div>`
+        : "";
+      const slangTagsHtml = hasSlang
+        ? `<div class="keyword-tags">${[...new Set(line.slang)]
+            .map((w) => `<span class="slang-tag">${w}${SLANG_LIBRARY[w] ? ` → ${SLANG_LIBRARY[w]}` : ""}</span>`)
+            .join("")}</div>`
+        : "";
+      const speakerTagHtml = "";  // análise individual: não há mais "outro participante"
+      const flagClass = hasKeywords ? " transcript-flagged" : hasSlang ? " transcript-slang" : "";
+      return `
+        <div class="transcript-line${flagClass}">
+          <span class="transcript-time">${formatClock(line.t)}</span>${speakerTagHtml}${line.text}
+          <span class="transcript-expression"><span class="expr-dot" style="background:${color}"></span>${line.expression}</span>
+          ${keywordTagsHtml}
+          ${slangTagsHtml}
+        </div>`;
+    }
+
+    function csvEscape(value) {
+      const str = String(value ?? "");
+      if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+      return str;
+    }
+
+    downloadCsvBtn.addEventListener("click", () => {
+      posthog.capture("export_csv");
+      const lines = [];
+
+      lines.push("Leituras da sessão (expressões e estimativas)");
+      const dataHeaders = ["tempo_minutos", ...Object.keys(EMOTION_LABELS_PT), "cansado", "focado", "motivado"];
+      lines.push(dataHeaders.join(","));
+      sessionData.forEach((d) => {
+        lines.push(
+          dataHeaders
+            .map((h) => {
+              if (h === "tempo_minutos") return (d.t / 60).toFixed(2);
+              if (h === "cansado") return d.tired.toFixed(3);
+              if (h === "focado") return d.focused.toFixed(3);
+              if (h === "motivado") return d.motivated.toFixed(3);
+              return (d[h] || 0).toFixed(3);
+            })
+            .join(",")
+        );
+      });
+
+      lines.push("");
+      lines.push("Transcrição da sessão");
+      lines.push(["tempo_minutos", "falante", "texto", "expressao", "palavras_chave"].join(","));
+      sessionTranscript.forEach((line) => {
+        lines.push(
+          [
+            (line.t / 60).toFixed(2),
+            csvEscape(line.speaker || ""),
+            csvEscape(line.text),
+            csvEscape(line.expression),
+            csvEscape((line.keywords || []).join("; ")),
+          ].join(",")
+        );
+      });
+
+      lines.push("");
+      lines.push("Insights de negociação");
+      const duration = sessionData.length ? sessionData[sessionData.length - 1].t : 0;
+      const wpmSession = duration > 0 ? Math.round(sessionWordCount / (duration / 60)) : 0;
+      lines.push(["ritmo_medio_palavras_por_min", wpmSession].join(","));
+      lines.push(["pausas_longas", sessionPauseCount].join(","));
+      lines.push("");
+      lines.push(["palavra_chave", "ocorrencias"].join(","));
+      Object.entries(sessionKeywordCounts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([kw, count]) => lines.push([csvEscape(kw), count].join(",")));
+
+      lines.push("");
+      lines.push("Objeções e respostas");
+      lines.push(["tempo_minutos", "frase", "resultado"].join(","));
+      sessionObjections.forEach((o) => {
+        lines.push([(o.t / 60).toFixed(2), csvEscape(o.phrase), csvEscape(o.result)].join(","));
+      });
+
+      const dynamicsForCsv = computeConversationDynamics(sessionTranscript);
+      lines.push("");
+      lines.push("Dinâmica da conversa");
+      if (dynamicsForCsv) {
+        lines.push(["fala_voce_pct", dynamicsForCsv.pctYou].join(","));
+        lines.push(["fala_outro_pct", dynamicsForCsv.pctOther].join(","));
+        lines.push(["trocas_de_turno_por_min", dynamicsForCsv.turnsPerMinute].join(","));
+        lines.push(["maior_fala_voce_palavras", dynamicsForCsv.longestYou].join(","));
+        lines.push(["maior_fala_outro_palavras", dynamicsForCsv.longestOther].join(","));
+        lines.push(["silencio_pct", dynamicsForCsv.silencePct].join(","));
+      }
+
+      lines.push("");
+      lines.push("Gírias identificadas");
+      lines.push(["giria", "sugestao", "ocorrencias"].join(","));
+      Object.entries(sessionSlangCounts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([word, count]) => lines.push([csvEscape(word), csvEscape(SLANG_LIBRARY[word] || ""), count].join(",")));
+
+      lines.push("");
+      lines.push("Vícios de linguagem");
+      lines.push(["vicio", "sugestao", "ocorrencias"].join(","));
+      Object.entries(sessionFillerCounts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([word, count]) => lines.push([csvEscape(word), csvEscape(FILLER_LIBRARY[word] || ""), count].join(",")));
+
+      const tipsForCsv = generateCoachingTips({
+        dynamics: dynamicsForCsv,
+        wpm: wpmSession,
+        pauseCount: sessionPauseCount,
+        activeListeningCount: sessionActiveListeningCount,
+        slangCounts: sessionSlangCounts,
+        fillerCounts: sessionFillerCounts,
+        objections: sessionObjections,
+        avgTired: sessionData.length ? average(sessionData.map((d) => d.tired || 0)) : 0,
+        avgMotivated: sessionData.length ? average(sessionData.map((d) => d.motivated || 0)) : 0,
+      });
+      lines.push("");
+      lines.push("Dicas de melhoria");
+      lines.push(["tipo", "dica"].join(","));
+      tipsForCsv.forEach((t) => lines.push([csvEscape(t.type), csvEscape(t.text)].join(",")));
+
+      const csv = lines.join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `aurax-sessao-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    downloadPdfBtn.addEventListener("click", async () => {
+      posthog.capture("export_pdf");
+      const originalLabel = downloadPdfBtn.textContent;
+      downloadPdfBtn.disabled = true;
+      downloadPdfBtn.textContent = "Gerando PDF...";
+
+      // Some elements não fazem sentido dentro do PDF (os próprios botões de download).
+      downloadCsvBtn.style.visibility = "hidden";
+      downloadPdfBtn.style.visibility = "hidden";
+
+      try {
+        const canvas = await html2canvas(summarySection, {
+          backgroundColor: getComputedStyle(document.body).backgroundColor,
+          scale: 2,
+          useCORS: true,
+        });
+        const imgData = canvas.toDataURL("image/png");
+        const { jsPDF } = window.jspdf;
+
+        // Página A4 de verdade (não do tamanho da captura) — se o conteúdo
+        // não couber numa folha, quebra em mais páginas automaticamente.
+        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+        const usableWidth = pageWidth - margin * 2;
+        const usableHeight = pageHeight - margin * 2;
+        const imgHeight = (canvas.height * usableWidth) / canvas.width;
+
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, "PNG", margin, margin - position, usableWidth, imgHeight);
+        heightLeft -= usableHeight;
+
+        while (heightLeft > 0) {
+          position += usableHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, "PNG", margin, margin - position, usableWidth, imgHeight);
+          heightLeft -= usableHeight;
+        }
+
+        pdf.save(`aurax-resumo-${Date.now()}.pdf`);
+      } catch (err) {
+        console.error("Erro ao gerar PDF:", err);
+        alert("Não foi possível gerar o PDF. Tente novamente.");
+      } finally {
+        downloadCsvBtn.style.visibility = "visible";
+        downloadPdfBtn.style.visibility = "visible";
+        downloadPdfBtn.disabled = false;
+        downloadPdfBtn.textContent = originalLabel;
+      }
+    });
+
+    // --- Transcrição ao vivo (Web Speech API) ---
+    const micToggleBtn = document.getElementById("micToggleBtn");
+    const transcriptStatusEl = document.getElementById("transcriptStatus");
+    const transcriptLogEl = document.getElementById("transcriptLog");
+    const micPulseEl = document.getElementById("micPulse");
+    const transcriptCountEl = document.getElementById("transcriptCount");
+
+    const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let transcribing = false;
+    let stoppedManually = false;
+    let transcriptStartTime = 0;
+    let transcriptFinalCount = 0;
+    let transcriptWordCount = 0;
+
+    function updateTranscriptCount() {
+      transcriptCountEl.textContent = transcriptFinalCount ? `${transcriptFinalCount} falas` : "";
+    }
+
+    // --- Ritmo de fala e pausas longas, a partir do volume do microfone ---
+    const voiceMetaEl = document.getElementById("voiceMeta");
+
+    let audioContext = null;
+    let analyserNode = null;
+    let volumeSamples = null;
+    let micAudioStream = null;
+    let volumeSampleIntervalId = null;
+    let silenceStartTime = null;
+    let pauseAlreadyFlagged = false;
+    let activeListeningAlreadyFlagged = false;
+
+    const SILENCE_RMS_THRESHOLD = 0.02;
+    // Ajustado a partir de teste real: 2s, 4s e depois 20s ainda disparavam
+    // em pausas normais de conversa. 1min30 é um silêncio que realmente pesa
+    // numa negociação.
+    const PAUSE_MIN_MS = 90000;
+    // Um silêncio bem mais longo que isso não é hesitação — é você ficando
+    // quieto pra deixar o cliente falar. Vira um sinal positivo, não negativo.
+    const ACTIVE_LISTENING_MIN_MS = 60000;
+
+    // --- Alertas ao vivo: avisos curtos e discretos durante a call ---
+    const liveAlertsEl = document.getElementById("liveAlerts");
+    const MAX_LIVE_ALERTS = 3;
+    const LIVE_ALERT_DURATION_MS = 8000;
+
+    function pushLiveAlert(message) {
+      const el = document.createElement("div");
+      el.className = "live-alert";
+      el.textContent = message;
+      liveAlertsEl.prepend(el);
+      while (liveAlertsEl.children.length > MAX_LIVE_ALERTS) {
+        liveAlertsEl.removeChild(liveAlertsEl.lastChild);
+      }
+      setTimeout(() => el.remove(), LIVE_ALERT_DURATION_MS);
+    }
+
+    // Ritmo "recente" (janela deslizante) em vez da média da call inteira,
+    // pra reagir ao que está acontecendo agora, não ao histórico todo.
+    const PACE_WINDOW_MS = 15000;
+    const FAST_PACE_WPM = 180;
+    let recentWordEvents = [];
+    let fastPaceAlreadyFlagged = false;
+
+    // Nível de volume "recente" comparado com o seu volume típico NESTA call
+    // — pra avisar se está falando baixo demais ou alto demais. Importante:
+    // usa uma referência própria (typicalVolumeSamples), não o ownClusterAvg
+    // da distinção de falantes — aquele é calibrado de propósito pra baixo
+    // (percentil 25) pra não confundir sua própria voz com "outro
+    // participante", o que faria QUALQUER volume normal parecer "alto
+    // demais" aqui se reaproveitado pra essa outra finalidade.
+    const VOLUME_WINDOW_MS = 3000;
+    const TYPICAL_VOLUME_WINDOW_MS = 45000;
+    const VOLUME_LOW_RATIO = 0.5;
+    const VOLUME_HIGH_RATIO = 2;
+    let recentVolumeSamples = [];
+    let typicalVolumeSamples = [];
+    let lowVolumeAlreadyFlagged = false;
+    let highVolumeAlreadyFlagged = false;
+
+    // --- Análise individual ---
+    // O microfone capta a sua voz (de fone, só a sua): tudo o que é transcrito é fala
+    // do usuário. Não tentamos mais separar "outro participante" por volume — a
+    // aproximação errava e a análise é de uma pessoa só.
+    let currentUtteranceVolumes = [];
+    function classifySpeaker() { return "Você"; }
+    function resetSpeakerClusters() {}
+
+    async function setupAudioAnalyser() {
+      // echoCancellation ajuda a reduzir o som da própria caixa de som voltando
+      // pelo microfone. autoGainControl fica desligado de propósito: ele
+      // normalizaria o volume de tudo pro mesmo nível, o que destruiria o
+      // único sinal que temos pra diferenciar "perto" (você) de "longe/caixa
+      // de som" (outro participante).
+      micAudioStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
+      });
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(micAudioStream);
+      analyserNode = audioContext.createAnalyser();
+      analyserNode.fftSize = 2048;
+      volumeSamples = new Uint8Array(analyserNode.fftSize);
+      source.connect(analyserNode);
+
+      silenceStartTime = null;
+      pauseAlreadyFlagged = false;
+      volumeSampleIntervalId = setInterval(sampleVoiceMetrics, 200);
+    }
+
+    function teardownAudioAnalyser() {
+      if (volumeSampleIntervalId) clearInterval(volumeSampleIntervalId);
+      volumeSampleIntervalId = null;
+      if (micAudioStream) micAudioStream.getTracks().forEach((t) => t.stop());
+      if (audioContext) audioContext.close();
+      audioContext = null;
+      analyserNode = null;
+      micAudioStream = null;
+      voiceMetaEl.textContent = "";
+    }
+
+    function getCurrentVolume() {
+      if (!analyserNode) return 0;
+      analyserNode.getByteTimeDomainData(volumeSamples);
+      let sumSquares = 0;
+      for (let i = 0; i < volumeSamples.length; i++) {
+        const normalized = (volumeSamples[i] - 128) / 128;
+        sumSquares += normalized * normalized;
+      }
+      return Math.sqrt(sumSquares / volumeSamples.length);
+    }
+
+    function sampleVoiceMetrics() {
+      const volume = getCurrentVolume();
+
+      if (volume >= SILENCE_RMS_THRESHOLD) {
+        currentUtteranceVolumes.push(volume);
+      }
+
+      if (sessionActive) {
+        sessionTotalSamples++;
+        if (volume < SILENCE_RMS_THRESHOLD) sessionSilentSamples++;
+        // Pausas curtas entre palavras e frases são parte da fala, não silêncio.
+        const nowTs = Date.now();
+        if (volume >= SILENCE_RMS_THRESHOLD) lastVoiceAt = nowTs;
+        if (nowTs - lastVoiceAt < SPEECH_HANGOVER_MS) sessionSpeechSamples++;
+      }
+
+      if (volume < SILENCE_RMS_THRESHOLD) {
+        if (silenceStartTime === null) {
+          silenceStartTime = Date.now();
+        } else {
+          const silenceDuration = Date.now() - silenceStartTime;
+          if (!pauseAlreadyFlagged && silenceDuration > PAUSE_MIN_MS) {
+            pauseAlreadyFlagged = true;
+            if (sessionActive) sessionPauseCount++;
+            pushLiveAlert("Pausa longa detectada");
+          }
+          // Um silêncio que segue crescendo além disso deixa de parecer
+          // hesitação — muito mais provável que seja você dando espaço pro
+          // cliente falar. Vira um segundo aviso, positivo, na mesma pausa.
+          if (!activeListeningAlreadyFlagged && silenceDuration > ACTIVE_LISTENING_MIN_MS) {
+            activeListeningAlreadyFlagged = true;
+            if (sessionActive) sessionActiveListeningCount++;
+            pushLiveAlert("Boa escuta ativa — você deu bastante espaço pro cliente falar.");
+          }
+        }
+      } else {
+        silenceStartTime = null;
+        pauseAlreadyFlagged = false;
+        activeListeningAlreadyFlagged = false;
+      }
+
+      const now = Date.now();
+      recentWordEvents = recentWordEvents.filter((e) => now - e.time < PACE_WINDOW_MS);
+      const recentWords = recentWordEvents.reduce((sum, e) => sum + e.count, 0);
+      const recentWpm = Math.round(recentWords / (PACE_WINDOW_MS / 60000));
+
+      if (recentWpm > FAST_PACE_WPM) {
+        if (!fastPaceAlreadyFlagged) {
+          fastPaceAlreadyFlagged = true;
+          pushLiveAlert("Ritmo de fala muito rápido");
+        }
+      } else {
+        fastPaceAlreadyFlagged = false;
+      }
+
+      let volumeLabel = "";
+      if (volume >= SILENCE_RMS_THRESHOLD) {
+        recentVolumeSamples.push({ time: now, volume });
+        typicalVolumeSamples.push({ time: now, volume });
+      }
+      recentVolumeSamples = recentVolumeSamples.filter((s) => now - s.time < VOLUME_WINDOW_MS);
+      typicalVolumeSamples = typicalVolumeSamples.filter((s) => now - s.time < TYPICAL_VOLUME_WINDOW_MS);
+      const recentAvgVolume = recentVolumeSamples.length
+        ? average(recentVolumeSamples.map((s) => s.volume))
+        : 0;
+      const typicalAvgVolume = typicalVolumeSamples.length
+        ? average(typicalVolumeSamples.map((s) => s.volume))
+        : 0;
+      if (typicalVolumeSamples.length >= 5 && recentAvgVolume > 0) {
+        const ratio = recentAvgVolume / typicalAvgVolume;
+        if (ratio < VOLUME_LOW_RATIO) {
+          volumeLabel = " · Volume: baixo demais";
+          if (!lowVolumeAlreadyFlagged) {
+            lowVolumeAlreadyFlagged = true;
+            pushLiveAlert("Sua voz está baixa demais — projete mais ou aproxime o microfone.");
+          }
+        } else {
+          lowVolumeAlreadyFlagged = false;
+          if (ratio > VOLUME_HIGH_RATIO) {
+            volumeLabel = " · Volume: alto demais";
+            if (!highVolumeAlreadyFlagged) {
+              highVolumeAlreadyFlagged = true;
+              pushLiveAlert("Sua voz está alta demais — vale abaixar um pouco.");
+            }
+          } else {
+            highVolumeAlreadyFlagged = false;
+            volumeLabel = " · Volume: bom nível";
+          }
+        }
+      }
+
+      voiceMetaEl.textContent = `${recentWpm} palavras/min · ${sessionPauseCount} pausas longas${volumeLabel}`;
+    }
+
+    function formatClock(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = Math.floor(totalSeconds % 60);
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function clearInterimLine() {
+      const interimEl = transcriptLogEl.querySelector("#interimLine");
+      if (interimEl) interimEl.remove();
+    }
+
+    function appendTranscriptLine(text, confidence) {
+      clearInterimLine();
+      if (!text) return;
+
+      // Expressão dominante exibida no momento em que a fala terminou de ser
+      // reconhecida — uma aproximação de "com que expressão isso foi dito".
+      const expressionTag = dominantEl.textContent || "Sem leitura de expressão";
+      const elapsed = (Date.now() - transcriptStartTime) / 1000;
+      const keywords = detectKeywords(text);
+      const slangMatches = detectSlang(text);
+      const fillerMatches = detectFillerWords(text);
+      const wordCount = text.split(/\s+/).filter(Boolean).length;
+
+      const avgUtteranceVolume = currentUtteranceVolumes.length ? average(currentUtteranceVolumes) : 0;
+      const speaker = classifySpeaker(avgUtteranceVolume);
+      currentUtteranceVolumes = [];
+
+      if (speaker === "Você" && fillerMatches.length) {
+        fillerMatches.forEach((word, i) => setTimeout(() => showFillerBubble(word), i * 250));
+      }
+
+      transcriptLogEl.insertAdjacentHTML(
+        "beforeend",
+        renderTranscriptLineHtml({ t: elapsed, text, expression: expressionTag, keywords, speaker, slang: slangMatches })
+      );
+      transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
+      transcriptFinalCount++;
+      transcriptWordCount += wordCount;
+      recentWordEvents.push({ time: Date.now(), count: wordCount });
+      updateTranscriptCount();
+
+      if (keywords.length) {
+        pushLiveAlert(`Palavra-chave: ${keywords.join(", ")}`);
+      }
+
+      const objectionPhrase = detectObjectionPhrase(text);
+      if (objectionPhrase && !objectionWindowActive) {
+        objectionWindowActive = true;
+        objectionWindowPhrase = objectionPhrase;
+        objectionWindowEnd = Date.now() + OBJECTION_WINDOW_MS;
+        objectionWindowSamples = [];
+        objectionWindowStartT = sessionActive ? (Date.now() - sessionStartTime) / 1000 : 0;
+        pushLiveAlert(`Possível objeção: "${objectionPhrase}" — observando resposta`);
+      }
+
+      // Aviso ao vivo só para gíria de peso médio/forte — as leves não valem interromper a fala.
+      const alertSlang = slangMatches.find((k) => AuraLang.weightOf(k) >= 2);
+      if (alertSlang) {
+        const suggestion = SLANG_LIBRARY[alertSlang];
+        pushLiveAlert(`Gíria: "${alertSlang}"${suggestion ? ` → tente "${suggestion}"` : ""}`);
+      }
+
+      if (sessionActive) {
+        sessionTranscript.push({
+          t: (Date.now() - sessionStartTime) / 1000,
+          text,
+          expression: expressionTag,
+          keywords,
+          speaker,
+          slang: slangMatches,
+        });
+        sessionWordCount += wordCount;
+        keywords.forEach((kw) => {
+          sessionKeywordCounts[kw] = (sessionKeywordCounts[kw] || 0) + 1;
+        });
+        slangMatches.forEach((word) => {
+          sessionSlangCounts[word] = (sessionSlangCounts[word] || 0) + 1;
+        });
+        fillerMatches.forEach((word) => {
+          sessionFillerCounts[word] = (sessionFillerCounts[word] || 0) + 1;
+        });
+        // Só entra na nota de oratória a fala classificada como sua — não faz
+        // sentido avaliar a dicção/projeção de voz do outro participante.
+        if (speaker === "Você") {
+          if (avgUtteranceVolume > 0) sessionVolumes.push(avgUtteranceVolume);
+          if (typeof confidence === "number" && confidence > 0) sessionConfidences.push(confidence);
+          const questionType = classifyQuestion(text);
+          if (questionType === "aberta") sessionOpenQuestions++;
+          else if (questionType === "fechada") sessionClosedQuestions++;
+        }
+        updateLiveOratoria();
+      }
+    }
+
+    function renderInterimLine(text) {
+      let interimEl = transcriptLogEl.querySelector("#interimLine");
+      if (!interimEl) {
+        interimEl = document.createElement("div");
+        interimEl.id = "interimLine";
+        interimEl.className = "transcript-line transcript-interim";
+        transcriptLogEl.appendChild(interimEl);
+      }
+      interimEl.textContent = text;
+      transcriptLogEl.scrollTop = transcriptLogEl.scrollHeight;
+    }
+
+    function setupRecognition() {
+      const r = new SpeechRecognitionImpl();
+      r.lang = "pt-BR";
+      r.continuous = true;
+      r.interimResults = true;
+
+      r.onresult = (event) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            appendTranscriptLine(result[0].transcript.trim(), result[0].confidence);
+          } else {
+            interim += result[0].transcript;
+          }
+        }
+        if (interim) renderInterimLine(interim);
+      };
+
+      const FATAL_MIC_ERRORS = ["not-allowed", "service-not-allowed", "audio-capture"];
+      // "no-speech" é o navegador dizendo "não ouvi nada por um tempo" — comum
+      // e inofensivo (silêncio natural entre falas), reinicia sozinho. Não é
+      // um erro de verdade, então não mostra nada assustador pra isso.
+      const BENIGN_MIC_ERRORS = ["no-speech"];
+
+      r.onerror = (event) => {
+        if (!BENIGN_MIC_ERRORS.includes(event.error)) {
+          transcriptStatusEl.textContent = "Erro no microfone: " + event.error;
+        }
+        if (FATAL_MIC_ERRORS.includes(event.error)) {
+          // Sem isso, o onend abaixo ficaria tentando reiniciar pra sempre
+          // mesmo sem chance de sucesso (ex: permissão negada).
+          transcribing = false;
+          stoppedManually = true;
+          micPulseEl.classList.add("hidden");
+          micToggleBtn.textContent = "Ativar microfone";
+          teardownAudioAnalyser();
+        }
+      };
+
+      r.onstart = () => {
+        // Confirma que voltou a ouvir depois de um restart automático —
+        // sem isso, uma mensagem de erro antiga ficava presa na tela mesmo
+        // com o reconhecimento já funcionando de novo.
+        if (transcribing) transcriptStatusEl.textContent = "Ouvindo...";
+      };
+
+      r.onend = () => {
+        // O navegador encerra o reconhecimento periodicamente mesmo em modo "continuous";
+        // reinicia sozinho a menos que o usuário tenha pedido pra parar.
+        if (transcribing && !stoppedManually) {
+          r.start();
+        }
+      };
+
+      return r;
+    }
+
+    if (!SpeechRecognitionImpl) {
+      transcriptStatusEl.textContent = "Seu navegador não suporta transcrição de voz (use Chrome ou Edge).";
+      micToggleBtn.disabled = true;
+    }
+
+    micToggleBtn.addEventListener("click", () => {
+      if (!SpeechRecognitionImpl) return;
+
+      if (!transcribing) {
+        recognition = recognition || setupRecognition();
+        stoppedManually = false;
+        transcribing = true;
+        transcriptStartTime = Date.now();
+        transcriptLogEl.innerHTML = "";
+        transcriptFinalCount = 0;
+        transcriptWordCount = 0;
+        recentWordEvents = [];
+        fastPaceAlreadyFlagged = false;
+        recentVolumeSamples = [];
+        typicalVolumeSamples = [];
+        lowVolumeAlreadyFlagged = false;
+        highVolumeAlreadyFlagged = false;
+        objectionWindowActive = false;
+        objectionWindowSamples = [];
+        currentUtteranceVolumes = [];
+        resetSpeakerClusters();
+        liveAlertsEl.innerHTML = "";
+        updateTranscriptCount();
+        transcriptStatusEl.textContent = "Ouvindo...";
+        micPulseEl.classList.remove("hidden");
+        micToggleBtn.textContent = "Parar transcrição";
+        recognition.start();
+        setupAudioAnalyser().catch((err) => {
+          console.error("Não foi possível analisar o áudio (ritmo/pausas):", err);
+        });
+        posthog.capture("mic_activated");
+      } else {
+        stoppedManually = true;
+        transcribing = false;
+        recognition.stop();
+        posthog.capture("mic_stopped");
+        clearInterimLine();
+        transcriptStatusEl.textContent = "Transcrição parada.";
+        micPulseEl.classList.add("hidden");
+        micToggleBtn.textContent = "Ativar microfone";
+        teardownAudioAnalyser();
+      }
+    });
+
+    async function startCamera(facingMode = "user") {
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+      }
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode },
+        audio: false,
+      });
+      video.srcObject = stream;
+      currentFacingMode = facingMode;
+      return new Promise((resolve) => {
+        video.onloadedmetadata = () => {
+          overlay.width = video.videoWidth;
+          overlay.height = video.videoHeight;
+          resolve();
+        };
+      });
+    }
+
+    function renderBarsInto(container, entries, labelMap) {
+      container.innerHTML = entries
+        .map(([label, score]) => {
+          const pct = (score * 100).toFixed(0);
+          const ptLabel = labelMap[label] || label;
+          return `
+            <div class="bar-row">
+              <div class="bar-label">${ptLabel}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+              <div class="bar-pct">${pct}%</div>
+            </div>`;
+        })
+        .join("");
+    }
+
+    const DISPLAY_LABELS_PT = { ...EMOTION_LABELS_PT };
+
+    function renderBars(expressions, estimates) {
+      // "Focado" não é uma expressão facial de verdade (é uma estimativa
+      // derivada de cabeça-parada + neutro) — ficava quase sempre em primeiro
+      // por herdar boa parte do score de "Neutro", afogando as expressões reais.
+      // Agora só as 7 expressões cruas do modelo disputam o "dominante".
+      const entries = Object.entries(expressions).sort((a, b) => b[1] - a[1]);
+      const [topLabel, topScore] = entries[0];
+      const label = `${DISPLAY_LABELS_PT[topLabel] || topLabel} — ${(topScore * 100).toFixed(0)}%`;
+      dominantEl.textContent = label;
+
+      // A "auréola" ao redor do vídeo e a cor do texto acompanham a expressão dominante.
+      const color = expressionColor(label);
+      dominantEl.style.color = color;
+      document.getElementById("container").style.setProperty("--aura-color", color);
+
+      renderBarsInto(emotionsEl, entries, DISPLAY_LABELS_PT);
+    }
+
+    const ESTIMATED_LABELS_PT = {
+      tired: "Cansado",
+      focused: "Constância",
+      motivated: "Motivado",
+    };
+
+    function renderEstimated(estimates) {
+      const entries = [
+        ["tired", estimates.tired],
+        ["focused", estimates.focused],
+        ["motivated", estimates.motivated],
+      ].sort((a, b) => b[1] - a[1]);
+      renderBarsInto(estimatedEl, entries, ESTIMATED_LABELS_PT);
+
+      tileFocusedEl.textContent = `${Math.round(estimates.focused * 100)}%`;
+      tileMotivatedEl.textContent = `${Math.round(estimates.motivated * 100)}%`;
+      tileTiredEl.textContent = `${Math.round(estimates.tired * 100)}%`;
+    }
+
+    async function detectLoop() {
+      const options = new faceapi.TinyFaceDetectorOptions();
+      const result = await faceapi
+        .detectSingleFace(video, options)
+        .withFaceLandmarks(true)
+        .withFaceExpressions();
+
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+      if (result) {
+        missedFrames = 0;
+
+        const resized = faceapi.resizeResults(result, {
+          width: overlay.width,
+          height: overlay.height,
+        });
+        faceapi.draw.drawDetections(overlay, resized);
+
+        const expressions = calibrateExpressions(result.expressions);
+        const estimates = updateEstimates(result.landmarks, expressions, result.detection.box);
+        renderBars(expressions, estimates);
+        renderEstimated(estimates);
+        maybeSampleSession(expressions, estimates);
+        detectionConfidenceEl.textContent = `${Math.round(result.detection.score * 100)}%`;
+
+        if (objectionWindowActive) {
+          objectionWindowSamples.push({
+            focused: estimates.focused,
+            tired: estimates.tired,
+            dominantLabel: dominantEl.textContent,
+          });
+          if (Date.now() > objectionWindowEnd) {
+            closeObjectionWindow();
+          }
+        }
+      } else {
+        missedFrames++;
+        // Só declara "nenhum rosto" depois de várias falhas seguidas,
+        // pra não piscar por causa de uma única leitura ruim.
+        if (missedFrames > MISS_GRACE_FRAMES) {
+          dominantEl.textContent = "Nenhum rosto detectado";
+          emotionsEl.innerHTML = "";
+          estimatedEl.innerHTML = "";
+          detectionConfidenceEl.textContent = "—";
+        }
+      }
+
+      requestAnimationFrame(detectLoop);
+    }
+
+    // --- Onboarding: tutorial de primeiro acesso + consentimento LGPD ---
+    const onboardingOverlay = document.getElementById("onboardingOverlay");
+    const onboardingStepBody = document.getElementById("onboardingStepBody");
+    const onboardingDots = document.getElementById("onboardingDots");
+    const onboardingBackBtn = document.getElementById("onboardingBackBtn");
+    const onboardingNextBtn = document.getElementById("onboardingNextBtn");
+    const onboardingSkipBtn = document.getElementById("onboardingSkipBtn");
+    const howItWorksBtn = document.getElementById("howItWorksBtn");
+    const ONBOARDING_SEEN_KEY = "aurax_onboarding_seen";
+    const ONBOARDING_CONSENT_KEY = "aurax_consent_at";
+
+    const ONBOARDING_STEPS = [
+      {
+        eyebrow: "Passo 1 de 4 · Privacidade",
+        title: "Antes de começar",
+        body: `
+          <p>O AuraX usa sua câmera e microfone durante suas próprias sessões, pra analisar expressão facial e ritmo de fala e gerar sua autoavaliação.</p>
+          <ul>
+            <li>Vídeo e áudio são processados no seu navegador — não são gravados nem enviados a ninguém.</li>
+            <li>Só o resumo da sessão (métricas, transcrição e dicas) fica salvo na sua conta.</li>
+            <li>Se você tem um gestor vinculado, ele vê apenas esse resumo — nunca o vídeo ou o áudio.</li>
+          </ul>
+        `,
+        consent: true,
+      },
+      {
+        eyebrow: "Passo 2 de 4 · Oratória ao vivo",
+        title: "Acompanhe sua oratória ao vivo",
+        body: `
+          <p>O card "Nota de oratória" na coluna da esquerda vai atualizando em tempo real: ritmo, pausas, vícios e gírias, clareza e projeção de voz. A análise é só da sua fala.</p>
+          <ul>
+            <li>Ative o microfone antes de iniciar a sessão.</li>
+            <li>Use fone de ouvido na call — assim só a sua voz entra na análise e a nota fica bem mais confiável.</li>
+          </ul>
+        `,
+      },
+      {
+        eyebrow: "Passo 3 de 4 · Durante a call",
+        title: "Como iniciar uma sessão",
+        body: `
+          <ul>
+            <li>Com a câmera já ligada, clique em <strong>"Iniciar sessão"</strong> assim que a reunião começar.</li>
+            <li>Clique em <strong>"Ativar microfone"</strong> pra ligar a transcrição ao vivo e os alertas de ritmo, pausas e objeções.</li>
+            <li>Ao terminar, clique em <strong>"Finalizar sessão"</strong> — é isso que fecha e salva a sessão.</li>
+          </ul>
+        `,
+      },
+      {
+        eyebrow: "Passo 4 de 4 · Depois da call",
+        title: "Suas sessões e dicas",
+        body: `
+          <ul>
+            <li>Cada sessão finalizada gera dicas de melhoria automáticas e fica salva.</li>
+            <li>Em <strong>"Minhas Sessões"</strong>, você vê todas ranqueadas pela nota de oratória, pode nomear o cliente e adicionar um comentário.</li>
+            <li>Exporte em PDF ou CSV quando quiser revisar ou guardar fora do AuraX.</li>
+          </ul>
+        `,
+      },
+    ];
+
+    let onboardingStepIndex = 0;
+
+    function renderOnboardingStep() {
+      const step = ONBOARDING_STEPS[onboardingStepIndex];
+
+      onboardingStepBody.innerHTML = `
+        <div class="onboarding-eyebrow">${step.eyebrow}</div>
+        <h2>${step.title}</h2>
+        ${step.body}
+        ${step.consent ? `
+          <label class="onboarding-consent-row">
+            <input type="checkbox" id="onboardingConsentCheck" ${onboardingOverlay.dataset.consentChecked === "1" ? "checked" : ""} />
+            <span>Autorizo o uso da minha câmera e microfone durante as sessões do AuraX, conforme descrito acima.</span>
+          </label>
+        ` : ""}
+        ${step.action ? `<button type="button" id="onboardingActionBtn" class="ghost" style="width:100%; margin-top:16px;">${step.action.label}</button>` : ""}
+      `;
+
+      onboardingDots.innerHTML = ONBOARDING_STEPS.map((_, i) =>
+        `<span class="onboarding-dot${i === onboardingStepIndex ? " active" : ""}"></span>`
+      ).join("");
+
+      onboardingBackBtn.style.visibility = onboardingStepIndex === 0 ? "hidden" : "visible";
+      onboardingSkipBtn.style.visibility = step.consent ? "hidden" : "visible";
+      onboardingNextBtn.textContent = onboardingStepIndex === ONBOARDING_STEPS.length - 1 ? "Começar a usar" : "Avançar";
+
+      if (step.consent) {
+        const checkbox = document.getElementById("onboardingConsentCheck");
+        const updateNextState = () => {
+          onboardingOverlay.dataset.consentChecked = checkbox.checked ? "1" : "0";
+          onboardingNextBtn.disabled = !checkbox.checked;
+        };
+        checkbox.addEventListener("change", updateNextState);
+        updateNextState();
+      } else {
+        onboardingNextBtn.disabled = false;
+      }
+
+      if (step.action) {
+        document.getElementById("onboardingActionBtn").addEventListener("click", step.action.handler);
+      }
+    }
+
+    function showOnboarding() {
+      onboardingStepIndex = 0;
+      onboardingOverlay.classList.remove("hidden");
+      renderOnboardingStep();
+    }
+
+    function closeOnboarding() {
+      onboardingOverlay.classList.add("hidden");
+      localStorage.setItem(ONBOARDING_SEEN_KEY, "1");
+      if (onboardingOverlay.dataset.consentChecked === "1" && !localStorage.getItem(ONBOARDING_CONSENT_KEY)) {
+        localStorage.setItem(ONBOARDING_CONSENT_KEY, new Date().toISOString());
+      }
+    }
+
+    onboardingNextBtn.addEventListener("click", () => {
+      if (onboardingStepIndex === ONBOARDING_STEPS.length - 1) {
+        closeOnboarding();
+        return;
+      }
+      onboardingStepIndex++;
+      renderOnboardingStep();
+    });
+
+    onboardingBackBtn.addEventListener("click", () => {
+      if (onboardingStepIndex === 0) return;
+      onboardingStepIndex--;
+      renderOnboardingStep();
+    });
+
+    onboardingSkipBtn.addEventListener("click", closeOnboarding);
+    howItWorksBtn.addEventListener("click", showOnboarding);
+    document.getElementById("insightsBtn").addEventListener("click", () => {
+      posthog.capture("insights_opened");
+      window.location.href = "insights.html";
+    });
+
+    document.getElementById("sessionsBtn").addEventListener("click", () => {
+      posthog.capture("sessions_ranking_opened");
+      window.location.href = "sessoes.html";
+    });
+
+    function maybeShowOnboarding() {
+      const forceOnboarding = new URLSearchParams(location.search).get("onboarding") === "1";
+      if (forceOnboarding || !localStorage.getItem(ONBOARDING_SEEN_KEY)) {
+        showOnboarding();
+      }
+    }
+
+    async function init() {
+      try {
+        await loadModels();
+        statusEl.textContent = "Solicitando acesso à câmera...";
+        await startCamera(currentFacingMode);
+        statusEl.textContent = "";
+        switchBtn.style.display = "inline-block";
+        document.getElementById("loadingOverlay").classList.add("hidden");
+        document.getElementById("container").classList.add("is-live");
+        cameraStartTime = Date.now();
+        detectLoop();
+        maybeShowOnboarding();
+      } catch (err) {
+        statusEl.textContent = "Erro: " + err.message;
+        console.error(err);
+      }
+    }
+
+    switchBtn.addEventListener("click", async () => {
+      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+      await startCamera(currentFacingMode);
+    });
+
+    // --- Login: exige sessão do Supabase antes de ligar câmera/modelos ---
+    const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUserId = null;
+    let currentUserRole = null;
+
+    async function requireAuthThenInit() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        window.location.href = "login.html";
+        return;
+      }
+      currentUserId = session.user.id;
+
+      const { data: profile } = await supabaseClient
+        .from("profiles")
+        .select("role, name, cargo, empresa")
+        .eq("id", currentUserId)
+        .single();
+      currentUserRole = profile ? profile.role : "funcionario";
+      if (currentUserRole === "gestor") {
+        document.getElementById("backToGestorBtn").style.display = "inline-block";
+      }
+
+      // Perfil incompleto (cargo OU empresa vazios): a pessoa entra e explora,
+      // mas o banner amarelo aparece e "Iniciar sessão" fica travado até ela
+      // completar o cadastro (bloqueio suave). O botão "Atualizar cadastro"
+      // e o do banner abrem o formulário.
+      const cargoVazio = !profile || !profile.cargo || profile.cargo.trim() === "";
+      const empresaVazia = !profile || !profile.empresa || profile.empresa.trim() === "";
+      profileIsIncomplete = cargoVazio || empresaVazia;
+      cpSession = session;
+      cpProfile = profile;
+      if (profileIsIncomplete) {
+        document.getElementById("profileIncompleteBanner").hidden = false;
+        startSessionBtn.disabled = true;
+      }
+
+      // Pagamento pendente bloqueia a conta inteira — nunca deixa chegar na
+      // tela de gravação antes de confirmar via webhook do Stripe. Já
+      // "bloqueada" (assinatura cancelada/cobrança falhou) ainda pode ver
+      // os dados antigos, só não grava sessão nova (reforçado no banco).
+      const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
+      if (accountStatus === "pendente_pagamento") {
+        window.location.href = "pagamento-pendente.html";
+        return;
+      }
+      if (accountStatus === "bloqueada") {
+        document.getElementById("accountBlockedBanner").hidden = false;
+        startSessionBtn.disabled = true;
+        micToggleBtn.disabled = true;
+      }
+
+      posthog.identify(currentUserId, { email: session.user.email, role: currentUserRole });
+      AuraShell.init({ active: "gravar", client: supabaseClient, session });
+
+      await recoverUnsavedSessionBackup();
+
+      init();
+    }
+
+    // Se uma sessão anterior falhou ao salvar (ex: login expirou no meio de
+    // uma call longa), a cópia local fica guardada — tenta reenviar assim
+    // que o app carrega de novo, antes de começar qualquer coisa nova.
+    async function recoverUnsavedSessionBackup() {
+      let backup;
+      try {
+        const raw = localStorage.getItem(SESSION_BACKUP_KEY);
+        if (!raw) return;
+        backup = JSON.parse(raw);
+      } catch (err) {
+        return;
+      }
+      if (!backup || backup.user_id !== currentUserId) return;
+
+      const { error } = await supabaseClient.from("sessions").insert(backup);
+      if (!error) {
+        localStorage.removeItem(SESSION_BACKUP_KEY);
+        posthog.capture("session_save_recovered");
+        pushLiveAlert("Uma sessão anterior que não tinha salvo foi recuperada e salva agora.");
+      }
+    }
+
+    document.getElementById("backToGestorBtn").addEventListener("click", () => {
+      window.location.href = "painel-gestor.html";
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = "login.html";
+    });
+
+    // ===== Modal Complete seu cadastro (lógica) =====
+    let cpSelectedRole = "funcionario";
+    let cpSession = null;
+    let cpProfile = null;
+    let profileIsIncomplete = false;
+
+    function showCompleteProfileModal(session, profile) {
+      cpSession = session;
+      const overlay = document.getElementById("completeProfileOverlay");
+      // Pré-preenche o nome com o que já veio (Google manda o nome)
+      const nomeExistente = (profile && profile.name && profile.name !== "EMPTY")
+        ? profile.name
+        : (session.user.user_metadata && (session.user.user_metadata.full_name || session.user.user_metadata.name)) || "";
+      document.getElementById("cpName").value = nomeExistente;
+      // Se já houver algo em cargo/empresa, aproveita
+      if (profile && profile.cargo && profile.cargo !== "EMPTY") document.getElementById("cpCargo").value = profile.cargo;
+      if (profile && profile.empresa && profile.empresa !== "EMPTY") document.getElementById("cpEmpresa").value = profile.empresa;
+      // Papel inicial reflete o que já existe
+      cpSelectedRole = (profile && profile.role) ? profile.role : "funcionario";
+      document.querySelectorAll("#cpRoleToggle .cp-role").forEach((b) => {
+        const sel = b.dataset.role === cpSelectedRole;
+        b.classList.toggle("selected", sel);
+        b.style.background = sel ? "rgba(79,140,255,0.18)" : "rgba(255,255,255,0.05)";
+        b.style.borderColor = sel ? "#4f8cff" : "rgba(255,255,255,0.15)";
+        b.style.color = sel ? "#eaf2ff" : "#999";
+      });
+      overlay.style.display = "flex";
+    }
+
+    function cpShowError(msg) {
+      const el = document.getElementById("cpMessage");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    function cpBindModalEvents() {
+      // Botões que abrem o formulário de cadastro (banner amarelo + menu)
+      const openModal = () => showCompleteProfileModal(cpSession, cpProfile);
+      const b1 = document.getElementById("bannerUpdateBtn");
+      const b2 = document.getElementById("updateProfileBtn");
+      if (b1) b1.addEventListener("click", openModal);
+      if (b2) b2.addEventListener("click", openModal);
+
+      document.getElementById("cpRoleToggle").addEventListener("click", (e) => {
+      const btn = e.target.closest(".cp-role");
+      if (!btn) return;
+      cpSelectedRole = btn.dataset.role;
+      document.querySelectorAll("#cpRoleToggle .cp-role").forEach((b) => {
+        const sel = b === btn;
+        b.classList.toggle("selected", sel);
+        b.style.background = sel ? "rgba(79,140,255,0.18)" : "rgba(255,255,255,0.05)";
+        b.style.borderColor = sel ? "#4f8cff" : "rgba(255,255,255,0.15)";
+        b.style.color = sel ? "#eaf2ff" : "#999";
+      });
+    });
+
+    document.getElementById("cpSaveBtn").addEventListener("click", async () => {
+      const nome = document.getElementById("cpName").value.trim();
+      const cargo = document.getElementById("cpCargo").value.trim();
+      const empresa = document.getElementById("cpEmpresa").value.trim();
+      const saveBtn = document.getElementById("cpSaveBtn");
+      document.getElementById("cpMessage").style.display = "none";
+
+      if (!nome || !cargo || !empresa) {
+        cpShowError("Preencha nome, cargo e empresa para continuar.");
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Salvando...";
+      try {
+        const { data: updated, error } = await supabaseClient
+          .from("profiles")
+          .update({ name: nome, cargo: cargo, empresa: empresa, role: cpSelectedRole })
+          .eq("id", currentUserId)
+          .select();
+        if (error) throw error;
+        // Se nenhuma linha voltou, o update foi bloqueado (provável RLS) —
+        // não grava de verdade. Avisa em vez de fingir que salvou.
+        if (!updated || updated.length === 0) {
+          throw new Error("RLS_NO_ROWS");
+        }
+
+        posthog.capture("profile_completed", { role: cpSelectedRole });
+
+        // Cadastro completo: fecha o modal, esconde o alerta amarelo e libera
+        // o "Iniciar sessão". Sem redirect forçado — a pessoa fica onde está.
+        document.getElementById("completeProfileOverlay").style.display = "none";
+        document.getElementById("profileIncompleteBanner").hidden = true;
+        profileIsIncomplete = false;
+        currentUserRole = cpSelectedRole;
+        cpProfile = updated[0];
+
+        // Se é gestor, deixa o atalho pro painel visível (não força ir pra lá).
+        if (cpSelectedRole === "gestor") {
+          document.getElementById("backToGestorBtn").style.display = "inline-block";
+        }
+
+        // Libera a gravação só se a conta não estiver bloqueada por pagamento.
+        const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
+        if (accountStatus === "pendente_pagamento") {
+          window.location.href = "pagamento-pendente.html";
+          return;
+        }
+        if (accountStatus !== "bloqueada") {
+          startSessionBtn.disabled = false;
+        }
+        posthog.identify(currentUserId, { email: cpSession.user.email, role: currentUserRole });
+      } catch (err) {
+        if (err && err.message === "RLS_NO_ROWS") {
+          cpShowError("O salvamento foi bloqueado por permissão do banco (RLS). Precisamos ajustar a policy no Supabase.");
+        } else {
+          cpShowError("Não foi possível salvar. Tente de novo.");
+        }
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Salvar e continuar";
+      }
+    });
+    } // fim cpBindModalEvents
+
+    // ===== fim modal =====
+
+    // O HTML do modal fica no fim do body (depois deste script). Só depois que
+    // a página inteira carregar a gente liga os eventos do modal e então checa
+    // a sessão — nessa ordem, pra o modal já estar pronto se for preciso mostrar.
+    function bootstrap() {
+      cpBindModalEvents();
+      requireAuthThenInit();
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", bootstrap);
+    } else {
+      bootstrap();
+    }
+  </script>
+
+  <!-- ===== Modal Complete seu cadastro (início) ===== -->
+  <div id="completeProfileOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(5,6,10,0.82);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
+    <div style="width:100%;max-width:400px;background:linear-gradient(160deg,rgba(79,140,255,0.1),rgba(126,231,135,0.04));border:1px solid rgba(255,255,255,0.1);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);padding:30px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <h2 style="margin:0 0 4px;font-size:1.3rem;font-weight:800;color:#eef1f6;">Complete seu cadastro</h2>
+      <p style="margin:0 0 22px;font-size:0.85rem;color:#8b93a3;">Só mais alguns dados pra personalizar sua experiência no AuraX.</p>
+
+      <label style="display:block;font-size:0.78rem;color:#aaa;margin:0 0 6px;">Nome</label>
+      <input type="text" id="cpName" placeholder="Seu nome" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#eee;font-size:0.9rem;outline:none;font-family:inherit;" />
+
+      <label style="display:block;font-size:0.78rem;color:#aaa;margin:16px 0 6px;">Você é gestor ou funcionário?</label>
+      <div id="cpRoleToggle" style="display:flex;gap:8px;">
+        <button type="button" class="cp-role selected" data-role="funcionario" style="flex:1;padding:9px 12px;border-radius:10px;border:1px solid #4f8cff;background:rgba(79,140,255,0.18);color:#eaf2ff;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;">Funcionário</button>
+        <button type="button" class="cp-role" data-role="gestor" style="flex:1;padding:9px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#999;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;">Gestor</button>
+      </div>
+
+      <label style="display:block;font-size:0.78rem;color:#aaa;margin:16px 0 6px;">Cargo</label>
+      <input type="text" id="cpCargo" placeholder="Ex: Gerente Comercial" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#eee;font-size:0.9rem;outline:none;font-family:inherit;" />
+
+      <label style="display:block;font-size:0.78rem;color:#aaa;margin:16px 0 6px;">Empresa</label>
+      <input type="text" id="cpEmpresa" placeholder="Ex: Registro Rural" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#eee;font-size:0.9rem;outline:none;font-family:inherit;" />
+
+      <button type="button" id="cpSaveBtn" style="width:100%;margin-top:24px;padding:12px;border-radius:999px;border:none;background:linear-gradient(135deg,#4f8cff,#3d6fd6);color:white;font-size:0.92rem;font-weight:600;cursor:pointer;font-family:inherit;">Salvar e continuar</button>
+
+      <div id="cpMessage" style="margin-top:14px;font-size:0.8rem;padding:10px 12px;border-radius:10px;display:none;background:rgba(229,83,61,0.12);color:#ff8a76;border:1px solid rgba(229,83,61,0.3);"></div>
+    </div>
+  </div>
+  <!-- ===== Modal Complete seu cadastro (fim) ===== -->
+</body>
+</html>

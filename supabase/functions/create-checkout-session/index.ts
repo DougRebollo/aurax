@@ -82,7 +82,7 @@ serve(async (req) => {
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: PRICE_ID, quantity: 1 }],
-      success_url: `${SITE_URL}/index.html?checkout=success`,
+      success_url: `${SITE_URL}/pagamento-pendente.html?checkout=success`,
       cancel_url: `${SITE_URL}/pagamento-pendente.html?checkout=cancel`,
       client_reference_id: user.id,
       metadata: { supabase_user_id: user.id },

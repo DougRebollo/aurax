@@ -90,7 +90,7 @@
       const isGestor = !profile.manager_id;
       const { data } = await supabaseClient.rpc("effective_account_status", { uid: profile.id });
       if (data === "ativa") {
-        window.location.href = isGestor ? "painel-gestor.html" : "index.html";
+        window.location.href = isGestor ? "painel-gestor.html" : "app.html";
         return true;
       }
       return false;
@@ -102,7 +102,7 @@
         await new Promise((r) => setTimeout(r, 3000));
         const { data } = await supabaseClient.rpc("effective_account_status", { uid: profileId });
         if (data === "ativa") {
-          window.location.href = isGestor ? "painel-gestor.html" : "index.html";
+          window.location.href = isGestor ? "painel-gestor.html" : "app.html";
           return;
         }
       }

@@ -14,7 +14,7 @@
   const OPEN_STARTERS = [
     "o que", "que", "como", "por que", "porque", "qual", "quais",
     "quando", "onde", "quem", "quanto", "quantos", "quantas",
-  ]; // mesma lista do classifyQuestion do index.html
+  ]; // mesma lista do classifyQuestion do app.html
 
   const SLANG_SWAPS = {
     beleza: "perfeito", valeu: "obrigado", sussa: "tranquilo", "da hora": "interessante",

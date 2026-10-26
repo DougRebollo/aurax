@@ -111,7 +111,7 @@
         name,
         category: form.category.value,
         message,
-        page: location.pathname.split("/").pop() || "index.html",
+        page: location.pathname.split("/").pop() || "app.html",
         user_agent: navigator.userAgent.slice(0, 250),
       }).select("id").single();
 
@@ -157,16 +157,16 @@
     const isGestor = role === "gestor";
 
     el.innerHTML =
-      '<a class="brand" href="index.html"><div class="brand-name">AuraX</div></a>' +
+      '<a class="brand" href="app.html"><div class="brand-name">AuraX</div></a>' +
       '<nav class="nav-group" aria-label="Principal"><div class="nav-label">Principal</div>' +
-        item("gravar", "index.html", "record", "Gravar sessão", active) +
+        item("gravar", "app.html", "record", "Gravar sessão", active) +
         item("sessoes", "sessoes.html", "list", "Minhas Sessões", active) +
         item("insights", "insights.html", "chart", "Meus Insights", active) +
       "</nav>" +
       (isGestor
         ? '<nav class="nav-group" aria-label="Gestão"><div class="nav-label">Gestão</div>' + item("painel", "painel-gestor.html", "grid", "Painel do Gestor", active) + "</nav>"
         : "") +
-      '<nav class="nav-group" aria-label="Ajuda">' + item("ajuda", "index.html?onboarding=1", "help", "Como funciona", active) +
+      '<nav class="nav-group" aria-label="Ajuda">' + item("ajuda", "app.html?onboarding=1", "help", "Como funciona", active) +
         '<button type="button" class="nav-item" id="shellSupport">' + icon("support") + "Suporte</button></nav>" +
       '<div class="sidebar-spacer"></div>' +
       (isGestor
