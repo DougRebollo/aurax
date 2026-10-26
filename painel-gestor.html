@@ -392,7 +392,7 @@
         <div class="invite-row" data-id="${i.id}">
           <div>
             <div class="invite-email">${esc(i.email)}</div>
-            <div class="invite-meta">Aguardando cadastro · convite de ${formatDateBR(i.created_at).split(" ")[0]}</div>
+            <div class="invite-meta">Aguardando cadastro · convite de ${formatDateBR(i.created_at).split(" ")[0]} · envie o link pelo WhatsApp ou e-mail</div>
           </div>
           <div class="invite-actions">
             <button type="button" class="btn ghost" data-copy="${esc(i.token)}">Copiar convite</button>
@@ -625,8 +625,8 @@
           posthog.capture("team_invite_created");
           const copied = await copyText(inviteMessage(inv.token));
           showFeedback(copied
-            ? `Convite criado para ${email}. Já copiei a mensagem com o link — é só colar no WhatsApp ou no e-mail.`
-            : `Convite criado para ${email}. Use "Copiar convite" na lista abaixo e envie para a pessoa.`, "success");
+            ? `Convite criado para ${email}. Ainda não enviamos e-mail sozinhos (isso chega em breve): a mensagem com o link já foi copiada, é só colar no WhatsApp ou no seu e-mail e mandar para a pessoa.`
+            : `Convite criado para ${email}. Ainda não enviamos e-mail sozinhos (isso chega em breve): use "Copiar convite" na lista abaixo e mande a mensagem pelo WhatsApp ou pelo seu e-mail.`, "success");
           input.value = "";
           await loadInvites();
           updateTeamLimitUI();
