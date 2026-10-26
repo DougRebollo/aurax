@@ -19,6 +19,7 @@
   .lp-nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
   .lp-nav-inner { display: flex; align-items: center; gap: 28px; height: 64px; }
   .lp-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none; }
+  .lp-brand::before { content: ""; flex: none; background: url(assets/favicon.svg) center / contain no-repeat; width: 28px; height: 28px; }
   .lp-brand b { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 15px; }
   .lp-links { display: flex; gap: 22px; margin-left: 8px; }
   .lp-links a { color: var(--ink-dim); text-decoration: none; font-weight: 500; font-size: 14px; }

@@ -117,6 +117,7 @@ a { color: var(--accent); }
   overflow-y: auto;
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px; text-decoration: none; color: var(--ink); }
+.brand::before { content: ""; flex: none; background: url(assets/favicon.svg) center / contain no-repeat; width: 26px; height: 26px; }
 .brand-mark {
   width: 28px; height: 28px; border-radius: 8px;
   background: var(--accent); color: #fff;
