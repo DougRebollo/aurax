@@ -3,7 +3,8 @@
 //
 // Segredos necessários (Supabase -> Project Settings -> Edge Functions):
 //   STRIPE_SECRET_KEY      - chave secreta do Stripe (test ou live)
-//   STRIPE_PRICE_ID        - id do Price da assinatura de R$219/mês
+//   STRIPE_PRICE_ID        - id do Price do plano Profissional (gestor + time), R$219/mês
+//   STRIPE_PRICE_ID_INDIVIDUAL - id do Price do plano Individual, R$119,90/mês
 //   SUPABASE_URL           - já vem preenchido automaticamente
 //   SUPABASE_SERVICE_ROLE_KEY - já vem preenchido automaticamente
 //   SITE_URL (opcional)    - base do site pra redirect (default abaixo)
@@ -25,6 +26,7 @@ const supabaseAdmin = createClient(
 );
 
 const PRICE_ID = Deno.env.get("STRIPE_PRICE_ID") ?? "";
+const PRICE_ID_INDIVIDUAL = Deno.env.get("STRIPE_PRICE_ID_INDIVIDUAL") ?? "";
 const SITE_URL = Deno.env.get("SITE_URL") ?? "https://auraxoficial.com.br";
 
 const CORS_HEADERS = {
@@ -55,7 +57,7 @@ serve(async (req) => {
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("id, email, stripe_customer_id, manager_id")
+      .select("id, email, stripe_customer_id, manager_id, role")
       .eq("id", user.id)
       .single();
 
@@ -66,6 +68,13 @@ serve(async (req) => {
     // funcionário não tem assinatura própria pra contratar.
     if (profile.manager_id) {
       return json({ error: "Só o gestor da conta pode contratar o plano." }, 403);
+    }
+
+    // O preço vem do tipo da conta no banco (nunca do navegador): gestor paga o plano
+    // Profissional; quem não tem gestor e não é gestor paga o Individual.
+    const priceId = profile.role === "gestor" ? PRICE_ID : PRICE_ID_INDIVIDUAL;
+    if (!priceId) {
+      return json({ error: "Esse plano ainda não está disponível. Fale com o suporte." }, 500);
     }
 
     let customerId = profile.stripe_customer_id as string | null;
@@ -81,7 +90,7 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${SITE_URL}/pagamento-pendente.html?checkout=success`,
       cancel_url: `${SITE_URL}/pagamento-pendente.html?checkout=cancel`,
       client_reference_id: user.id,

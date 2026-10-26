@@ -32,6 +32,7 @@
   #nameField { display: none; }
   .role-toggle { display: flex; gap: 8px; }
   .role-option { flex: 1; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-dim); font-weight: 600; }
+  .role-hint { font-size: 12.5px; color: var(--ink-dim); margin: 8px 0 0; line-height: 1.45; }
   .role-option.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
   .forgot-row { text-align: right; margin-top: 8px; }
   .forgot-row button { background: none; border: 0; color: var(--accent); font-size: 12.5px; font-weight: 600; padding: 0; }
@@ -56,11 +57,12 @@
         <label for="nameInput">Nome</label>
         <input type="text" id="nameInput" placeholder="Seu nome" />
 
-        <label>Você é gestor ou funcionário?</label>
+        <label>Como você vai usar o AuraX?</label>
         <div class="role-toggle" id="roleToggle">
-          <button type="button" class="role-option selected" data-role="funcionario">Funcionário</button>
+          <button type="button" class="role-option selected" data-role="funcionario">Individual</button>
           <button type="button" class="role-option" data-role="gestor">Gestor</button>
         </div>
+        <p class="role-hint" id="roleHint"></p>
 
         <label for="cargoInput">Cargo <span style="color:#666">(opcional)</span></label>
         <input type="text" id="cargoInput" placeholder="Ex: Gerente Comercial" />
@@ -131,12 +133,21 @@
       messageBox.textContent = "";
     }
 
+    // "Individual" = conta sem gestor (no banco continua role "funcionario", sem manager_id).
+    const ROLE_HINTS = {
+      funcionario: "Para você se avaliar sozinho. Plano Individual: R$\u00a0119,90/mês.",
+      gestor: "Para acompanhar um time de até 5 pessoas. Plano Profissional: R$\u00a0219/mês.",
+    };
+    const roleHint = document.getElementById("roleHint");
+    function updateRoleHint() { roleHint.textContent = ROLE_HINTS[selectedRole] || ""; }
+    updateRoleHint();
     roleToggle.addEventListener("click", (e) => {
       const btn = e.target.closest(".role-option");
       if (!btn) return;
       roleToggle.querySelectorAll(".role-option").forEach((b) => b.classList.remove("selected"));
       btn.classList.add("selected");
       selectedRole = btn.dataset.role;
+      updateRoleHint();
     });
 
     toggleModeBtn.addEventListener("click", () => {
@@ -328,6 +339,7 @@
         roleToggle.style.display = "none";
         const roleLabel = roleToggle.previousElementSibling;
         if (roleLabel) roleLabel.style.display = "none";
+        roleHint.style.display = "none";
         return info;
       } catch (e) { /* sem convite válido */ }
       return null;
@@ -340,6 +352,13 @@
       if (RECOVERY) { showRecoveryUI(); return; }
       if (LINK_ERROR) showMessage("Esse link expirou ou já foi usado. Peça um novo em “Esqueci minha senha”.", "error");
       const info = await setupInvite();
+      // Vindo dos botões de plano da landing: já abre o cadastro com o tipo de conta escolhido.
+      const cad = new URLSearchParams(location.search).get("cadastro");
+      if (!info && (cad === "individual" || cad === "gestor")) {
+        if (mode === "login") toggleModeBtn.click();
+        const opt = roleToggle.querySelector('[data-role="' + (cad === "gestor" ? "gestor" : "funcionario") + '"]');
+        if (opt) opt.click();
+      }
       if (info) {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user && (user.email || "").toLowerCase() !== (info.email || "").toLowerCase()) {

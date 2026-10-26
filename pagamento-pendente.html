@@ -44,11 +44,11 @@
 
     <div id="gestorView" hidden>
       <h1>Sua conta está criada</h1>
-      <p class="welcome">Falta só ativar o plano para liberar a gravação das sessões e o painel do gestor.</p>
-      <div class="plan-name">Plano Profissional</div>
-      <p class="plan-amount">R$ 219<small> /mês</small></p>
-      <span class="plan-team">1 gestor + 5 colaboradores: equipe de 6 pessoas</span>
-      <ul class="plan-list">
+      <p class="welcome" id="planWelcome">Falta só ativar o plano para liberar a gravação das sessões e o painel do gestor.</p>
+      <div class="plan-name" id="planName">Plano Profissional</div>
+      <p class="plan-amount" id="planAmount">R$ 219<small> /mês</small></p>
+      <span class="plan-team" id="planTeam">1 gestor + 5 colaboradores: equipe de 6 pessoas</span>
+      <ul class="plan-list" id="planList">
         <li>Nota de oratória, vícios de linguagem e gírias</li>
         <li>Leitura facial e transcrição ao vivo</li>
         <li>Detecção de objeções e alertas durante a call</li>
@@ -134,6 +134,22 @@
       }
     }
 
+    // Plano Individual: mesma tela, com o preço e a lista do plano de uma pessoa só.
+    function applyIndividualPlan() {
+      document.getElementById("planName").textContent = "Plano Individual";
+      document.getElementById("planWelcome").textContent = "Falta só ativar o plano para liberar a gravação das suas sessões.";
+      document.getElementById("planAmount").innerHTML = "R$ 119,90<small> /mês</small>";
+      document.getElementById("planTeam").textContent = "Para uma pessoa";
+      document.getElementById("planList").innerHTML = [
+        "Nota de oratória, vícios de linguagem e gírias",
+        "Leitura facial e transcrição ao vivo",
+        "Detecção de objeções e alertas durante a call",
+        "Histórico ilimitado com comentários por cliente",
+        "Resumo para o CRM e exportação em PDF e CSV",
+        "Suporte direto via WhatsApp",
+      ].map((t) => "<li>" + t + "</li>").join("");
+    }
+
     async function init() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) {
@@ -143,7 +159,7 @@
 
       const { data: profile, error } = await supabaseClient
         .from("profiles")
-        .select("id, manager_id")
+        .select("id, manager_id, role")
         .eq("id", session.user.id)
         .single();
 
@@ -159,6 +175,7 @@
       const isGestor = !profile.manager_id;
 
       if (isGestor) {
+        if (profile.role !== "gestor") applyIndividualPlan(); // sem gestor e sem ser gestor = plano Individual
         document.getElementById("gestorView").hidden = false;
         document.querySelector(".card").classList.add("plan");
         document.getElementById("checkoutBtn").addEventListener("click", startCheckout);

@@ -150,11 +150,13 @@
 
     let name = (session && session.user && session.user.email) || "";
     let role = "funcionario";
+    let hasManager = false;
     try {
-      const { data } = await client.from("profiles").select("name, role").eq("id", session.user.id).single();
-      if (data) { name = data.name || name; role = data.role || role; }
+      const { data } = await client.from("profiles").select("name, role, manager_id").eq("id", session.user.id).single();
+      if (data) { name = data.name || name; role = data.role || role; hasManager = !!data.manager_id; }
     } catch (e) { /* segue com os valores padrão */ }
     const isGestor = role === "gestor";
+    const isIndividual = !isGestor && !hasManager; // conta sem gestor = plano Individual
 
     el.innerHTML =
       '<a class="brand" href="app.html"><div class="brand-name">AuraX</div></a>' +
@@ -171,8 +173,10 @@
       '<div class="sidebar-spacer"></div>' +
       (isGestor
         ? '<div class="plan-box"><b>Plano Profissional</b><small>1 gestor + 5 colaboradores</small><a href="' + WHATSAPP_URL + '" target="_blank" rel="noopener">Falar com Vendas</a></div>'
-        : "") +
-      '<div class="user-chip"><div class="avatar">' + initials(name) + "</div><div><strong>" + name.replace(/</g, "&lt;") + "</strong><span>" + (isGestor ? "Gestor" : "Funcionário") + "</span></div></div>" +
+        : isIndividual
+          ? '<div class="plan-box"><b>Plano Individual</b><small>Uso pessoal</small><a href="' + WHATSAPP_URL + '" target="_blank" rel="noopener">Quero um plano de equipe</a></div>'
+          : "") +
+      '<div class="user-chip"><div class="avatar">' + initials(name) + "</div><div><strong>" + name.replace(/</g, "&lt;") + "</strong><span>" + (isGestor ? "Gestor" : isIndividual ? "Individual" : "Funcionário") + "</span></div></div>" +
       themeButtonHtml() +
       '<button type="button" class="nav-item" id="shellLogout">' + icon("out") + "Sair</button>";
 

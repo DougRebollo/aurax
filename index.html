@@ -128,7 +128,10 @@
   .lp-step p { margin: 0; color: var(--ink-dim); font-size: 14px; }
 
   /* Preço */
-  .lp-price-wrap { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+  .lp-price-wrap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+  .lp-price { display: flex; flex-direction: column; }
+  .lp-price .lp-list { flex: 1; }
+  .lp-price.featured { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
   .lp-price { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 32px; }
   .lp-price .plan { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
   .lp-price .amount { font-size: 3.4rem; font-weight: 700; letter-spacing: -0.03em; margin: 10px 0 4px; line-height: 1; }
@@ -482,9 +485,23 @@
 
 <section class="lp-section" id="preco" style="padding-top:0">
   <div class="lp-wrap">
-    <div class="lp-head"><h2>Um plano, sem letra miúda</h2><p>Acesso completo a todas as funcionalidades.</p></div>
+    <div class="lp-head"><h2>Dois planos, sem letra miúda</h2><p>Use sozinho ou acompanhe um time. Em ambos, acesso completo à análise de oratória.</p></div>
     <div class="lp-price-wrap">
       <div class="lp-price">
+        <div class="plan">Plano Individual</div>
+        <div class="amount">R$ 119,90<small> /mês</small></div>
+        <span class="pill neutral team">Para uma pessoa</span>
+        <ul class="lp-list">
+          <li>Nota de oratória, vícios de linguagem e gírias</li>
+          <li>Leitura facial e transcrição ao vivo</li>
+          <li>Detecção de objeções e alertas durante a call</li>
+          <li>Histórico ilimitado com comentários por cliente</li>
+          <li>Resumo para o CRM e exportação em PDF e CSV</li>
+          <li>Suporte direto via WhatsApp</li>
+        </ul>
+        <a class="lp-btn ghost big" id="contractIndividualBtn" href="login.html?cadastro=individual" style="width:100%;text-align:center">Criar conta individual</a>
+      </div>
+      <div class="lp-price featured">
         <div class="plan">Plano Profissional</div>
         <div class="amount">R$ 219<small> /mês</small></div>
         <span class="pill good team">1 gestor + 5 colaboradores: equipe de 6 pessoas</span>
@@ -496,7 +513,7 @@
           <li>Painel do gestor e exportação em PDF e CSV</li>
           <li>Suporte direto via WhatsApp</li>
         </ul>
-        <button type="button" class="lp-btn big" id="contractPlanBtn" style="width:100%">Contratar plano</button>
+        <a class="lp-btn big" id="contractPlanBtn" href="login.html?cadastro=gestor" style="width:100%;text-align:center">Criar conta de gestor</a>
       </div>
       <div class="lp-enterprise">
         <span class="pill neutral" style="align-self:flex-start">Equipe maior</span>
@@ -537,9 +554,12 @@
     el.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: id }));
   });
 
-  // Ainda sem checkout: só registra a intenção até o Stripe entrar.
+  // O pagamento acontece depois de criar a conta (tela de plano); aqui só registramos qual plano interessou.
   document.getElementById("contractPlanBtn").addEventListener("click", () => {
-    posthog.capture("contract_plan_click");
+    posthog.capture("contract_plan_click", { plan: "profissional" });
+  });
+  document.getElementById("contractIndividualBtn").addEventListener("click", () => {
+    posthog.capture("contract_plan_click", { plan: "individual" });
   });
 
   const enterpriseLink = document.getElementById("enterpriseSalesLink");
