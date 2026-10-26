@@ -41,6 +41,7 @@
   button.google-btn:hover { background: var(--surface-2); }
   button.google-btn:disabled { opacity: 0.55; cursor: not-allowed; }
   button.google-btn svg { width: 18px; height: 18px; }
+  .invite-banner { padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); color: var(--ink); font-size: 13px; line-height: 1.45; margin: 0 0 14px; text-align: left; }
 </style>
 <script>
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -54,6 +55,7 @@
   <div class="card">
     <div class="logo">AuraX</div>
     <div class="subtitle" id="formSubtitle">Entre com sua conta</div>
+    <div class="invite-banner" id="inviteBanner" hidden></div>
 
     <form id="authForm">
       <div id="nameField">
@@ -166,6 +168,17 @@
     async function redirectByRole() {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) return;
+
+      // Convite de time: se esta conta foi convidada por um gestor (pelo link ou pelo e-mail),
+      // entra no time dele ANTES de checar o pagamento — o acesso do funcionário segue o plano do gestor.
+      let inviteToken = null;
+      try { inviteToken = localStorage.getItem("aurax_invite"); } catch (e) { /* sem armazenamento */ }
+      try {
+        const { data: claim } = await supabaseClient.rpc("claim_team_invites", { p_token: inviteToken });
+        if (claim === "ok") posthog.capture("team_invite_accepted");
+        if (claim && claim !== "sem_login") { try { localStorage.removeItem("aurax_invite"); } catch (e) { /* ok */ } }
+      } catch (e) { /* função ainda não existe no banco: segue sem convite */ }
+
       const { data: profile } = await supabaseClient
         .from("profiles")
         .select("role")
@@ -274,6 +287,33 @@
       }
     });
     // ===== Login com Google (fim) =====
+
+    // ===== Convite de time (início) =====
+    const inviteBannerEl = document.getElementById("inviteBanner");
+    try {
+      const inviteParam = new URLSearchParams(location.search).get("convite");
+      if (inviteParam) localStorage.setItem("aurax_invite", inviteParam);
+    } catch (e) { /* sem armazenamento */ }
+    async function setupInvite() {
+      let tok = null;
+      try { tok = localStorage.getItem("aurax_invite"); } catch (e) { /* sem armazenamento */ }
+      if (!tok) return;
+      try {
+        const { data } = await supabaseClient.rpc("get_invite_info", { p_token: tok });
+        const info = Array.isArray(data) ? data[0] : data;
+        if (!info) return; // convite inexistente ou cancelado: segue o login normal
+        inviteBannerEl.textContent = `${info.manager_name} convidou você para o time dele no AuraX. Crie sua conta (ou entre) para participar.`;
+        inviteBannerEl.hidden = false;
+        if (mode === "login") toggleModeBtn.click();
+        emailInput.value = info.email;
+        selectedRole = "funcionario";
+        roleToggle.style.display = "none";
+        const roleLabel = roleToggle.previousElementSibling;
+        if (roleLabel) roleLabel.style.display = "none";
+      } catch (e) { /* sem convite válido */ }
+    }
+    setupInvite();
+    // ===== Convite de time (fim) =====
 
     redirectByRole();
   </script>

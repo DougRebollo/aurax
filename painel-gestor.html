@@ -8,6 +8,12 @@
 <link rel="stylesheet" href="glass.css" />
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
+  .invite-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .invite-row:last-child { border-bottom: 0; }
+  .invite-email { font-weight: 600; overflow-wrap: anywhere; }
+  .invite-meta { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
+  .invite-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .invite-actions .btn { padding: 6px 12px; font-size: 13px; }
   .add-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 18px; }
   .add-row input[type="email"] { flex: 1; min-width: 220px; }
   .add-feedback { font-size: 13px; padding: 0 4px; margin-top: -10px; }
@@ -196,7 +202,7 @@
     </div>
 
     <div class="card add-row">
-      <input type="email" id="addEmailInput" placeholder="e-mail da pessoa que já tem conta no AuraX" />
+      <input type="email" id="addEmailInput" placeholder="e-mail da pessoa (se ela ainda não tem conta, geramos um convite)" />
       <button type="button" class="btn" id="addBtn">Adicionar ao time</button>
     </div>
     <div class="add-feedback" id="addFeedback"></div>
@@ -230,6 +236,11 @@
     <div class="section-title">Seu time</div>
     <div class="team-strip" id="teamStrip"></div>
 
+    <div id="pendingInvitesWrap" hidden>
+      <div class="section-title">Convites pendentes</div>
+      <div class="card" id="pendingInvites"></div>
+    </div>
+
     <div class="section-title">Sessões</div>
     <div class="filter-tabs" id="filterTabs"></div>
     <div id="sessionsList"></div>
@@ -246,6 +257,8 @@
 
     let currentUserId = null;
     let teamMembers = []; // [{ id, name }]
+    let pendingInvites = []; // convites ainda não aceitos [{ id, email, token, created_at }]
+    let invitesAvailable = true; // false se a tabela de convites ainda não existe no banco
     let selectedFilter = "todos";
 
     // Plano padrão: gestor + 5 pessoas no time. Acima disso é fluxo manual
@@ -256,7 +269,7 @@
     const salesWhatsappUrl = `https://wa.me/${SALES_WHATSAPP_NUMBER}?text=${encodeURIComponent(SALES_WHATSAPP_MESSAGE)}`;
 
     function updateTeamLimitUI() {
-      const atLimit = teamMembers.length >= MAX_TEAM_MEMBERS;
+      const atLimit = teamMembers.length + pendingInvites.length >= MAX_TEAM_MEMBERS;
       document.getElementById("teamLimitNotice").hidden = !atLimit;
       document.getElementById("addEmailInput").disabled = atLimit;
       document.getElementById("addBtn").disabled = atLimit;
@@ -341,6 +354,64 @@
         </div>`;
     }
 
+    // ===== Convites de time =====
+    function inviteLink(token) {
+      let link = "login.html?convite=" + encodeURIComponent(token);
+      try { link = new URL(link, location.href).href; } catch (e) { /* mantém relativo */ }
+      return link;
+    }
+    function inviteMessage(token) {
+      return "Oi! Te convidei para o meu time no AuraX, a ferramenta que mede a nossa oratória nas calls de venda. Crie sua conta por este link e você já entra no time: " + inviteLink(token);
+    }
+    async function copyText(text) {
+      try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+        const ta = document.createElement("textarea"); ta.value = text; ta.style.cssText = "position:fixed;opacity:0";
+        document.body.appendChild(ta); ta.select(); let ok = false;
+        try { ok = document.execCommand("copy"); } catch (e2) { /* sem permissão */ }
+        ta.remove(); return ok;
+      }
+    }
+
+    async function loadInvites() {
+      const { data, error } = await supabaseClient
+        .from("team_invites")
+        .select("id, email, token, created_at")
+        .eq("manager_id", currentUserId)
+        .eq("status", "pendente")
+        .order("created_at");
+      if (error) { invitesAvailable = false; pendingInvites = []; }
+      else { invitesAvailable = true; pendingInvites = data || []; }
+      renderPendingInvites();
+    }
+
+    function renderPendingInvites() {
+      const wrap = document.getElementById("pendingInvitesWrap");
+      const box = document.getElementById("pendingInvites");
+      wrap.hidden = !pendingInvites.length;
+      box.innerHTML = pendingInvites.map((i) => `
+        <div class="invite-row" data-id="${i.id}">
+          <div>
+            <div class="invite-email">${esc(i.email)}</div>
+            <div class="invite-meta">Aguardando cadastro · convite de ${formatDateBR(i.created_at).split(" ")[0]}</div>
+          </div>
+          <div class="invite-actions">
+            <button type="button" class="btn ghost" data-copy="${esc(i.token)}">Copiar convite</button>
+            <button type="button" class="btn ghost" data-cancel="${i.id}">Cancelar</button>
+          </div>
+        </div>`).join("");
+      box.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
+        const ok = await copyText(inviteMessage(b.dataset.copy));
+        const t = b.textContent; b.textContent = ok ? "Copiado ✓" : "Não consegui copiar";
+        setTimeout(() => { b.textContent = t; }, 2000);
+        if (ok) posthog.capture("team_invite_copied");
+      }));
+      box.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", async () => {
+        if (!confirm("Cancelar este convite? O link deixa de funcionar.")) return;
+        await supabaseClient.from("team_invites").update({ status: "cancelado" }).eq("id", b.dataset.cancel);
+        await loadInvites(); updateTeamLimitUI();
+      }));
+    }
+
     async function loadTeam() {
       const { data, error } = await supabaseClient
         .from("profiles")
@@ -363,6 +434,7 @@
         teamMembers = data.map((p) => ({ id: p.id, name: p.name }));
       }
 
+      await loadInvites();
       updateTeamLimitUI();
       renderFilterTabs();
       await renderTeamSummary();
@@ -515,7 +587,7 @@
       const email = input.value.trim();
       if (!email) return;
 
-      if (teamMembers.length >= MAX_TEAM_MEMBERS) {
+      if (teamMembers.length + pendingInvites.length >= MAX_TEAM_MEMBERS) {
         showFeedback(`Seu plano permite até ${MAX_TEAM_MEMBERS} pessoas no time — fale com vendas pra aumentar esse limite.`, "error");
         return;
       }
@@ -528,13 +600,36 @@
         const { data: found, error: findError } = await supabaseClient
           .from("profiles")
           .select("id, name, email, manager_id, role")
-          .eq("email", email)
+          .ilike("email", email)
           .maybeSingle();
 
         if (findError) throw findError;
 
         if (!found) {
-          showFeedback("Essa pessoa ainda não tem conta no AuraX — peça pra ela se cadastrar primeiro em login.html.", "error");
+          // Ainda sem conta: cria um convite com link. Quando a pessoa se cadastrar
+          // (pelo link ou com esse e-mail), ela entra sozinha no time.
+          if (!invitesAvailable) {
+            showFeedback("Essa pessoa ainda não tem conta no AuraX — peça pra ela se cadastrar primeiro em login.html.", "error");
+            return;
+          }
+          if (pendingInvites.some((i) => i.email.toLowerCase() === email.toLowerCase())) {
+            showFeedback("Já existe um convite pendente para esse e-mail — use 'Copiar convite' na lista abaixo.", "error");
+            return;
+          }
+          const { data: inv, error: invError } = await supabaseClient
+            .from("team_invites")
+            .insert({ manager_id: currentUserId, email })
+            .select("id, email, token, created_at")
+            .single();
+          if (invError) throw invError;
+          posthog.capture("team_invite_created");
+          const copied = await copyText(inviteMessage(inv.token));
+          showFeedback(copied
+            ? `Convite criado para ${email}. Já copiei a mensagem com o link — é só colar no WhatsApp ou no e-mail.`
+            : `Convite criado para ${email}. Use "Copiar convite" na lista abaixo e envie para a pessoa.`, "success");
+          input.value = "";
+          await loadInvites();
+          updateTeamLimitUI();
           return;
         }
         if (found.id === currentUserId) {
