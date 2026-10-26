@@ -18,12 +18,17 @@
 
   .stat-card-ring { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; }
   .orat-ring {
-    flex-shrink: 0; width: 92px; height: 92px; border-radius: 50%;
-    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), var(--line) 0);
+    position: relative; flex-shrink: 0; width: 92px; height: 92px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
   }
+  /* anel oco: só a borda colorida (o miolo deixa o vidro aparecer) */
+  .orat-ring::before {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), color-mix(in srgb, var(--ink-faint) 28%, transparent) 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px)); mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  }
   .orat-ring-inner {
-    width: 74px; height: 74px; border-radius: 50%; background: var(--surface);
+    position: relative; width: 74px; height: 74px; border-radius: 50%; background: transparent;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
   }
   .orat-ring-value { font-size: 24px; font-weight: 700; line-height: 1; font-family: var(--mono); }
