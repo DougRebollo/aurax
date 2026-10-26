@@ -10,8 +10,17 @@
 <style>
   body { display: flex; align-items: center; justify-content: center; padding: 20px; }
   .card { width: 100%; max-width: 440px; padding: 36px 32px; text-align: center; }
+  .card.plan { max-width: 480px; }
+  .plan-name { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+  .plan-amount { font-size: 44px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; color: var(--ink); margin: 0; }
+  .plan-amount small { font-size: 16px; font-weight: 600; color: var(--ink-dim); letter-spacing: 0; }
+  .plan-team { display: inline-block; margin: 12px 0 4px; padding: 5px 12px; border-radius: 999px; background: var(--good-soft); color: var(--good); font-size: 12.5px; font-weight: 600; }
+  .plan-list { list-style: none; margin: 18px 0 22px; padding: 18px 0 0; border-top: 1px solid var(--line); text-align: left; display: grid; gap: 10px; }
+  .plan-list li { position: relative; padding-left: 26px; font-size: 14px; line-height: 1.45; color: var(--ink); }
+  .plan-list li::before { content: "✓"; position: absolute; left: 0; top: 0; width: 18px; height: 18px; border-radius: 50%; background: var(--good-soft); color: var(--good); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .plan-foot { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-faint); line-height: 1.5; }
+  .welcome { font-size: 14px; color: var(--ink-dim); margin: 0 0 20px; line-height: 1.5; }
   .logo { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 20px; font-weight: 700; margin-bottom: 18px; }
-  .logo::before { content: "A"; width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 16px; }
   .icon { font-size: 2rem; margin-bottom: 8px; }
   h1 { font-size: 20px; margin: 0 0 10px; }
   p { font-size: 14px; color: var(--ink-dim); line-height: 1.5; margin: 0 0 22px; }
@@ -29,11 +38,22 @@
     <div class="logo">AuraX</div>
 
     <div id="gestorView" hidden>
-      <div class="icon">💳</div>
-      <h1>Finalize seu pagamento</h1>
-      <p>Sua conta foi criada, mas o acesso às sessões só é liberado depois que a assinatura for confirmada.</p>
-      <button type="button" id="checkoutBtn">Ir para o pagamento</button>
+      <h1>Sua conta está criada</h1>
+      <p class="welcome">Falta só ativar o plano para liberar a gravação das sessões e o painel do gestor.</p>
+      <div class="plan-name">Plano Profissional</div>
+      <p class="plan-amount">R$ 219<small> /mês</small></p>
+      <span class="plan-team">1 gestor + 5 colaboradores: equipe de 6 pessoas</span>
+      <ul class="plan-list">
+        <li>Nota de oratória, vícios de linguagem e gírias</li>
+        <li>Leitura facial e transcrição ao vivo</li>
+        <li>Detecção de objeções e alertas durante a call</li>
+        <li>Histórico ilimitado com comentários por cliente</li>
+        <li>Painel do gestor e exportação em PDF e CSV</li>
+        <li>Suporte direto via WhatsApp</li>
+      </ul>
+      <button type="button" id="checkoutBtn">Assinar e continuar</button>
       <button type="button" class="ghost" id="logoutBtn">Sair</button>
+      <p class="plan-foot">Pagamento seguro pelo Stripe. Você pode cancelar quando quiser.</p>
       <div class="message" id="gestorMessage"></div>
     </div>
 
@@ -135,6 +155,7 @@
 
       if (isGestor) {
         document.getElementById("gestorView").hidden = false;
+        document.querySelector(".card").classList.add("plan");
         document.getElementById("checkoutBtn").addEventListener("click", startCheckout);
         document.getElementById("logoutBtn").addEventListener("click", async () => {
           await supabaseClient.auth.signOut();
