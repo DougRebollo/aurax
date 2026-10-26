@@ -11,7 +11,7 @@
   .head-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   #clientFilter { min-width: 220px; }
 
-  .split { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+  .split { display: flex; flex-direction: column; gap: 20px; }   /* análise da sessão em cima (larga), lista de sessões embaixo */
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; }
   th {
@@ -30,7 +30,10 @@
   }
   .client-cell { display: flex; align-items: center; gap: 10px; min-width: 160px; font-weight: 600; }
 
-  .detail { position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
+  .detail { scroll-margin-top: 20px; }
+  .detail-grid { display: grid; grid-template-columns: minmax(250px, 0.9fr) minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+  .detail-col { min-width: 0; }
+  .detail-wide { margin-top: 20px; padding-top: 4px; }
   .detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
   .detail-head h2 { margin: 0; font-size: 16px; }
   .detail-meta { color: var(--ink-faint); font-size: 12px; margin-top: 2px; }
@@ -75,8 +78,7 @@
   .comment-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
   @media (max-width: 1100px) {
-    .split { grid-template-columns: minmax(0, 1fr); }
-    .detail { position: static; max-height: none; }
+    .detail-grid { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   }
 </style>
 <script>
@@ -106,6 +108,8 @@
         </div>
 
         <div class="split">
+          <aside class="card detail" id="detailPanel" aria-live="polite"></aside>
+          <div class="section-title">Todas as sessões</div>
           <div class="card">
             <div class="table-wrap">
               <table>
@@ -114,7 +118,6 @@
               </table>
             </div>
           </div>
-          <aside class="card detail" id="detailPanel" aria-live="polite"></aside>
         </div>
       </main>
     </div>
@@ -361,23 +364,33 @@
           </div>
         </div>
         <div class="detail-body">
-          <div class="section-label">Nota de oratória</div>
-          ${renderOratoriaDetail(h)}
-          ${window.AuraFocus ? window.AuraFocus.render(h, previousSessionsOf(h)) : ""}
-          ${aiHtml}
-          <div class="section-label">Dinâmica da conversa</div>
-          ${dynamicsHtml}
-          ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
-          ${h.open_questions != null || h.closed_questions != null ? `<div class="session-secondary-stats">Perguntas: ${h.open_questions || 0} abertas · ${h.closed_questions || 0} fechadas</div>` : ""}
-          ${h.tips && h.tips.length ? `<details class="tips-fold"><summary>Ver todas as dicas desta sessão (${h.tips.length})</summary>${renderCoachingTips(h.tips)}</details>` : ""}
-          ${negotiationTagsHtml || slangTagsHtml || fillerTagsHtml ? `<div class="section-label">Palavras-chave, gírias e vícios</div>
-            ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
-            ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
-            ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}` : ""}
-          ${h.objections && h.objections.length ? `<div class="section-label">Objeções (${h.objections.length})</div>
-            ${h.objections.map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`).join("")}` : ""}
-          ${h.notes ? `<div class="section-label">Seu comentário</div><div class="insight-line">${escapeHtml(h.notes)}</div>` : ""}
-          ${h.transcript && h.transcript.length ? `<details class="session-transcript"><summary>Ver transcrição (${h.transcript.length} falas)</summary>${h.transcript.map(renderTranscriptLineHtml).join("")}</details>` : ""}
+          <div class="detail-grid">
+            <div class="detail-col">
+              <div class="section-label">Nota de oratória</div>
+              ${renderOratoriaDetail(h)}
+            </div>
+            <div class="detail-col">
+              ${window.AuraFocus ? window.AuraFocus.render(h, previousSessionsOf(h)) : ""}
+              ${aiHtml}
+              ${h.objections && h.objections.length ? `<div class="section-label">Objeções (${h.objections.length})</div>
+                ${h.objections.map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`).join("")}` : ""}
+            </div>
+            <div class="detail-col">
+              <div class="section-label">Dinâmica da sessão</div>
+              ${dynamicsHtml}
+              ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
+              ${h.open_questions != null || h.closed_questions != null ? `<div class="session-secondary-stats">Perguntas: ${h.open_questions || 0} abertas · ${h.closed_questions || 0} fechadas</div>` : ""}
+              ${negotiationTagsHtml || slangTagsHtml || fillerTagsHtml ? `<div class="section-label">Palavras-chave, gírias e vícios</div>
+                ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
+                ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
+                ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}` : ""}
+              ${h.tips && h.tips.length ? `<details class="tips-fold"><summary>Ver todas as dicas desta sessão (${h.tips.length})</summary>${renderCoachingTips(h.tips)}</details>` : ""}
+            </div>
+          </div>
+          <div class="detail-wide">
+            ${h.notes ? `<div class="section-label">Seu comentário</div><div class="insight-line">${escapeHtml(h.notes)}</div>` : ""}
+            ${h.transcript && h.transcript.length ? `<details class="session-transcript"><summary>Ver transcrição (${h.transcript.length} falas)</summary>${h.transcript.map(renderTranscriptLineHtml).join("")}</details>` : ""}
+          </div>
         </div>`;
     }
 
@@ -408,6 +421,7 @@
       if (!tr) return;
       selectedId = tr.dataset.id;
       renderSessionsList();
+      document.getElementById("detailPanel").scrollIntoView({ behavior: "smooth", block: "start" });  // a análise fica em cima
     });
     document.getElementById("sessBody").addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
@@ -507,8 +521,6 @@
         history.replaceState(null, "", location.pathname);
       }
       await refreshSessions();
-      const selectedRow = document.querySelector("#sessBody tr.selected");
-      if (selectedRow && wantedId) selectedRow.scrollIntoView({ block: "center" });
     }
 
     init();
