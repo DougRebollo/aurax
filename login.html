@@ -297,11 +297,11 @@
     async function setupInvite() {
       let tok = null;
       try { tok = localStorage.getItem("aurax_invite"); } catch (e) { /* sem armazenamento */ }
-      if (!tok) return;
+      if (!tok) return null;
       try {
         const { data } = await supabaseClient.rpc("get_invite_info", { p_token: tok });
         const info = Array.isArray(data) ? data[0] : data;
-        if (!info) return; // convite inexistente ou cancelado: segue o login normal
+        if (!info) return null; // convite inexistente ou cancelado: segue o login normal
         inviteBannerEl.textContent = `${info.manager_name} convidou você para o time dele no AuraX. Crie sua conta (ou entre) para participar.`;
         inviteBannerEl.hidden = false;
         if (mode === "login") toggleModeBtn.click();
@@ -310,12 +310,25 @@
         roleToggle.style.display = "none";
         const roleLabel = roleToggle.previousElementSibling;
         if (roleLabel) roleLabel.style.display = "none";
+        return info;
       } catch (e) { /* sem convite válido */ }
+      return null;
     }
-    setupInvite();
     // ===== Convite de time (fim) =====
 
-    redirectByRole();
+    // Abrindo pelo link de convite, uma sessão antiga de OUTRA conta (ex.: o próprio gestor
+    // testando no mesmo navegador) não pode entrar sozinha: encerra e mostra o cadastro.
+    (async function init() {
+      const info = await setupInvite();
+      if (info) {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user && (user.email || "").toLowerCase() !== (info.email || "").toLowerCase()) {
+          await supabaseClient.auth.signOut();
+          return;
+        }
+      }
+      redirectByRole();
+    })();
   </script>
 </body>
 </html>
