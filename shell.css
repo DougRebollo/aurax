@@ -325,3 +325,26 @@ details.tips-fold > summary { cursor: pointer; font-size: 13px; font-weight: 600
 #supSend { width: 100%; }
 .sup-done { text-align: center; padding: 8px 0 2px; }
 .sup-check { width: 46px; height: 46px; margin: 0 auto 8px; border-radius: 50%; background: var(--good-soft); color: var(--good); display: grid; place-items: center; font-size: 24px; font-weight: 700; }
+
+/* ===== Transição entre páginas =====
+ * O navegador anima a troca de página sozinho (View Transitions entre documentos): o menu lateral
+ * fica parado e só o conteúdo faz um fade com um leve deslize. Onde não há suporte (ex.: Firefox),
+ * a página só aparece, como antes. Quem prefere menos movimento não vê animação. */
+@view-transition { navigation: auto; }
+.sidebar { view-transition-name: sidebar; }
+main.content { view-transition-name: content; }
+body > .card { view-transition-name: content; }   /* login e tela de plano: o cartão é o "conteúdo" */
+::view-transition-group(content) { animation-duration: 0s; }   /* sem esticar o conteúdo entre alturas diferentes */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.28s; animation-timing-function: ease; }
+::view-transition-old(content) { animation: vtOut 0.16s ease both; }
+::view-transition-new(content) { animation: vtIn 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) 0.06s both; }
+@keyframes vtOut { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes vtIn { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+/* Navegadores sem transição entre páginas (ex.: Firefox): só um fade de entrada no conteúdo. */
+@supports not (view-transition-name: none) {
+  main.content, body > .card { animation: vtIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+}
+@media (prefers-reduced-motion: reduce) { main.content, body > .card { animation: none !important; } }
