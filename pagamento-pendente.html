@@ -129,7 +129,11 @@
         if (!res.ok || !body.url) throw new Error(body.error || "Não foi possível iniciar o checkout.");
         window.location.href = body.url;
       } catch (err) {
-        showMessage("gestorMessage", err.message || "Não foi possível iniciar o checkout agora.", "error");
+        // "Failed to fetch" = a função de pagamento não respondeu (rede ou ainda não publicada).
+        const msg = (err && err.message && !/failed to fetch|networkerror|load failed/i.test(err.message))
+          ? err.message
+          : "Não foi possível abrir o pagamento agora. Tente de novo em instantes ou fale com o suporte.";
+        showMessage("gestorMessage", msg, "error");
         checkoutBtn.disabled = false;
       }
     }
