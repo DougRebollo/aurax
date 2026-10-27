@@ -9,6 +9,7 @@
 <link rel="shortcut icon" href="favicon.ico" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
 <link rel="stylesheet" href="shell.css" />
+<script src="transition.js"></script>
 <link rel="stylesheet" href="glass.css" />
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
@@ -178,7 +179,7 @@
       // O X leva para a área da pessoa: ela explora o AuraX, só não consegue gravar sem plano.
       const closeX = document.getElementById("closeX");
       closeX.hidden = false;
-      closeX.addEventListener("click", () => { window.location.href = profile.role === "gestor" ? "painel-gestor.html" : "app.html"; });
+      closeX.addEventListener("click", () => { const dest = profile.role === "gestor" ? "painel-gestor.html" : "app.html"; if (window.AuraGo) AuraGo(dest); else window.location.href = dest; });
 
       const alreadyActive = await redirectIfAlreadyActive(profile);
       if (alreadyActive) return;

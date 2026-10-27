@@ -326,28 +326,25 @@ details.tips-fold > summary { cursor: pointer; font-size: 13px; font-weight: 600
 .sup-done { text-align: center; padding: 8px 0 2px; }
 .sup-check { width: 46px; height: 46px; margin: 0 auto 8px; border-radius: 50%; background: var(--good-soft); color: var(--good); display: grid; place-items: center; font-size: 24px; font-weight: 700; }
 
-/* ===== Transição entre páginas =====
- * O navegador anima a troca de página sozinho (View Transitions entre documentos): o menu lateral
- * fica parado e só o conteúdo faz um fade com um leve deslize. Onde não há suporte (ex.: Firefox),
- * a página só aparece, como antes. Quem prefere menos movimento não vê animação. */
-@view-transition { navigation: auto; }
-.sidebar { view-transition-name: sidebar; }
-main.content { view-transition-name: content; }
-body > .card { view-transition-name: content; }   /* login e tela de plano: o cartão é o "conteúdo" */
-::view-transition-group(content) { animation-duration: 0s; }   /* sem esticar o conteúdo entre alturas diferentes */
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.28s; animation-timing-function: ease; }
-::view-transition-old(content) { animation: vtOut 0.16s ease both; }
-::view-transition-new(content) { animation: vtIn 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) 0.06s both; }
-@keyframes vtOut { to { opacity: 0; transform: translateY(-6px); } }
-@keyframes vtIn { from { opacity: 0; transform: translateY(12px); } }
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+/* ===== Transição entre páginas (transition.js) =====
+ * Uma "cortina" sobrepõe a página: ao sair, um painel desliza da direita cobrindo a tela; a página nova abre
+ * coberta e o painel sai para a esquerda. Com "reduzir movimento" vira só um fade. */
+:root { --vt-leave: 360ms; --vt-enter: 520ms; }
+html.vt-leave::after, html.vt-enter::after, html.vt-leave-fade::after, html.vt-enter-fade::after {
+  content: ""; position: fixed; inset: 0; z-index: 2147483000; pointer-events: none;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, var(--bg)) 0%, var(--bg) 62%),
+    var(--bg);
+  box-shadow: -40px 0 70px rgba(0, 0, 0, 0.35);
 }
-/* Navegadores sem transição entre páginas (ex.: Firefox): só um fade de entrada no conteúdo. */
-@supports not (view-transition-name: none) {
-  main.content, body > .card { animation: vtIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-}
-@media (prefers-reduced-motion: reduce) { main.content, body > .card { animation: none !important; } }
+html.vt-leave::after { animation: vtCurtainIn var(--vt-leave) cubic-bezier(0.65, 0, 0.35, 1) both; }
+html.vt-enter::after { animation: vtCurtainOut var(--vt-enter) cubic-bezier(0.65, 0, 0.35, 1) 40ms both; }
+html.vt-leave-fade::after { animation: vtFadeIn 120ms ease both; }
+html.vt-enter-fade::after { animation: vtFadeOut 220ms ease both; }
+@keyframes vtCurtainIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes vtCurtainOut { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes vtFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vtFadeOut { from { opacity: 1; } to { opacity: 0; } }
 
 /* ===== "Como esta nota é calculada" (explain.js) ===== */
 .score-explain { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); padding: 0 14px; }
