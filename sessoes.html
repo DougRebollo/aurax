@@ -145,6 +145,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js"></script>
   <script src="lang.js"></script>
+  <script src="explain.js"></script>
   <script src="focus.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
@@ -319,7 +320,8 @@
           <div><span class="oratoria-pill" style="color:${rank.color}; border-color:${rank.color}">${rank.label}</span></div>
         </div>
         <div style="margin-top:10px">${barsHtml}</div>
-        <div class="oratoria-disclaimer">Aproximação por ritmo, pausas, vícios, confiança do reconhecimento de fala e variação de volume. Não é avaliação fonoaudiológica.</div>`;
+        <div class="oratoria-disclaimer">Aproximação por ritmo, pausas, vícios, confiança do reconhecimento de fala e variação de volume. Não é avaliação fonoaudiológica.</div>
+        ${window.AuraExplain ? AuraExplain.html(h) : ""}`;
     }
 
     // As 5 sessões anteriores à selecionada, só pra comparar no cartão de foco.

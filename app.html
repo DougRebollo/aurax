@@ -995,9 +995,10 @@
     <h3>Dinâmica da conversa</h3>
     <div id="summaryDynamics"></div>
 
-    <h3>Emoções (média da sessão)</h3>
+    <h3>Expressão facial (média da sessão)</h3>
     <div id="summaryEmotions"></div>
-    <h3>Estimativas (média da sessão)</h3>
+    <h3>Sinais do rosto (média da sessão)</h3>
+    <p class="face-note">Estimativas a partir da expressão do seu rosto na câmera. Luz, ângulo, óculos e o jeito de cada rosto mudam o resultado, então use como um sinal auxiliar para você, não como um fato sobre como você se sente.</p>
     <div id="summaryEstimated"></div>
     <h3>Transcrição da sessão</h3>
     <div id="summaryTranscript"></div>
@@ -1025,9 +1026,10 @@
   <script src="shell.js"></script>
   <script src="focus.js"></script>
   <script src="lang.js"></script>
+  <script src="explain.js"></script>
   <script>
     const EMOTION_LABELS_PT = {
-      neutral: "Focado",
+      neutral: "Neutro",
       happy: "Feliz",
       sad: "Triste",
       angry: "Bravo",
@@ -1883,7 +1885,7 @@
       return lines;
     }
 
-    function renderOratoriaCard({ overall, subScores }, insightLines) {
+    function renderOratoriaCard({ overall, subScores }, insightLines, explainData) {
       if (overall === null) {
         return '<div class="insight-line">Sem fala suficiente pra calcular a nota de oratória nesta sessão.</div>';
       }
@@ -1915,6 +1917,7 @@
         </div>
         <div style="margin-top:12px">${insightsHtml}</div>
         <div class="oratoria-disclaimer">Aproximação a partir de ritmo, pausas, vícios de linguagem, confiança do reconhecimento de fala e variação de volume — não é uma avaliação fonoaudiológica.</div>
+        ${explainData && window.AuraExplain ? AuraExplain.html(explainData) : ""}
       `;
     }
 
@@ -1969,7 +1972,7 @@
         tips.push({
           key: "escuta_ativa_pausas",
           type: "positivo",
-          text: `${activeListeningCount} pausa${activeListeningCount > 1 ? "s" : ""} bem longa${activeListeningCount > 1 ? "s" : ""} (mais de 1min) — provavelmente foi você dando espaço pro cliente falar, não hesitação.`,
+          text: `${activeListeningCount} pausa${activeListeningCount > 1 ? "s" : ""} bem longa${activeListeningCount > 1 ? "s" : ""} (mais de 1min) — pode ter sido espaço para o cliente falar ou uma pausa sua; o AuraX não consegue distinguir.`,
         });
       }
 
@@ -1977,7 +1980,7 @@
         if (dynamics.pctYou >= 75) {
           tips.push({ key: "dominou_conversa", type: "melhorar", text: `Você falou ${dynamics.pctYou}% do tempo da sessão — abra mais espaço para o cliente falar.` });
         } else if (dynamics.pctOther >= 35) {
-          tips.push({ key: "boa_escuta", type: "positivo", text: `Boa escuta ativa — você deixou ${dynamics.pctOther}% do tempo para o cliente falar.` });
+          tips.push({ key: "boa_escuta", type: "positivo", text: `Você falou ${dynamics.pctYou}% do tempo; o resto foi escuta ou silêncio — um bom espaço para o cliente falar.` });
         }
         // De fone, o silêncio do SEU mic é o cliente falando (escuta), não
         // hesitação — o aviso só faz sentido quando a divisão é por palavras.
@@ -2020,10 +2023,10 @@
       }
 
       if (avgTired >= 0.4) {
-        tips.push({ key: "cansaco", type: "melhorar", text: "Sinais de cansaço ao longo da sessão — considere pausas entre reuniões." });
+        tips.push({ key: "cansaco", type: "melhorar", text: "Olhos mais fechados por boa parte da sessão (estimativa pela câmera) — pode ser cansaço, luz ou ângulo da câmera." });
       }
       if (avgMotivated >= 0.5) {
-        tips.push({ key: "boa_energia", type: "positivo", text: "Boa energia/motivação sustentada durante a conversa." });
+        tips.push({ key: "boa_energia", type: "positivo", text: "Expressão mais sorridente e expressiva durante a conversa (estimativa pela câmera)." });
       }
 
       if (!tips.length) {
@@ -2092,7 +2095,7 @@
       summaryNegotiationEl.innerHTML = `
         <div class="insight-line">Ritmo médio de fala: ${wpmSession} palavras/min</div>
         <div class="insight-line">Pausas longas (mais de 1min30): ${sessionPauseCount}</div>
-        ${sessionActiveListeningCount > 0 ? `<div class="insight-line tip-positive">Momentos de escuta ativa (mais de 1min): ${sessionActiveListeningCount}</div>` : ""}
+        ${sessionActiveListeningCount > 0 ? `<div class="insight-line tip-positive">Silêncios longos (mais de 1min): ${sessionActiveListeningCount}</div>` : ""}
         <div style="margin-top:8px">${keywordTagsHtml || '<span class="insight-line">Nenhuma palavra-chave de negociação identificada.</span>'}</div>
       `;
 
@@ -2112,7 +2115,10 @@
         ownConfidences: sessionConfidences,
         ownVolumes: sessionVolumes,
       });
-      summaryOratoriaEl.innerHTML = renderOratoriaCard(oratoriaResult, oratoriaInsights);
+      summaryOratoriaEl.innerHTML = renderOratoriaCard(oratoriaResult, oratoriaInsights, {
+        oratoria_subscores: oratoriaResult.subScores, wpm: wpmSession, pauses: sessionPauseCount,
+        filler_counts: sessionFillerCounts, slang_counts: sessionSlangCounts, transcript: sessionTranscript,
+      });
 
       summaryObjectionsEl.innerHTML = sessionObjections.length
         ? sessionObjections
@@ -2576,7 +2582,7 @@
           if (!activeListeningAlreadyFlagged && silenceDuration > ACTIVE_LISTENING_MIN_MS) {
             activeListeningAlreadyFlagged = true;
             if (sessionActive) sessionActiveListeningCount++;
-            pushLiveAlert("Boa escuta ativa — você deu bastante espaço pro cliente falar.");
+            pushLiveAlert("Silêncio de mais de 1 min — se foi o cliente falando, bom espaço de escuta.");
           }
         }
       } else {
@@ -2904,9 +2910,9 @@
     }
 
     const ESTIMATED_LABELS_PT = {
-      tired: "Cansado",
-      focused: "Constância",
-      motivated: "Motivado",
+      tired: "Olhos mais fechados",
+      focused: "Expressão estável",
+      motivated: "Sorriso e surpresa",
     };
 
     function renderEstimated(estimates) {

@@ -330,9 +330,9 @@
       ritmo_acelerado: "Ritmo de fala acelerado",
       ritmo_tranquilo: "Ritmo de fala tranquilo",
       muitas_pausas: "Muitas pausas longas",
-      escuta_ativa_pausas: "Escuta ativa (pausas longas)",
+      escuta_ativa_pausas: "Silêncios longos (mais de 1 min)",
       dominou_conversa: "Dominou a conversa",
-      boa_escuta: "Boa escuta ativa",
+      boa_escuta: "Espaço para o cliente falar",
       silencio_alto: "Silêncio acima do ideal",
       muitas_girias: "Muitas gírias/informalidades",
       fala_inseguranca: "Marcadores de insegurança",
@@ -348,8 +348,6 @@
       poucos_vicios: "Poucos vícios de linguagem",
       objecao_segura: "Boa recuperação em objeções",
       objecao_tensa: "Tensão ao responder objeções",
-      cansaco: "Sinais de cansaço",
-      boa_energia: "Boa energia/motivação",
       equilibrada: "Sessão equilibrada",
     };
 
@@ -477,7 +475,7 @@
         ? Math.round(average(scored.map((s) => s.oratoria_score)))
         : "—";
 
-      const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas"]; // recurso removido: sessões antigas ainda trazem essas dicas
+      const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas", "cansaco", "boa_energia"]; // perguntas: recurso removido; cansaço/energia vêm do rosto e não aparecem para o gestor // recurso removido: sessões antigas ainda trazem essas dicas
       const tipCounts = {};
       data.forEach((s) => {
         (s.tips || []).forEach((t) => {
@@ -519,7 +517,7 @@
     }
 
     function sessionCardHtml(personName, row, position) {
-      const tips = (row.tips || []).filter((t) => !t || !["poucas_perguntas_abertas", "boas_perguntas_abertas"].includes(t.key)).slice(0, 2);
+      const tips = (row.tips || []).filter((t) => !t || !["poucas_perguntas_abertas", "boas_perguntas_abertas", "cansaco", "boa_energia"].includes(t.key)).slice(0, 2);
       const tipsHtml = tips
         .map(
           (t) =>
@@ -544,11 +542,6 @@
               </div>
             </div>
             ${oratoriaHtml}
-          </div>
-          <div class="badges">
-            <span class="badge badge-focused">Constância ${Math.round((row.focused || 0) * 100)}%</span>
-            <span class="badge badge-motivated">Motivado ${Math.round((row.motivated || 0) * 100)}%</span>
-            <span class="badge badge-tired">Cansado ${Math.round((row.tired || 0) * 100)}%</span>
           </div>
           ${tipsHtml}
         </div>`;

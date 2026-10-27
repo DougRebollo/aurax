@@ -348,3 +348,15 @@ body > .card { view-transition-name: content; }   /* login e tela de plano: o ca
   main.content, body > .card { animation: vtIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 }
 @media (prefers-reduced-motion: reduce) { main.content, body > .card { animation: none !important; } }
+
+/* ===== "Como esta nota é calculada" (explain.js) ===== */
+.score-explain { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); padding: 0 14px; }
+.score-explain > summary { cursor: pointer; padding: 11px 0; font-size: 13px; font-weight: 600; color: var(--accent); }
+.score-explain p { margin: 0 0 10px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+.score-explain ul { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 10px; }
+.score-explain li { font-size: 12.5px; line-height: 1.5; }
+.score-explain .se-name { display: block; font-weight: 600; color: var(--ink); }
+.score-explain .se-name b { margin-left: 6px; color: var(--accent); font-family: var(--mono); }
+.score-explain .se-text { display: block; color: var(--ink-dim); }
+.score-explain .se-foot { padding-bottom: 12px; color: var(--ink-faint); }
+.face-note { margin: 6px 0 14px; font-size: 12.5px; line-height: 1.5; color: var(--ink-faint); }
