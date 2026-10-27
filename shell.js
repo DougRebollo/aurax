@@ -144,21 +144,13 @@
     });
   }
 
-  async function init({ active, client, session }) {
-    const el = document.getElementById("shellSidebar");
-    if (!el) return;
-
-    let name = (session && session.user && session.user.email) || "";
-    let role = "funcionario";
-    let hasManager = false;
-    try {
-      const { data } = await client.from("profiles").select("name, role, manager_id").eq("id", session.user.id).single();
-      if (data) { name = data.name || name; role = data.role || role; hasManager = !!data.manager_id; }
-    } catch (e) { /* segue com os valores padrão */ }
+  // Menu lateral. Montado duas vezes: logo ao abrir a página, com o último estado guardado (o menu fica
+  // fixo na troca de página, sem esperar o banco), e de novo depois da consulta, com o dado atualizado.
+  const SHELL_CACHE_KEY = "aurax_shell";
+  function sidebarHtml({ active, name, role, hasManager }) {
     const isGestor = role === "gestor";
     const isIndividual = !isGestor && !hasManager; // conta sem gestor = plano Individual
-
-    el.innerHTML =
+    return (
       '<a class="brand" href="app.html"><div class="brand-name">AuraX</div></a>' +
       '<nav class="nav-group" aria-label="Principal"><div class="nav-label">Principal</div>' +
         item("gravar", "app.html", "record", "Gravar sessão", active) +
@@ -178,7 +170,23 @@
           : "") +
       '<div class="user-chip"><div class="avatar">' + initials(name) + "</div><div><strong>" + name.replace(/</g, "&lt;") + "</strong><span>" + (isGestor ? "Gestor" : isIndividual ? "Individual" : "Funcionário") + "</span></div></div>" +
       themeButtonHtml() +
-      '<button type="button" class="nav-item" id="shellLogout">' + icon("out") + "Sair</button>";
+      '<button type="button" class="nav-item" id="shellLogout">' + icon("out") + "Sair</button>");
+  }
+
+  async function init({ active, client, session }) {
+    const el = document.getElementById("shellSidebar");
+    if (!el) return;
+
+    let name = (session && session.user && session.user.email) || "";
+    let role = "funcionario";
+    let hasManager = false;
+    try {
+      const { data } = await client.from("profiles").select("name, role, manager_id").eq("id", session.user.id).single();
+      if (data) { name = data.name || name; role = data.role || role; hasManager = !!data.manager_id; }
+    } catch (e) { /* segue com os valores padrão */ }
+
+    try { sessionStorage.setItem(SHELL_CACHE_KEY, JSON.stringify({ name, role, hasManager })); } catch (e) { /* ok */ }
+    el.innerHTML = sidebarHtml({ active, name, role, hasManager });
 
     const themeBtn = document.getElementById("shellTheme");
     themeBtn.addEventListener("click", () => {
@@ -194,6 +202,7 @@
     });
 
     document.getElementById("shellLogout").addEventListener("click", async () => {
+      try { sessionStorage.removeItem(SHELL_CACHE_KEY); } catch (e) { /* ok */ }
       await client.auth.signOut();
       window.location.href = "login.html";
     });
@@ -246,6 +255,18 @@
     const focusEl = overlay.querySelector(".plan-cta, .plan-ghost");
     if (focusEl) focusEl.focus();
   }
+
+  // Render imediato: o menu aparece já na abertura da página, com o último estado guardado.
+  (function earlyRender() {
+    try {
+      const el = document.getElementById("shellSidebar");
+      const cached = JSON.parse(sessionStorage.getItem(SHELL_CACHE_KEY) || "null");
+      if (!el || !cached) return;
+      const file = (location.pathname.split("/").pop() || "").replace(".html", "");
+      const active = { app: "gravar", sessoes: "sessoes", insights: "insights", "painel-gestor": "painel" }[file];
+      if (active) el.innerHTML = sidebarHtml({ active, name: cached.name || "", role: cached.role, hasManager: !!cached.hasManager });
+    } catch (e) { /* sem cache: o menu aparece quando o banco responder */ }
+  })();
 
   window.AuraShell = { init, cleanFillers, showPlanPrompt };
 })();

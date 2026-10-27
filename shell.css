@@ -327,10 +327,16 @@ details.tips-fold > summary { cursor: pointer; font-size: 13px; font-weight: 600
 .sup-check { width: 46px; height: 46px; margin: 0 auto 8px; border-radius: 50%; background: var(--good-soft); color: var(--good); display: grid; place-items: center; font-size: 24px; font-weight: 700; }
 
 /* ===== Transição entre páginas (transition.js) =====
- * Fade: ao clicar num link a página atual esmaece; a página nova abre invisível e aparece suavemente. */
+ * Fade: ao clicar num link a página atual esmaece; a página nova abre invisível e aparece suavemente.
+ * Com menu lateral, o menu não se mexe: só o conteúdo faz o fade. */
 :root { --vt-leave: 220ms; --vt-enter: 380ms; }
 html.vt-leave body { opacity: 0; transition: opacity var(--vt-leave) ease; }
 html.vt-enter body { animation: vtFadeIn var(--vt-enter) ease both; }
+/* Telas com menu lateral: o menu fica fixo e só o resto esmaece. */
+html.vt-leave body:has(.sidebar) { opacity: 1; transition: none; }
+html.vt-leave body:has(.sidebar) .shell-main { opacity: 0; transition: opacity var(--vt-leave) ease; }
+html.vt-enter body:has(.sidebar) { animation: none; }
+html.vt-enter body:has(.sidebar) .shell-main { animation: vtFadeIn var(--vt-enter) ease both; }
 @keyframes vtFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* ===== "Como esta nota é calculada" (explain.js) ===== */
