@@ -271,7 +271,7 @@
   }
   #statTiles {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 8px;
     margin-top: 14px;
   }
@@ -466,7 +466,6 @@
 
   :root {
     --series-focused: var(--good);
-    --series-motivated: var(--warn);
     --grid: var(--line);
     --muted: var(--ink-faint);
     --text-secondary: var(--ink-faint);
@@ -904,7 +903,6 @@
 
         <div id="statTiles">
           <div class="stat-tile"><div class="stat-value" id="tileFocused">0%</div><div class="stat-label">Constância</div></div>
-          <div class="stat-tile"><div class="stat-value" id="tileMotivated">0%</div><div class="stat-label">Motivação</div></div>
         </div>
 
         <div id="liveAlerts"></div>
@@ -984,7 +982,6 @@
     <h3>Como evoluiu ao longo da sessão</h3>
     <div id="trend-legend">
       <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Constância</span>
-      <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
     </div>
     <svg id="trendChart" viewBox="0 0 640 240"></svg>
     <div id="peakInsights"></div>
@@ -1173,7 +1170,6 @@
     const detectionConfidenceEl = document.getElementById("detectionConfidence");
     const sessionStatusTextEl = document.getElementById("sessionStatusText");
     const tileFocusedEl = document.getElementById("tileFocused");
-    const tileMotivatedEl = document.getElementById("tileMotivated");
     let cameraStartTime = 0;
 
     function updateSessionStatusDisplay() {
@@ -1190,12 +1186,10 @@
     const MISS_GRACE_FRAMES = 12;
     let missedFrames = 0;
 
-    // Histórico recente para calcular as estimativas (constância e sorriso).
+    // Histórico recente para calcular a estimativa de constância.
     const HISTORY_SIZE = 60; // ~poucos segundos de janela
     const history = {
       neutral: [],   // score de expressão neutra
-      happy: [],     // score de expressão feliz
-      surprised: [], // score de expressão surpresa
       headX: [],     // posição horizontal da cabeça
       headY: [],     // posição vertical da cabeça
     };
@@ -1230,16 +1224,12 @@
 
     function updateEstimates(expressions, box) {
       pushHistory("neutral", expressions.neutral);
-      pushHistory("happy", expressions.happy);
-      pushHistory("surprised", expressions.surprised);
       // Normalizado pelo tamanho do rosto na tela (não em pixels absolutos),
       // pra funcionar igual em qualquer resolução/distância de câmera.
       pushHistory("headX", (box.x + box.width / 2) / box.width);
       pushHistory("headY", (box.y + box.height / 2) / box.height);
 
       const avgNeutral = average(history.neutral);
-      const avgHappy = average(history.happy);
-      const avgSurprised = average(history.surprised);
       const headVariance = variance(history.headX) + variance(history.headY);
 
       // Focado: cabeça parada + expressão neutra sustentada.
@@ -1250,10 +1240,7 @@
       const stability = clamp01(1 - headVariance / 0.05);
       const focused = clamp01(stability * 0.35 + avgNeutral * 0.65);
 
-      // Motivado: felicidade/energia positiva sustentada.
-      const motivated = clamp01(avgHappy * 0.8 + avgSurprised * 0.3);
-
-      return { focused, motivated };
+      return { focused };
     }
 
     function clamp01(v) {
@@ -1299,7 +1286,6 @@
 
     const TREND_SERIES = [
       { key: "focused", label: "Constância", color: "var(--series-focused)" },
-      { key: "motivated", label: "Motivado", color: "var(--series-motivated)" },
     ];
 
     function formatTimeMMSS(totalSeconds) {
@@ -1710,7 +1696,6 @@
         t: (now - sessionStartTime) / 1000,
         ...expressions,
         focused: estimates.focused,
-        motivated: estimates.motivated,
       });
     }
 
@@ -1910,7 +1895,7 @@
     // Dicas de autoavaliação ao final da sessão — regras simples sobre os
     // dados que já coletamos (nada de IA generativa aqui, é tudo heurística
     // direta a partir do que foi medido nesta mesma sessão).
-    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, avgMotivated }) {
+    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections }) {
       const tips = [];
 
       if (wpm > 170) {
@@ -1977,9 +1962,6 @@
         }
       }
 
-      if (avgMotivated >= 0.5) {
-        tips.push({ key: "boa_energia", type: "positivo", text: "Expressão mais sorridente e expressiva durante a conversa (estimativa pela câmera)." });
-      }
 
       if (!tips.length) {
         tips.push({ key: "equilibrada", type: "positivo", text: "Sessão equilibrada, sem pontos de atenção fortes identificados." });
@@ -2033,7 +2015,7 @@
         .sort((a, b) => b[1] - a[1]);
       renderBarsInto(summaryEmotionsEl, emotionAverages, DISPLAY_LABELS_PT);
 
-      const estimatedAverages = ["focused", "motivated"]
+      const estimatedAverages = ["focused"]
         .map((key) => [key, average(sessionData.map((d) => d[key] || 0))])
         .sort((a, b) => b[1] - a[1]);
       renderBarsInto(summaryEstimatedEl, estimatedAverages, ESTIMATED_LABELS_PT);
@@ -2101,7 +2083,6 @@
       `;
 
       const avgFocused = average(sessionData.map((d) => d.focused || 0));
-      const avgMotivated = average(sessionData.map((d) => d.motivated || 0));
 
       const tips = generateCoachingTips({
         dynamics,
@@ -2111,7 +2092,6 @@
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         objections: sessionObjections,
-        avgMotivated,
       });
       summaryTipsEl.innerHTML = tips.length > 1
         ? `<details class="tips-fold"><summary>Ver todas as dicas (${tips.length})</summary>${renderCoachingTips(tips)}</details>`
@@ -2154,7 +2134,6 @@
         date: new Date().toISOString(),
         duration,
         focused: avgFocused,
-        motivated: avgMotivated,
         transcript: sessionTranscript,
         wpm: wpmSession,
         pauses: sessionPauseCount,
@@ -2213,7 +2192,7 @@
       const lines = [];
 
       lines.push("Leituras da sessão (expressões e estimativas)");
-      const dataHeaders = ["tempo_minutos", ...Object.keys(EMOTION_LABELS_PT), "focado", "motivado"];
+      const dataHeaders = ["tempo_minutos", ...Object.keys(EMOTION_LABELS_PT), "focado"];
       lines.push(dataHeaders.join(","));
       sessionData.forEach((d) => {
         lines.push(
@@ -2221,7 +2200,6 @@
             .map((h) => {
               if (h === "tempo_minutos") return (d.t / 60).toFixed(2);
               if (h === "focado") return d.focused.toFixed(3);
-              if (h === "motivado") return d.motivated.toFixed(3);
               return (d[h] || 0).toFixed(3);
             })
             .join(",")
@@ -2296,7 +2274,6 @@
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         objections: sessionObjections,
-        avgMotivated: sessionData.length ? average(sessionData.map((d) => d.motivated || 0)) : 0,
       });
       lines.push("");
       lines.push("Dicas de melhoria");
@@ -2858,18 +2835,15 @@
 
     const ESTIMATED_LABELS_PT = {
       focused: "Expressão estável",
-      motivated: "Sorriso e surpresa",
     };
 
     function renderEstimated(estimates) {
       const entries = [
         ["focused", estimates.focused],
-        ["motivated", estimates.motivated],
       ].sort((a, b) => b[1] - a[1]);
       renderBarsInto(estimatedEl, entries, ESTIMATED_LABELS_PT);
 
       tileFocusedEl.textContent = `${Math.round(estimates.focused * 100)}%`;
-      tileMotivatedEl.textContent = `${Math.round(estimates.motivated * 100)}%`;
     }
 
     async function detectLoop() {

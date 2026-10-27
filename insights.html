@@ -125,7 +125,6 @@
         <p class="face-note">Estimativas a partir da expressão do seu rosto na câmera. Luz, ângulo, óculos e o jeito de cada rosto mudam o resultado, então use como um sinal auxiliar para você, não como um fato sobre como você se sente.</p>
         <div class="chart-legend">
           <span class="legend-item"><span class="swatch" style="background:var(--good)"></span>Expressão estável</span>
-          <span class="legend-item"><span class="swatch" style="background:var(--warn)"></span>Sorriso e surpresa</span>
         </div>
         <div id="emotionChartWrap"></div>
       </div>
@@ -189,7 +188,6 @@
       poucos_vicios: "Poucos vícios de linguagem",
       objecao_segura: "Boa recuperação em objeções",
       objecao_tensa: "Tensão ao responder objeções",
-      boa_energia: "Boa energia/motivação",
       equilibrada: "Sessão equilibrada",
     };
 
@@ -358,12 +356,10 @@
 
       // --- Padrão emocional ---
       const focusedPoints = chronological.map((s) => ({ date: s.date, value: s.focused || 0 }));
-      const motivatedPoints = chronological.map((s) => ({ date: s.date, value: s.motivated || 0 }));
       renderLineChart(
         document.getElementById("emotionChartWrap"),
         [
           { points: focusedPoints, color: "var(--good)" },
-          { points: motivatedPoints, color: "var(--warn)" },
         ],
         { maxY: 1 }
       );
@@ -410,7 +406,7 @@
       }
 
       // --- Principais pontos de melhoria (agregado por chave estável) ---
-      const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas", "cansaco"]; // recurso removido: sessões antigas ainda trazem essas dicas
+      const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas", "cansaco", "boa_energia"]; // recurso removido: sessões antigas ainda trazem essas dicas
       const tipCounts = {};
       chronological.forEach((s) => {
         (s.tips || []).forEach((t) => {
