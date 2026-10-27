@@ -1110,7 +1110,7 @@
           : `<span class="lang-chip good">dentro do normal</span>`;
         const swap = r.status === "pesa" && r.swap ? `<span><span class="language-swap-arrow">→</span><span class="language-swap-suggestion">${r.swap}</span></span>` : "";
         return `<div class="language-swap-card slang-swap">
-          <span><span class="language-swap-word">"${r.key}"</span><span class="language-swap-count">× ${r.count} · peso ${r.label}</span></span>
+          <span><span class="language-swap-word">"${r.key}"</span><span class="language-swap-count">× ${r.count} · ${r.catLabel} · peso ${r.label}</span></span>
           ${swap}${status}
         </div>`;
       }).join("");
@@ -1135,24 +1135,6 @@
     function detectObjectionPhrase(text) {
       const lower = text.toLowerCase();
       return OBJECTION_PHRASES.find((p) => lower.includes(p)) || null;
-    }
-
-    // Pergunta aberta ("o que", "como"...) abre espaço pro cliente falar;
-    // fechada ("você pode", "faz sentido"...) tende a gerar só sim/não.
-    // Só classifica como pergunta quando o reconhecimento de voz colocou um
-    // "?" no fim — sem isso, palavras como "quando"/"como" aparecem demais em
-    // frases que não são perguntas (são conjunções, não interrogação).
-    const OPEN_QUESTION_STARTERS = [
-      "o que", "que", "como", "por que", "porque", "qual", "quais",
-      "quando", "onde", "quem", "quanto", "quantos", "quantas",
-    ];
-
-    function classifyQuestion(text) {
-      const trimmed = text.trim();
-      if (!trimmed.endsWith("?")) return null;
-      const lower = trimmed.toLowerCase();
-      const isOpen = OPEN_QUESTION_STARTERS.some((w) => lower.startsWith(w + " ") || lower === `${w}?`);
-      return isOpen ? "aberta" : "fechada";
     }
 
     function tokenizeWords(text) {
@@ -1502,8 +1484,6 @@
       if ("fillerCounts" in out) { out.filler_counts = out.fillerCounts; delete out.fillerCounts; }
       if ("oratoriaScore" in out) { out.oratoria_score = out.oratoriaScore; delete out.oratoriaScore; }
       if ("oratoriaSubscores" in out) { out.oratoria_subscores = out.oratoriaSubscores; delete out.oratoriaSubscores; }
-      if ("openQuestions" in out) { out.open_questions = out.openQuestions; delete out.openQuestions; }
-      if ("closedQuestions" in out) { out.closed_questions = out.closedQuestions; delete out.closedQuestions; }
       return out;
     }
 
@@ -1515,7 +1495,7 @@
     // tudo se perde por causa de UM campo novo). Se o erro for exatamente
     // "coluna não encontrada", tenta de novo sem essas colunas em vez de
     // perder a sessão toda.
-    const OPTIONAL_NEW_COLUMNS = ["open_questions", "closed_questions", "oratoria_subscores"];
+    const OPTIONAL_NEW_COLUMNS = ["oratoria_subscores"];
 
     function isMissingColumnError(error) {
       return !!error && error.code === "PGRST204";
@@ -1626,8 +1606,6 @@
     const SPEECH_HANGOVER_MS = 2000;
     let sessionConfidences = [];
     let sessionVolumes = [];
-    let sessionOpenQuestions = 0;
-    let sessionClosedQuestions = 0;
 
     // --- Objeção + resposta: acompanha a expressão por um tempo depois de uma
     // frase-gatilho de objeção, pra resumir como foi a reação na resposta.
@@ -1712,8 +1690,6 @@
       lastVoiceAt = 0;
       sessionConfidences = [];
       sessionVolumes = [];
-      sessionOpenQuestions = 0;
-      sessionClosedQuestions = 0;
       currentClientName = clientNameInputEl.value.trim();
       startSessionBtn.style.display = "none";
       endSessionBtn.style.display = "inline-block";
@@ -2016,7 +1992,7 @@
     // Dicas de autoavaliação ao final da sessão — regras simples sobre os
     // dados que já coletamos (nada de IA generativa aqui, é tudo heurística
     // direta a partir do que foi medido nesta mesma sessão).
-    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated, openQuestions, closedQuestions }) {
+    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated }) {
       const tips = [];
 
       if (wpm > 170) {
@@ -2052,10 +2028,16 @@
 
       // Gíria só vira dica quando pesa na nota (frequência acima da tolerância do peso dela).
       const heavySlang = AuraLang.analyze(slangCounts, sessionWordCount).filter((r) => r.status === "pesa");
-      if (heavySlang.length) {
-        const list = heavySlang.slice(0, 3).map((r) => `"${r.key}" ×${r.count}`).join(", ");
+      const heavyGirias = heavySlang.filter((r) => r.cat === "giria");
+      if (heavyGirias.length) {
+        const list = heavyGirias.slice(0, 3).map((r) => `"${r.key}" ×${r.count}`).join(", ");
         tips.push({ key: "muitas_girias", type: "melhorar", text: `Gírias que pesaram na nota: ${list} — troque por termos mais profissionais.` });
       }
+      // Fala informal que atrapalha negociação, por categoria (insegurança, minimizador, vagueza...).
+      AuraLang.byCategory(slangCounts, sessionWordCount).filter((c) => c.cat !== "giria" && c.penalty > 0).forEach((c) => {
+        const list = c.terms.filter((r) => r.status === "pesa").slice(0, 3).map((r) => `"${r.key}" ×${r.count}`).join(", ");
+        tips.push({ key: "fala_" + c.cat, type: "melhorar", text: `${c.label}: ${list} — ${AuraLang.CATEGORY_WHY[c.cat]}.` });
+      });
 
       const totalFiller = Object.values(fillerCounts || {}).reduce((a, b) => a + b, 0);
       if (totalFiller >= 15) {
@@ -2071,24 +2053,6 @@
           tips.push({ key: "objecao_segura", type: "positivo", text: "Boa recuperação em objeções — manteve o foco na maioria das respostas." });
         } else if (tense > 0) {
           tips.push({ key: "objecao_tensa", type: "melhorar", text: `Sinais de tensão ao responder objeções (${tense} de ${objections.length}) — treinar essas respostas pode ajudar.` });
-        }
-      }
-
-      const totalQuestions = (openQuestions || 0) + (closedQuestions || 0);
-      if (totalQuestions >= 3) {
-        const openRatio = openQuestions / totalQuestions;
-        if (openRatio < 0.3) {
-          tips.push({
-            key: "poucas_perguntas_abertas",
-            type: "melhorar",
-            text: `Só ${openQuestions} de ${totalQuestions} perguntas foram abertas — perguntas abertas ("o que", "como") abrem mais espaço pro cliente falar.`,
-          });
-        } else if (openRatio >= 0.5) {
-          tips.push({
-            key: "boas_perguntas_abertas",
-            type: "positivo",
-            text: `Boa proporção de perguntas abertas (${openQuestions} de ${totalQuestions}) — ajuda a entender melhor a necessidade do cliente.`,
-          });
         }
       }
 
@@ -2201,7 +2165,6 @@
             <div class="talk-split-other" style="width:${dynamics.pctOther}%"></div>
           </div>
           <div class="talk-split-labels"><span>Você falou ${dynamics.pctYou}% do tempo</span><span>Ouvindo ou em silêncio ${dynamics.pctOther}%</span></div>
-          <div class="insight-line">Suas perguntas: ${sessionOpenQuestions} aberta${sessionOpenQuestions === 1 ? "" : "s"} · ${sessionClosedQuestions} fechada${sessionClosedQuestions === 1 ? "" : "s"}</div>
         `;
       } else {
         summaryDynamicsEl.innerHTML = '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
@@ -2230,8 +2193,6 @@
         objections: sessionObjections,
         avgTired,
         avgMotivated,
-        openQuestions: sessionOpenQuestions,
-        closedQuestions: sessionClosedQuestions,
       });
       summaryTipsEl.innerHTML = tips.length > 1
         ? `<details class="tips-fold"><summary>Ver todas as dicas (${tips.length})</summary>${renderCoachingTips(tips)}</details>`
@@ -2248,8 +2209,6 @@
         transcript: sessionTranscript,
         filler_counts: sessionFillerCounts,
         slang_counts: sessionSlangCounts,
-        open_questions: sessionOpenQuestions,
-        closed_questions: sessionClosedQuestions,
         objections: sessionObjections,
         tips,
         dynamics,
@@ -2289,8 +2248,6 @@
         fillerCounts: sessionFillerCounts,
         oratoriaScore: oratoriaResult.overall,
         oratoriaSubscores: oratoriaResult.subScores,
-        openQuestions: sessionOpenQuestions,
-        closedQuestions: sessionClosedQuestions,
         tips,
       });
       showSavedResult(saveResult, {
@@ -2778,7 +2735,7 @@
       const alertSlang = slangMatches.find((k) => AuraLang.weightOf(k) >= 2);
       if (alertSlang) {
         const suggestion = SLANG_LIBRARY[alertSlang];
-        pushLiveAlert(`Gíria: "${alertSlang}"${suggestion ? ` → tente "${suggestion}"` : ""}`);
+        pushLiveAlert(`${AuraLang.catLabel(alertSlang)}: "${alertSlang}"${suggestion ? ` → tente "${suggestion}"` : ""}`);
       }
 
       if (sessionActive) {
@@ -2805,9 +2762,6 @@
         if (speaker === "Você") {
           if (avgUtteranceVolume > 0) sessionVolumes.push(avgUtteranceVolume);
           if (typeof confidence === "number" && confidence > 0) sessionConfidences.push(confidence);
-          const questionType = classifyQuestion(text);
-          if (questionType === "aberta") sessionOpenQuestions++;
-          else if (questionType === "fechada") sessionClosedQuestions++;
         }
         updateLiveOratoria();
       }

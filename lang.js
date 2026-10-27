@@ -9,6 +9,18 @@
  *     não derrubar a nota inteira.
  *
  * Pesos: 0 neutra (só mostra) · 1 leve · 2 média · 3 forte.
+ *
+ * Categorias (campo cat; sem cat = gíria): o que cada tipo de fala informal faz com uma negociação.
+ *   inseguranca  "acho que", "talvez", "vou tentar"   → enfraquecem proposta, preço e compromisso
+ *   minimizador  "rapidinho", "só queria", "valorzinho" → encolhem o valor do que você oferece
+ *   vagueza      "coisa", "e tal", "esse negócio"       → falta de precisão onde o cliente espera número
+ *   validacao    "entendeu?", "tá?", "viu?"             → buscam aprovação a cada frase
+ *   intimidade   "parceiro", "brother", "galera"        → familiaridade demais com quem você acabou de conhecer
+ *   palavrao     palavrões                              → risco direto de imagem
+ *   muleta       "basicamente", "na verdade", "sinceramente"
+ *   exclamacao   "caramba", "eita", "meu Deus"
+ *   informal     "tô", "vamo", "cê"                     → fala coloquial escrita
+ *   giria        o resto das gírias
  * Para editar o dicionário, mexa só na lista ENTRIES abaixo.
  */
 (function () {
@@ -23,6 +35,9 @@
   const prevWord = (n, m) => (n.slice(0, m.index).trim().split(" ").pop() || "");
   const nextWord = (n, m) => (n.slice(m.index + m[0].length).trim().split(" ")[0] || "");
   const atStart = (n, m) => m.index === 0;
+  const atEnd = (n, m) => m.index + m[0].length === n.length;
+  // vocativo: chamar a pessoa pelo apelido (começo/fim da fala ou depois de "e", "olha", "opa"...)
+  const vocative = (n, m) => atStart(n, m) || ["olha", "oi", "ola", "opa", "fala", "bom", "entao", "valeu", "obrigado", "ta", "ai"].includes(prevWord(n, m));
 
   // k = chave (como aparece nos relatórios), p = padrão (sem acento, aceita flexões), w = peso,
   // swap = troca sugerida, ctx = condição de contexto (opcional).
@@ -68,10 +83,117 @@
     { k: "bagulho", p: "bagulho", w: 3, swap: "assunto" },
     { k: "treco", p: "treco", w: 3, swap: "item" },
     { k: "pô", p: "po", w: 3, swap: "(omitir)", ctx: (n, m) => atStart(n, m) || ["e", "mas", "ah", "ai", "nossa"].includes(prevWord(n, m)) },
+
+    // ================= Biblioteca de negociação =================
+    // ---- Insegurança: enfraquecem a proposta, o preço e o compromisso ----
+    { k: "acho que", cat: "inseguranca", p: "(?:eu\\s+)?acho\\s+que", w: 2, swap: "recomendo / minha leitura é" },
+    { k: "talvez", cat: "inseguranca", p: "talvez", w: 1, swap: "afirme, ou diga do que depende" },
+    { k: "meio que", cat: "inseguranca", p: "meio\\s+que", w: 2, swap: "(omitir)" },
+    { k: "mais ou menos", cat: "inseguranca", p: "mais\\s+ou\\s+menos", w: 1, swap: "aproximadamente (com o número)" },
+    { k: "sei lá", cat: "inseguranca", p: "sei\\s+la", w: 2, swap: "vou confirmar e te retorno" },
+    { k: "não sei", cat: "inseguranca", p: "nao\\s+sei(?:\\s+se)?", w: 1, swap: "vou confirmar e te retorno" },
+    { k: "vou tentar", cat: "inseguranca", p: "(?:vou|vamos)\\s+tentar|(?:vou|vamos)\\s+ver\\s+se|a\\s+gente\\s+(?:tenta|ve\\s+se)", w: 2, swap: "vou fazer / me comprometo a" },
+    { k: "de repente", cat: "inseguranca", p: "de\\s+repente", w: 1, swap: "afirme, ou ofereça uma opção" },
+    { k: "quem sabe", cat: "inseguranca", p: "quem\\s+sabe", w: 1, swap: "proponho que" },
+    { k: "qualquer coisa", cat: "inseguranca", p: "qualquer\\s+coisa", w: 1, swap: "se precisar de algo específico" },
+    { k: "será que", cat: "inseguranca", p: "sera\\s+que", w: 1, swap: "pergunte direto" },
+    { k: "se não for incomodar", cat: "inseguranca", p: "se\\s+nao\\s+for\\s+incomodar|desculp(?:a|e)\\s+(?:te\\s+)?incomodar|nao\\s+quero\\s+(?:te\\s+)?tomar\\s+(?:seu|o)\\s+tempo", w: 2, swap: "vá direto ao ponto" },
+
+    // ---- Minimizadores: encolhem o valor ou o tempo do que você pede ----
+    { k: "rapidinho", cat: "minimizador", p: "rapidinho|rapidao", w: 2, swap: "em poucos minutos (diga o tempo)" },
+    { k: "minutinho", cat: "minimizador", p: "(?:um\\s+|uns\\s+)?minutinhos?", w: 2, swap: "um minuto" },
+    { k: "pouquinho", cat: "minimizador", p: "pouquinho", w: 1, swap: "um pouco / o número exato" },
+    { k: "valorzinho", cat: "minimizador", p: "valorzinho|descontinho|precinho|probleminha|detalhezinho|pedidinho", w: 2, swap: "use o termo normal (valor, desconto, preço)" },
+    { k: "só queria", cat: "minimizador", p: "so\\s+(?:queria|pra|para|ligar|confirmar|checar|saber|ver|passar|perguntar)", w: 1, swap: "(omitir o \"só\")" },
+
+    // ---- Vagueza: onde o cliente espera número, prazo e nome ----
+    { k: "e tal", cat: "vagueza", p: "e\\s+tal|e\\s+coisa\\s+e\\s+tal", w: 2, swap: "complete a ideia" },
+    { k: "e por aí vai", cat: "vagueza", p: "e\\s+por\\s+ai\\s+vai|e\\s+assim\\s+por\\s+diante", w: 1, swap: "cite os itens que importam" },
+    { k: "essas coisas", cat: "vagueza", p: "(?:essas|aquelas|todas\\s+essas)\\s+coisas|tudo\\s+isso\\s+ai", w: 1, swap: "nomeie as coisas" },
+    { k: "coisa", cat: "vagueza", p: "coisa", w: 1, swap: "diga o que é", ctx: (n, m) => ["essa", "aquela", "alguma", "qualquer", "nessa", "dessa", "outra", "mesma", "tal"].includes(prevWord(n, m)) },
+    { k: "negócio", cat: "vagueza", p: "negocio", w: 1, swap: "diga o que é",
+      ctx: (n, m) => ["esse", "aquele", "desse", "nesse", "daquele", "um"].includes(prevWord(n, m)) && !["de", "da", "do", "com", "entre", "fechado", "juridico", "que", "vai", "novo"].includes(nextWord(n, m)) },
+
+    // ---- Busca de validação: pedir aprovação a cada frase ----
+    { k: "entendeu?", cat: "validacao", p: "entendeu", w: 1, swap: "faz sentido? / ficou alguma dúvida?", ctx: (n, m) => !["se", "que", "quando", "ele", "ela", "ja"].includes(prevWord(n, m)) },
+    { k: "tá ligado", cat: "validacao", p: "ta\\s+ligado", w: 2, swap: "(omitir)" },
+    { k: "tá?", cat: "validacao", p: "ta", w: 1, swap: "(omitir)", ctx: atEnd },
+    { k: "tá bom?", cat: "validacao", p: "ta\\s+bom", w: 1, swap: "faz sentido?", ctx: atEnd },
+    { k: "certo?", cat: "validacao", p: "certo", w: 1, swap: "faz sentido?", ctx: (n, m) => atEnd(n, m) && !["esta", "e", "ficou", "foi", "nao", "tudo", "isso", "estava", "esta", "bem", "muito", "mais", "o", "um"].includes(prevWord(n, m)) },
+    { k: "ok?", cat: "validacao", p: "ok", w: 1, swap: "faz sentido?", ctx: (n, m) => atEnd(n, m) && !["tudo", "esta", "ficou", "ja", "esta", "esta"].includes(prevWord(n, m)) },
+    { k: "viu?", cat: "validacao", p: "viu", w: 1, swap: "(omitir)", ctx: (n, m) => atEnd(n, m) && !["ele", "ela", "eu", "quem", "que", "ja", "nunca"].includes(prevWord(n, m)) },
+
+    // ---- Intimidade excessiva: apelidos e vocativos com quem é cliente ----
+    { k: "parceiro", cat: "intimidade", p: "parceir[oa]", w: 2, swap: "use o nome da pessoa", ctx: (n, m) => vocative(n, m) && !["de", "comercial", "estrategico", "estrategica", "tecnologico"].includes(nextWord(n, m)) },
+    { k: "brother", cat: "intimidade", p: "brother|irmao|amigao|campeao|vei", w: 2, swap: "use o nome da pessoa", ctx: vocative },
+    { k: "meu querido", cat: "intimidade", p: "(?:meu|minha)\\s+(?:querid[oa]|amig[oa]|caro|cara)|querid[oa]|amig[oa]", w: 2, swap: "use o nome da pessoa", ctx: vocative },
+    { k: "chefe", cat: "intimidade", p: "chefe|chefia", w: 2, swap: "use o nome da pessoa", ctx: vocative },
+
+    // ---- Palavrões: risco direto de imagem ----
+    { k: "palavrão", cat: "palavrao", p: "porra|caralho|merda|bosta|foda|fodido|foda\\s+se|puta\\s+que\\s+pariu|pqp|puta", w: 3, swap: "(omitir)" },
+    { k: "cacete", cat: "palavrao", p: "cacete", w: 2, swap: "(omitir)" },
+
+    // ---- Muletas: palavras que enchem sem acrescentar ----
+    { k: "basicamente", cat: "muleta", p: "basicamente|praticamente", w: 1, swap: "(omitir) ou use o número" },
+    { k: "na verdade", cat: "muleta", p: "na\\s+verdade", w: 1, swap: "(omitir)" },
+    { k: "enfim", cat: "muleta", p: "enfim|digamos|vamos\\s+dizer|por\\s+assim\\s+dizer", w: 1, swap: "(omitir)" },
+    { k: "sinceramente", cat: "muleta", p: "sinceramente|honestamente|francamente|falando\\s+a\\s+verdade|pra\\s+ser\\s+sincer[oa]|pra\\s+ser\\s+honest[oa]", w: 1, swap: "(omitir: sugere que o resto não é sincero)" },
+    { k: "aí", cat: "muleta", p: "ai", w: 1, swap: "depois / em seguida", ctx: (n, m) => atStart(n, m) || (["e", "entao"].includes(prevWord(n, m)) && !["e", "e ai"].includes(n.slice(0, m.index).trim())) },
+
+    // ---- Exclamações ----
+    { k: "caramba", cat: "exclamacao", p: "caramba|uau|meu\\s+deus|nossa\\s+senhora|minha\\s+nossa", w: 1, swap: "(omitir)" },
+    { k: "eita", cat: "exclamacao", p: "eita|putz", w: 2, swap: "(omitir)" },
+
+    // ---- Fala informal escrita ----
+    { k: "tô", cat: "informal", p: "to", w: 1, swap: "estou",
+      ctx: (n, m) => /(?:ndo|ndo)$/.test(nextWord(n, m)) || ["com", "sem", "aqui", "te", "de", "em", "um", "uma", "so", "ligado", "certo", "ok"].includes(nextWord(n, m)) },
+    { k: "tamo", cat: "informal", p: "tamo|tamos", w: 1, swap: "estamos" },
+    { k: "vamo", cat: "informal", p: "vamo", w: 1, swap: "vamos" },
+    { k: "cê", cat: "informal", p: "ce|oce", w: 1, swap: "você" },
+
+    // ---- Mais gírias de bate-papo e de dinheiro ----
+    { k: "suave", p: "suave", w: 2, swap: "sem problema", ctx: (n, m) => atStart(n, m) || ["ta", "esta", "ok", "entao", "e"].includes(prevWord(n, m)) },
+    { k: "firmeza", p: "firmeza", w: 2, swap: "combinado", ctx: (n, m) => atStart(n, m) || ["e", "ta", "entao", "ok"].includes(prevWord(n, m)) },
+    { k: "demorou", p: "demorou", w: 2, swap: "combinado", ctx: (n, m) => atStart(n, m) || ["ta", "entao", "e", "ok"].includes(prevWord(n, m)) },
+    { k: "partiu", p: "partiu", w: 2, swap: "vamos" },
+    { k: "trampo", p: "trampo", w: 2, swap: "trabalho" },
+    { k: "grana", p: "grana", w: 2, swap: "valor / investimento" },
+    { k: "mixaria", p: "mixaria|bufunfa", w: 3, swap: "valor baixo / valor" },
+    { k: "pechincha", p: "pechincha", w: 2, swap: "condição especial" },
+    { k: "jeitinho", p: "jeitinho", w: 2, swap: "alternativa" },
+    { k: "dar um jeito", p: "d(?:ar|ou|a|amos|ando|ei|e)\\s+um\\s+jeito", w: 1, swap: "encontrar uma solução" },
+    { k: "chutar", p: "chut(?:ar|o|a|amos|ando|ei)\\s+(?:um|uma|o|a)\\s+", w: 1, swap: "estimar" },
+    { k: "chutômetro", p: "chutometro", w: 2, swap: "estimativa" },
+    { k: "empurrar com a barriga", p: "empurr(?:ar|o|a|amos|ando|ei)\\s+com\\s+a\\s+barriga", w: 2, swap: "adiar / postergar" },
+    { k: "papo reto", p: "papo\\s+reto", w: 2, swap: "direto ao ponto" },
+    { k: "e aí", p: "e\\s+ai", w: 1, swap: "olá, tudo bem?", ctx: atStart },
+    { k: "opa", p: "opa", w: 2, swap: "olá", ctx: atStart },
+    { k: "blz", p: "blz|obrigadao", w: 1, swap: "perfeito / obrigado" },
+    { k: "falou", p: "falou", w: 2, swap: "combinado / obrigado", ctx: (n, m) => atStart(n, m) && n.split(" ").length <= 3 },
   ];
+
+  const CATEGORY_LABEL = {
+    giria: "Gíria", inseguranca: "Insegurança", minimizador: "Minimizador", vagueza: "Vagueza",
+    validacao: "Busca de validação", intimidade: "Intimidade excessiva", palavrao: "Palavrão",
+    muleta: "Muleta de fala", exclamacao: "Exclamação", informal: "Fala informal",
+  };
+  // Por que cada categoria atrapalha uma negociação (usado no plano de foco e nos relatórios).
+  const CATEGORY_WHY = {
+    inseguranca: "marcadores de insegurança enfraquecem a proposta, o preço e o compromisso — o cliente lê dúvida onde você quis dar flexibilidade",
+    minimizador: "diminutivos e \"só\" encolhem o valor do que você oferece e o tempo que você pede",
+    vagueza: "palavras vagas deixam a fala imprecisa justamente onde o cliente espera número, prazo e nome",
+    validacao: "pedir aprovação a cada frase (\"entendeu?\", \"tá?\") passa a ideia de que você duvida do que disse",
+    intimidade: "apelidos e vocativos com quem é cliente quebram a distância profissional, principalmente no primeiro contato",
+    palavrao: "palavrão é risco direto de imagem, mesmo em tom descontraído",
+    muleta: "muletas enchem a fala sem acrescentar nada e roubam ênfase das frases importantes",
+    exclamacao: "exclamações informais soam improvisadas numa conversa de negócio",
+    informal: "a fala coloquial escrita (\"tô\", \"vamo\") soa descuidada numa proposta",
+    giria: "gírias de bate-papo misturam registros e diminuem a autoridade da conversa",
+  };
 
   const BY_KEY = {};
   ENTRIES.forEach((e) => {
+    e.cat = e.cat || "giria";
     e.re = new RegExp("(?<![a-z0-9])(?:" + e.p + ")(?![a-z0-9])", "g");
     BY_KEY[e.k] = e;
   });
@@ -92,7 +214,9 @@
     return out;
   }
 
-  const weightOf = (k) => (BY_KEY[k] ? BY_KEY[k].w : 1);   // termo fora do dicionário: tratado como leve
+  const weightOf = (k) => (BY_KEY[k] ? BY_KEY[k].w : 1);
+  const categoryOf = (k) => (BY_KEY[k] ? BY_KEY[k].cat : "giria");
+  const catLabel = (k) => CATEGORY_LABEL[categoryOf(k)] || "Gíria";   // termo fora do dicionário: tratado como leve
 
   // Para cada termo detectado: densidade, tolerância e se pesa na nota.
   function analyze(slangCounts, words) {
@@ -100,10 +224,20 @@
       const w = weightOf(k), density = words > 0 ? (count / words) * 100 : 0, tol = TOLERANCE[w];
       const excess = Math.max(0, density - tol);
       const penalty = w === 0 ? 0 : Math.min(CAP_PER_TERM, excess * FACTOR[w]);
-      return { key: k, count, weight: w, label: WEIGHT_LABEL[w], density, tolerance: tol, penalty, status: w === 0 ? "neutra" : penalty > 0 ? "pesa" : "ok", swap: swaps[k] || "" };
+      return { key: k, cat: categoryOf(k), catLabel: catLabel(k), count, weight: w, label: WEIGHT_LABEL[w], density, tolerance: tol, penalty, status: w === 0 ? "neutra" : penalty > 0 ? "pesa" : "ok", swap: swaps[k] || "" };
     });
     rows.sort((a, b) => b.penalty - a.penalty || b.weight - a.weight || b.count - a.count);
     return rows;
+  }
+
+  // Resumo por categoria: onde a fala informal mais pesa (ordenado pelo desconto, depois pela contagem).
+  function byCategory(slangCounts, words) {
+    const rows = analyze(slangCounts, words), acc = {};
+    rows.forEach((r) => {
+      const c = acc[r.cat] || (acc[r.cat] = { cat: r.cat, label: CATEGORY_LABEL[r.cat], count: 0, penalty: 0, terms: [] });
+      c.count += r.count; c.penalty += r.penalty; c.terms.push(r);
+    });
+    return Object.values(acc).sort((a, b) => b.penalty - a.penalty || b.count - a.count);
   }
 
   // Nota de "vícios e gírias": vícios contam como antes (taxa por 100 palavras); gírias entram só pelo que pesa.
@@ -115,5 +249,5 @@
     return { score, fillerUnits, slangUnits };
   }
 
-  window.AuraLang = { ENTRIES, WEIGHT_LABEL, swaps, detectSlang, weightOf, analyze, languageScore, TOLERANCE };
+  window.AuraLang = { ENTRIES, WEIGHT_LABEL, CATEGORY_LABEL, CATEGORY_WHY, swaps, detectSlang, weightOf, categoryOf, catLabel, analyze, byCategory, languageScore, TOLERANCE };
 })();

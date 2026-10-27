@@ -6,16 +6,11 @@
  *
  * Entrada (mesmo formato da tabela `sessions`):
  *   h    = { oratoria_score, oratoria_subscores, wpm, pauses, transcript,
- *            filler_counts, slang_counts, open_questions, closed_questions,
+ *            filler_counts, slang_counts,
  *            objections, tips, dynamics }
  *   prev = sessões anteriores (mais recentes primeiro), só pra comparar.
  */
 (function () {
-  const OPEN_STARTERS = [
-    "o que", "que", "como", "por que", "porque", "qual", "quais",
-    "quando", "onde", "quem", "quanto", "quantos", "quantas",
-  ]; // mesma lista do classifyQuestion do app.html
-
   const SLANG_SWAPS = {
     beleza: "perfeito", valeu: "obrigado", sussa: "tranquilo", "da hora": "interessante",
     show: "ótimo", top: "excelente", galera: "equipe", "de boa": "sem problema",
@@ -33,7 +28,6 @@
     pausas: "Prepare frases-ponte (\"deixa eu te mostrar um ponto…\") pra usar quando precisar de um segundo, em vez de deixar o silêncio se estender.",
     clareza: "Articule o final das palavras e fale um pouco mais perto do microfone. Se puder, use um fone com microfone melhor.",
     projecao: "Varie o tom nos pontos-chave: desacelere e fale com mais firmeza na proposta e no preço; a fala sem variação cansa quem ouve.",
-    poucas_perguntas_abertas: "Troque uma pergunta fechada por uma aberta a cada poucos minutos — comece com \"o que\", \"como\" ou \"por que\" e espere a resposta completa.",
     objecao_tensa: "Monte um roteiro de 2–3 frases para as objeções mais comuns (preço, prazo, concorrente) antes da próxima call, pra não improvisar na hora.",
     falou_por_cima: "Conte até dois depois que o cliente terminar antes de responder — o silêncio curto mostra que você realmente ouviu.",
     monologo_longo: "Depois de uns 60 segundos falando, faça uma pergunta ao cliente. Falas mais curtas mantêm a conversa equilibrada.",
@@ -90,6 +84,18 @@
     }).join("");
   }
 
+  // Fala informal que atrapalha negociação: uma recomendação por categoria (a biblioteca vive em lang.js).
+  const CAT_FOCUS = {
+    palavrao: { weight: 75, title: "Palavrões", action: "Palavrão sai no automático quando a conversa esquenta. Pratique uma frase de respiro (\"deixa eu pensar nesse ponto\") para o momento de tensão.", goal: "Meta: zero palavrões na próxima reunião." },
+    inseguranca: { weight: 52, title: "Marcadores de insegurança", action: "Nas 3 frases que mais importam (preço, prazo e próximo passo), troque \"acho que\" e \"talvez\" por \"recomendo\" ou \"o prazo é\". Se faltar certeza, diga \"vou confirmar e te retorno\".", goal: "Meta: nenhum \"acho que\" nas frases de preço e prazo." },
+    minimizador: { weight: 50, title: "Minimizadores", action: "Diga o tempo e o valor com o nome certo: \"15 minutos\" no lugar de \"rapidinho\", \"o investimento é\" no lugar de \"valorzinho\".", goal: "Meta: zero diminutivos ao falar de preço e tempo." },
+    intimidade: { weight: 48, title: "Intimidade excessiva", action: "Chame o cliente pelo nome e guarde apelidos para quando ele usar primeiro. A distância profissional vale mais no primeiro contato.", goal: "Meta: usar só o nome da pessoa." },
+    validacao: { weight: 46, title: "Busca de validação", action: "Em vez de \"entendeu?\" ou \"tá?\" a cada frase, pergunte uma vez ao fim de um bloco: \"faz sentido até aqui?\".", goal: "Meta: uma checagem por bloco, não por frase." },
+    vagueza: { weight: 44, title: "Fala vaga", action: "Onde você diz \"coisa\" ou \"e tal\", nomeie: o item, o número, o prazo. Fale de olho nas anotações da proposta.", goal: "Meta: nomear o que for \"coisa\" nas partes de proposta." },
+    muleta: { weight: 36, title: "Muletas de fala", action: "Corte \"basicamente\", \"na verdade\" e \"sinceramente\": elas enchem a frase e, no caso de \"sinceramente\", sugerem que o resto não é sincero.", goal: "Meta: reduzir pela metade as muletas." },
+    exclamacao: { weight: 36, title: "Exclamações informais", action: "Troque a exclamação por uma pausa curta, que soa mais segura que \"eita\" ou \"caramba\".", goal: "Meta: sem exclamações informais." },
+    informal: { weight: 36, title: "Fala coloquial", action: "Em reunião com cliente, fale \"estou\", \"vamos\" e \"você\" no lugar de \"tô\", \"vamo\" e \"cê\".", goal: "Meta: fala completa nas frases de proposta." },
+  };
   function pickCandidate(h) {
     const cands = [];
     (h.oratoria_subscores || []).forEach((s) => {
@@ -97,8 +103,9 @@
       cands.push({ key, sub: s.key, weight: 100 - s.score });
     });
     const tips = tipKeys(h);
-    const tipWeights = { objecao_tensa: 55, poucas_perguntas_abertas: 50, falou_por_cima: 45, monologo_longo: 45, dominou_conversa: 45, muitas_girias: 40 };
+    const tipWeights = { objecao_tensa: 55, falou_por_cima: 45, monologo_longo: 45, dominou_conversa: 45, muitas_girias: 40 };
     Object.keys(tipWeights).forEach((k) => { if (tips.has(k)) cands.push({ key: k, sub: null, weight: tipWeights[k] }); });
+    Object.keys(CAT_FOCUS).forEach((cat) => { if (tips.has("fala_" + cat)) cands.push({ key: "fala_" + cat, sub: null, weight: CAT_FOCUS[cat].weight }); });
     cands.sort((a, b) => b.weight - a.weight);
     return cands[0] || null;
   }
@@ -172,20 +179,6 @@
         goal: "Meta: projeção acima de 80.",
       };
     },
-    poucas_perguntas_abertas(h) {
-      const open = h.open_questions || 0, closed = h.closed_questions || 0;
-      let q = null;
-      youLines(h).forEach((l) => {
-        const t = l.text.trim(), low = t.toLowerCase();
-        if (!q && t.endsWith("?") && !OPEN_STARTERS.some((w) => low.startsWith(w + " ") || low === w + "?")) q = l;
-      });
-      return {
-        title: "Poucas perguntas abertas",
-        why: `${open} ${open === 1 ? "aberta" : "abertas"} e ${closed} ${closed === 1 ? "fechada" : "fechadas"} — perguntas abertas fazem o cliente falar mais e revelar a necessidade real.`,
-        example: q ? { label: `Pergunta fechada (${clock(q.t)}) — tente abrir`, html: quote(q.text) } : null,
-        goal: "Meta: pelo menos 1 pergunta aberta a cada 3 perguntas.",
-      };
-    },
     objecao_tensa(h) {
       const o = (h.objections || [])[0];
       return {
@@ -223,19 +216,38 @@
       };
     },
     muitas_girias(h) {
-      const counts = h.slang_counts || {};
+      const L0 = window.AuraLang;
+      const counts = Object.fromEntries(Object.entries(h.slang_counts || {}).filter(([k]) => !L0 || L0.categoryOf(k) === "giria"));
       const top = Object.entries(counts).sort((a, b) => b[1] - a[1]);
       const total = top.reduce((n, [, c]) => n + c, 0);
       const word = top[0] && top[0][0];
       const line = word ? youLines(h).find((l) => (" " + l.text.toLowerCase() + " ").includes(" " + word + " ")) : null;
       return {
         title: "Gírias e informalidades",
-        why: `${total} ocorrências` + (top.length ? ` — mais frequentes: ${top.slice(0, 3).map(([w, c]) => `“${esc(w)}” ×${c}${SLANG_SWAPS[w] ? ` → ${esc(SLANG_SWAPS[w])}` : ""}`).join(", ")}.` : "."),
+        why: `${total} ocorrências` + (top.length ? ` — mais frequentes: ${top.slice(0, 3).map(([w, c]) => `“${esc(w)}” ×${c}${(L0 && L0.swaps[w]) || SLANG_SWAPS[w] ? ` → ${esc((L0 && L0.swaps[w]) || SLANG_SWAPS[w])}` : ""}`).join(", ")}.` : "."),
         example: line ? { label: `Um trecho seu (${clock(line.t)})`, html: quote(line.text, [word]) } : null,
         goal: "Meta: no máximo 2 gírias por reunião.",
       };
     },
   };
+
+  Object.keys(CAT_FOCUS).forEach((cat) => {
+    ACTIONS["fala_" + cat] = CAT_FOCUS[cat].action;
+    BUILDERS["fala_" + cat] = (h) => {
+      const L = window.AuraLang, cfg = CAT_FOCUS[cat];
+      const row = L ? L.byCategory(h.slang_counts, totalWords(h)).find((c) => c.cat === cat) : null;
+      const terms = row ? row.terms.slice().sort((a, b) => b.count - a.count).slice(0, 3) : [];
+      const line = L ? youLines(h).find((l) => L.detectSlang(l.text).some((k) => L.categoryOf(k) === cat)) : null;
+      return {
+        title: cfg.title,
+        why: row
+          ? `${row.count} ${row.count === 1 ? "ocorrência" : "ocorrências"} (${terms.map((t) => `“${esc(t.key)}” ×${t.count}`).join(", ")}) — ${esc(L.CATEGORY_WHY[cat])}.`
+          : "Esse tipo de fala informal apareceu acima do ideal.",
+        example: line ? { label: `Um trecho seu (${clock(line.t)})`, html: quote(line.text) } : null,
+        goal: cfg.goal,
+      };
+    };
+  });
 
   function compare(h, prev, cand) {
     const key = cand.sub;
@@ -307,11 +319,17 @@
     const facts = [];
     if (h.wpm) facts.push(`${h.wpm} palavras/min`);
     if (h.pauses) facts.push(`${h.pauses} ${h.pauses === 1 ? "pausa longa" : "pausas longas"}`);
-    const open = h.open_questions || 0, closed = h.closed_questions || 0;
-    if (open + closed > 0) facts.push(`perguntas: ${open} ${open === 1 ? "aberta" : "abertas"} / ${closed} ${closed === 1 ? "fechada" : "fechadas"}`);
-    if (facts.length) L.push("• Ritmo e perguntas: " + facts.join(" · "));
+    if (facts.length) L.push("• Ritmo: " + facts.join(" · "));
     if (h.objections && h.objections.length) {
       L.push("• Objeções: " + h.objections.map((o) => `${clock(o.t)} "${o.phrase}" → ${o.result}`).join("; "));
+    }
+    const AL = window.AuraLang;
+    if (AL && h.slang_counts) {
+      const cats = AL.byCategory(h.slang_counts, totalWords(h)).filter((c) => c.penalty > 0);
+      if (cats.length) {
+        L.push("• Fala informal que pesou: " + cats.slice(0, 3).map((c) =>
+          `${c.label} (${c.terms.filter((r) => r.status === "pesa").slice(0, 2).map((r) => `"${r.key}" ×${r.count}`).join(", ")})`).join(" · "));
+      }
     }
     const f = build(h, prev);
     if (f) {

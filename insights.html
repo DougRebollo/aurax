@@ -153,6 +153,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js"></script>
+  <script src="lang.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
@@ -163,20 +164,7 @@
     // Mesmas bibliotecas de sugestão usadas no app principal — duplicadas
     // aqui porque cada página do AuraX é um HTML independente, sem módulo
     // compartilhado.
-    const SLANG_LIBRARY = {
-      "beleza": "perfeito",
-      "valeu": "obrigado",
-      "sussa": "tranquilo",
-      "da hora": "interessante",
-      "show": "ótimo",
-      "top": "excelente",
-      "galera": "equipe",
-      "de boa": "sem problema",
-      "mano": "",
-      "bagulho": "assunto",
-      "treco": "item",
-      "pô": "",
-    };
+    const SLANG_LIBRARY = AuraLang.swaps;   // dicionário único em lang.js
     const FILLER_LIBRARY = {
       "né": "corte a palavra ou faça uma pausa",
       "tipo": "por exemplo",
@@ -200,12 +188,19 @@
       boa_escuta: "Boa escuta ativa",
       silencio_alto: "Silêncio acima do ideal",
       muitas_girias: "Muitas gírias/informalidades",
+      fala_inseguranca: "Marcadores de insegurança",
+      fala_minimizador: "Minimizadores (\"rapidinho\", \"só\")",
+      fala_vagueza: "Fala vaga",
+      fala_validacao: "Busca de validação",
+      fala_intimidade: "Intimidade excessiva",
+      fala_palavrao: "Palavrões",
+      fala_muleta: "Muletas de fala",
+      fala_exclamacao: "Exclamações informais",
+      fala_informal: "Fala coloquial",
       muitos_vicios: "Muitos vícios de linguagem",
       poucos_vicios: "Poucos vícios de linguagem",
       objecao_segura: "Boa recuperação em objeções",
       objecao_tensa: "Tensão ao responder objeções",
-      poucas_perguntas_abertas: "Poucas perguntas abertas",
-      boas_perguntas_abertas: "Boa proporção de perguntas abertas",
       cansaco: "Sinais de cansaço",
       boa_energia: "Boa energia/motivação",
       equilibrada: "Sessão equilibrada",
@@ -219,10 +214,18 @@
       escuta_ativa_pausas: "Continue assim — dar espaço de verdade pro cliente falar costuma render as melhores informações da conversa.",
       dominou_conversa: "Troque uma afirmação por uma pergunta aberta a cada poucos minutos, e espere a resposta completa antes de continuar.",
       silencio_alto: "Um roteiro mental simples da reunião (abertura, descoberta, proposta, próximos passos) reduz a hesitação de não saber o que falar.",
+      fala_inseguranca: "Nas frases de preço, prazo e próximo passo, troque \"acho que\" e \"talvez\" por \"recomendo\" ou \"o prazo é\". Sem certeza: \"vou confirmar e te retorno\".",
+      fala_minimizador: "Diga o tempo e o valor com o nome certo: \"15 minutos\" no lugar de \"rapidinho\", \"o investimento é\" no lugar de \"valorzinho\".",
+      fala_vagueza: "Onde você diz \"coisa\" ou \"e tal\", nomeie o item, o número ou o prazo.",
+      fala_validacao: "No lugar de \"entendeu?\" a cada frase, pergunte uma vez ao fim de cada bloco: \"faz sentido até aqui?\".",
+      fala_intimidade: "Chame o cliente pelo nome; apelidos ficam para quando ele usar primeiro.",
+      fala_palavrao: "Prepare uma frase de respiro (\"deixa eu pensar nesse ponto\") para o momento de tensão.",
+      fala_muleta: "Corte \"basicamente\", \"na verdade\" e \"sinceramente\": enchem a frase e roubam ênfase do que importa.",
+      fala_exclamacao: "Troque a exclamação por uma pausa curta, que soa mais segura.",
+      fala_informal: "Em reunião com cliente, fale \"estou\", \"vamos\" e \"você\" no lugar de \"tô\", \"vamo\" e \"cê\".",
       muitas_girias: "Grave um trecho seu e ouça de fora — a maioria das gírias é hábito automático que a gente só percebe ouvindo depois.",
       muitos_vicios: "Escolha 1 vício de cada vez pra focar na próxima call, em vez de tentar cortar todos de uma vez.",
       objecao_tensa: "Monte um roteiro curto (2-3 frases) pras objeções mais comuns antes da próxima call, pra não precisar improvisar na hora.",
-      poucas_perguntas_abertas: "Troque uma pergunta fechada por uma aberta a cada poucos minutos — comece com \"o que\", \"como\" ou \"por que\" pra deixar o cliente elaborar a resposta.",
       cansaco: "Intercalar uma pausa curta entre reuniões consecutivas ajuda a chegar com mais energia na próxima.",
     };
 
@@ -423,10 +426,11 @@
       }
 
       // --- Principais pontos de melhoria (agregado por chave estável) ---
+      const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas"]; // recurso removido: sessões antigas ainda trazem essas dicas
       const tipCounts = {};
       chronological.forEach((s) => {
         (s.tips || []).forEach((t) => {
-          if (!t || !t.key) return;
+          if (!t || !t.key || IGNORED_TIP_KEYS.includes(t.key)) return;
           if (!tipCounts[t.key]) tipCounts[t.key] = { type: t.type, count: 0 };
           tipCounts[t.key].count += 1;
         });

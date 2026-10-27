@@ -335,12 +335,19 @@
       boa_escuta: "Boa escuta ativa",
       silencio_alto: "Silêncio acima do ideal",
       muitas_girias: "Muitas gírias/informalidades",
+      fala_inseguranca: "Marcadores de insegurança",
+      fala_minimizador: "Minimizadores (\"rapidinho\", \"só\")",
+      fala_vagueza: "Fala vaga",
+      fala_validacao: "Busca de validação",
+      fala_intimidade: "Intimidade excessiva",
+      fala_palavrao: "Palavrões",
+      fala_muleta: "Muletas de fala",
+      fala_exclamacao: "Exclamações informais",
+      fala_informal: "Fala coloquial",
       muitos_vicios: "Muitos vícios de linguagem",
       poucos_vicios: "Poucos vícios de linguagem",
       objecao_segura: "Boa recuperação em objeções",
       objecao_tensa: "Tensão ao responder objeções",
-      poucas_perguntas_abertas: "Poucas perguntas abertas",
-      boas_perguntas_abertas: "Boa proporção de perguntas abertas",
       cansaco: "Sinais de cansaço",
       boa_energia: "Boa energia/motivação",
       equilibrada: "Sessão equilibrada",
@@ -470,10 +477,11 @@
         ? Math.round(average(scored.map((s) => s.oratoria_score)))
         : "—";
 
+      const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas"]; // recurso removido: sessões antigas ainda trazem essas dicas
       const tipCounts = {};
       data.forEach((s) => {
         (s.tips || []).forEach((t) => {
-          if (!t || !t.key) return;
+          if (!t || !t.key || IGNORED_TIP_KEYS.includes(t.key)) return;
           if (!tipCounts[t.key]) tipCounts[t.key] = { type: t.type, count: 0 };
           tipCounts[t.key].count += 1;
         });
@@ -511,7 +519,7 @@
     }
 
     function sessionCardHtml(personName, row, position) {
-      const tips = (row.tips || []).slice(0, 2);
+      const tips = (row.tips || []).filter((t) => !t || !["poucas_perguntas_abertas", "boas_perguntas_abertas"].includes(t.key)).slice(0, 2);
       const tipsHtml = tips
         .map(
           (t) =>

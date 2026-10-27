@@ -120,7 +120,7 @@
           <div class="card">
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Cliente</th><th>Data</th><th>Duração</th><th>Oratória</th><th>Vícios</th><th>Perguntas</th></tr></thead>
+                <thead><tr><th>Cliente</th><th>Data</th><th>Duração</th><th>Oratória</th><th>Vícios</th></tr></thead>
                 <tbody id="sessBody"></tbody>
               </table>
             </div>
@@ -144,6 +144,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js"></script>
+  <script src="lang.js"></script>
   <script src="focus.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
@@ -156,11 +157,7 @@
     let selectedId = null;
     let activeCommentId = null;
 
-    const SLANG_LIBRARY = {
-      "beleza": "perfeito", "valeu": "obrigado", "sussa": "tranquilo", "da hora": "interessante",
-      "show": "ótimo", "top": "excelente", "galera": "equipe", "de boa": "sem problema",
-      "mano": "", "bagulho": "assunto", "treco": "item", "pô": "",
-    };
+    const SLANG_LIBRARY = AuraLang.swaps;   // dicionário único em lang.js
     const EXPRESSION_COLORS = {
       Feliz: "var(--good)", Triste: "var(--accent)", Bravo: "var(--bad)", "Nervoso/Medo": "var(--warn)",
       Enjoado: "var(--purple)", Surpreso: "var(--warn)", Focado: "var(--good)",
@@ -226,7 +223,7 @@
       return entries
         .map(([word, count]) => {
           const suggestion = SLANG_LIBRARY[word];
-          return `<span class="slang-tag">${escapeHtml(word)}${suggestion ? ` → ${escapeHtml(suggestion)}` : ""} × ${count}</span>`;
+          return `<span class="slang-tag" title="${escapeHtml(AuraLang.catLabel(word))}">${escapeHtml(word)}${suggestion ? ` → ${escapeHtml(suggestion)}` : ""} × ${count}</span>`;
         })
         .join(" ");
     }
@@ -285,8 +282,6 @@
           html += `<tr><td class="month-row" colspan="6">${monthLabel(h.date)}</td></tr>`;
           lastMonth = key;
         }
-        const perguntas = h.open_questions != null || h.closed_questions != null
-          ? `${h.open_questions || 0} ab · ${h.closed_questions || 0} fe` : "—";
         html += `
           <tr class="row-click${String(h.id) === String(selectedId) ? " selected" : ""}" data-id="${h.id}" tabindex="0">
             <td><div class="client-cell"><span class="client-avatar">${clientInitials(h.client_name)}</span>${h.client_name ? escapeHtml(h.client_name) : "Sessão sem cliente"}</div></td>
@@ -294,7 +289,6 @@
             <td class="mono">${formatDuration(h.duration || 0)}</td>
             <td>${oratoriaPillHtml(h.oratoria_score)}</td>
             <td class="mono">${sumCounts(AuraShell.cleanFillers(h.filler_counts))}</td>
-            <td class="mono">${perguntas}</td>
           </tr>`;
       });
       bodyEl.innerHTML = html;
@@ -386,7 +380,6 @@
               <div class="section-label">Dinâmica da sessão</div>
               ${dynamicsHtml}
               ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
-              ${h.open_questions != null || h.closed_questions != null ? `<div class="session-secondary-stats">Perguntas: ${h.open_questions || 0} abertas · ${h.closed_questions || 0} fechadas</div>` : ""}
               ${negotiationTagsHtml || slangTagsHtml || fillerTagsHtml ? `<div class="section-label">Palavras-chave, gírias e vícios</div>
                 ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
                 ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
