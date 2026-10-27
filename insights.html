@@ -21,7 +21,13 @@
   .legend-item { display: flex; align-items: center; gap: 6px; }
   .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
-  .stat-card-ring { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; }
+  /* Os 4 cartões têm a mesma altura e o conteúdo centralizado; o do anel fica na horizontal (anel + texto). */
+  .stat-grid .stat-card { display: flex; flex-direction: column; justify-content: center; min-height: 118px; }
+  .stat-grid .stat-card-ring { flex-direction: row; align-items: center; gap: 16px; }
+  .stat-ring-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .stat-ring-text .stat-label { margin-top: 0; font-size: 13px; }
+  .stat-ring-text .stat-rank { margin-top: 0; }
+  .stat-value.is-range { font-size: 22px; white-space: nowrap; }
   .orat-ring {
     position: relative; flex-shrink: 0; width: 92px; height: 92px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -102,11 +108,13 @@
               <div class="orat-ring-label">/100</div>
             </div>
           </div>
-          <div class="stat-label">Oratória média</div>
-          <div class="stat-rank" id="statAvgOratoriaRank"></div>
+          <div class="stat-ring-text">
+            <div class="stat-label">Oratória média</div>
+            <div class="stat-rank" id="statAvgOratoriaRank"></div>
+          </div>
         </div>
         <div class="card stat-card"><div class="stat-value" id="statAvgTalk">—</div><div class="stat-label">Fala média sua</div></div>
-        <div class="card stat-card"><div class="stat-value" id="statDateRange">—</div><div class="stat-label">Período</div></div>
+        <div class="card stat-card"><div class="stat-value is-range" id="statDateRange">—</div><div class="stat-label">Período</div></div>
       </div>
 
       <div class="card focus-card" id="focusCard" hidden>
