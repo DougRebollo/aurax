@@ -1536,7 +1536,7 @@
         return `Resposta tensa — sinais de desconforto em ${Math.round(negativeRatio * 100)}% do tempo`;
       }
       if (avgFocused > 0.55) {
-        return `Resposta segura — manteve o foco (${Math.round(avgFocused * 100)}%)`;
+        return `Resposta segura — expressão estável (${Math.round(avgFocused * 100)}%)`;
       }
       return "Resposta neutra, sem sinais fortes";
     }
@@ -1956,7 +1956,7 @@
         const tense = objections.filter((o) => o.result.startsWith("Resposta tensa")).length;
         const secure = objections.filter((o) => o.result.startsWith("Resposta segura")).length;
         if (secure > tense) {
-          tips.push({ key: "objecao_segura", type: "positivo", text: "Boa recuperação em objeções — manteve o foco na maioria das respostas." });
+          tips.push({ key: "objecao_segura", type: "positivo", text: "Boa recuperação em objeções — expressão estável na maioria das respostas." });
         } else if (tense > 0) {
           tips.push({ key: "objecao_tensa", type: "melhorar", text: `Sinais de tensão ao responder objeções (${tense} de ${objections.length}) — treinar essas respostas pode ajudar.` });
         }
