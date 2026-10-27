@@ -1,14 +1,10 @@
-/* AuraX — transição entre páginas: uma "cortina" que SOBREPÕE a página atual.
- * Ao clicar num link interno, um painel desliza da direita cobrindo a tela; a página nova já abre coberta
- * e o painel sai para a esquerda revelando o conteúdo. Funciona em qualquer navegador (não depende da API
- * de View Transitions). Com "reduzir movimento" ligado no sistema vira só um fade curto.
- * As durações e a cor ficam no shell.css (--vt-leave, --vt-enter). */
+/* AuraX — transição entre páginas por FADE (esmaecer).
+ * Ao clicar num link interno, a página atual esmaece; a página nova abre invisível e aparece suavemente.
+ * Funciona em qualquer navegador e é um movimento sutil (só opacidade), então vale também com "reduzir
+ * movimento". As durações ficam no shell.css (--vt-leave, --vt-enter). */
 (function () {
   var KEY = "aurax_vt";
   var root = document.documentElement;
-  var reduce = false;
-  try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { /* ok */ }
-
   function ms(name, fallback) {
     var v = (getComputedStyle(root).getPropertyValue(name) || "").trim();
     var n = parseFloat(v);
@@ -16,22 +12,22 @@
     return /ms$/.test(v) ? n : n * 1000;
   }
   function clearAll() {
-    root.classList.remove("vt-leave", "vt-leave-fade", "vt-enter", "vt-enter-fade");
+    root.classList.remove("vt-leave", "vt-enter");
   }
 
-  // Entrada: a página nova abre coberta e a cortina sai.
+  // Entrada: a página nova abre invisível e aparece.
   var flagged = false;
   try { flagged = sessionStorage.getItem(KEY) === "1"; sessionStorage.removeItem(KEY); } catch (e) { /* ok */ }
   if (flagged) {
-    root.classList.add(reduce ? "vt-enter-fade" : "vt-enter");
-    setTimeout(clearAll, ms("--vt-enter", 500) + 400);
+    root.classList.add("vt-enter");
+    setTimeout(clearAll, ms("--vt-enter", 380) + 300);
   }
 
-  // Saída: cobre a tela e só então navega.
+  // Saída: esmaece a página atual e só então navega.
   function go(href) {
     try { sessionStorage.setItem(KEY, "1"); } catch (e) { /* ok */ }
-    root.classList.add(reduce ? "vt-leave-fade" : "vt-leave");
-    setTimeout(function () { window.location.href = href; }, reduce ? 120 : ms("--vt-leave", 360));
+    root.classList.add("vt-leave");
+    setTimeout(function () { window.location.href = href; }, ms("--vt-leave", 220));
   }
   window.AuraGo = go;   // para navegações feitas por script (ex.: o X da tela de plano)
 
@@ -48,6 +44,6 @@
     go(url.href);
   }, true);
 
-  // Voltar pelo histórico (cache de página): não deixa a cortina presa.
+  // Voltar pelo histórico (cache de página): não deixa a página invisível.
   window.addEventListener("pageshow", function (e) { if (e.persisted) clearAll(); });
 })();
