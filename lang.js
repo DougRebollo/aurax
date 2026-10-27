@@ -21,7 +21,8 @@
  *   exclamacao   "caramba", "eita", "meu Deus"
  *   informal     "tô", "vamo", "cê"                     → fala coloquial escrita
  *   giria        o resto das gírias
- * Para editar o dicionário, mexa só na lista ENTRIES abaixo.
+ * Vícios de preenchimento ("né", "tipo", "ahn"...) seguem a mesma lógica na lista FILLERS (mais abaixo).
+ * Para editar o dicionário, mexa só nas listas ENTRIES (gírias e fala informal) e FILLERS (vícios).
  */
 (function () {
   const WEIGHT_LABEL = ["neutra", "leve", "média", "forte"];
@@ -173,7 +174,7 @@
   ];
 
   const CATEGORY_LABEL = {
-    giria: "Gíria", inseguranca: "Insegurança", minimizador: "Minimizador", vagueza: "Vagueza",
+    vicio: "Vício de linguagem", giria: "Gíria", inseguranca: "Insegurança", minimizador: "Minimizador", vagueza: "Vagueza",
     validacao: "Busca de validação", intimidade: "Intimidade excessiva", palavrao: "Palavrão",
     muleta: "Muleta de fala", exclamacao: "Exclamação", informal: "Fala informal",
   };
@@ -230,6 +231,72 @@
     return rows;
   }
 
+
+  // ===== Vícios de preenchimento ("né", "tipo", "ahn"...) — mesma lógica de peso, tolerância e contexto =====
+  // Antes todo vício contava igual, desde o primeiro. Agora: uma pausa de vez em quando é natural; pesa a repetição.
+  const FILLER_CAP = 6;   // teto por vício (unidades): o vício dominante pode pesar bastante na nota
+  const FILLERS = [
+    { k: "né", p: "ne", w: 2, swap: "corte a palavra ou faça uma pausa" },
+    { k: "tipo", p: "tipo", w: 2, swap: "por exemplo",
+      // "esse tipo de cliente", "um tipo de contrato" são o substantivo: não contam
+      ctx: (n, m) => !["de", "do", "da", "dos", "das", "desse", "deste", "daquele", "ao"].includes(nextWord(n, m))
+        && !["o", "um", "esse", "este", "aquele", "outro", "qual", "que", "do", "de", "no", "desse", "deste", "mesmo", "tal", "cada", "nenhum", "algum", "qualquer", "seu", "meu", "nosso", "este"].includes(prevWord(n, m)) },
+    { k: "assim", p: "assim", w: 1, swap: "dessa forma",
+      // "assim que", "como assim", "assim como" são normais; conta o "assim," de preenchimento
+      ctx: (n, m) => (atStart(n, m) || ["tipo", "e", "entao", "mas", "ai"].includes(prevWord(n, m))) && !["que", "como", "mesmo", "por"].includes(nextWord(n, m)) },
+    { k: "sabe", p: "sabe", w: 1, swap: "entende / compreende",
+      // verbo ("ele sabe") não conta; só o "sabe?" no começo ou no fim da fala
+      ctx: (n, m) => (atStart(n, m) || atEnd(n, m)) && !["ele", "ela", "quem", "que", "nao", "ja", "ninguem", "voce", "eu"].includes(prevWord(n, m)) },
+  ];
+  FILLERS.forEach((e) => { e.re = new RegExp("(?<![a-z0-9])(?:" + e.p + ")(?![a-z0-9])", "g"); });
+  // Sons de hesitação pura não têm sinônimo: a troca é uma pausa silenciosa. Tokens crus (com acento),
+  // porque "hã" e "é" perdem a diferença para "há" e "e" depois de normalizar.
+  const SOUND_FILLERS = new Set(["an", "hã", "ahn", "eh", "hum", "hmm", "hmmm", "uhn", "uhm"]);
+  const STRETCHED_E = /^é{2,}$/;
+  const FILLER_META = {};
+  FILLERS.forEach((e) => { FILLER_META[e.k] = { w: e.w, swap: e.swap }; });
+  ["an", "hã", "ahn", "eh", "hum", "hmm", "hmmm", "uhn", "uhm"].forEach((k) => { FILLER_META[k] = { w: 2, swap: "uma pausa silenciosa" }; });
+  FILLER_META["é"] = { w: 2, swap: "uma pausa silenciosa" };
+  const fillerSwaps = {};
+  Object.keys(FILLER_META).forEach((k) => { fillerSwaps[k] = FILLER_META[k].swap; });
+
+  // "então" não é vício (conectivo normal). "é" só conta como hesitação: puxado ("éé") ou repetido ("é é").
+  function detectFillers(text) {
+    const out = [];
+    const raw = String(text || "").toLowerCase().replace(/[.,!?;:"'()…\-]/g, " ").split(/\s+/).filter(Boolean);
+    raw.forEach((t, i) => {
+      if (STRETCHED_E.test(t)) { out.push("é"); return; }
+      if (t === "é") {
+        const p = raw[i - 1] || "", nx = raw[i + 1] || "";
+        if (p === "é" || nx === "é" || STRETCHED_E.test(p) || STRETCHED_E.test(nx)) out.push("é");
+        return;
+      }
+      if (SOUND_FILLERS.has(t)) out.push(t);
+    });
+    const n = norm(text);
+    FILLERS.forEach((e) => {
+      e.re.lastIndex = 0;
+      let m;
+      while ((m = e.re.exec(n))) {
+        if (!e.ctx || e.ctx(n, m)) out.push(e.k);
+        if (m[0].length === 0) e.re.lastIndex++;
+      }
+    });
+    return out;
+  }
+
+  // Para cada vício contado: densidade, tolerância e se pesa na nota (mesmas tabelas das gírias).
+  function analyzeFillers(fillerCounts, words) {
+    const rows = Object.entries(fillerCounts || {}).filter(([k]) => k !== "então").map(([k, count]) => {
+      const meta = FILLER_META[k] || { w: 1, swap: "" }, w = meta.w, density = words > 0 ? (count / words) * 100 : 0, tol = TOLERANCE[w];
+      const excess = Math.max(0, density - tol);
+      const penalty = Math.min(FILLER_CAP, excess * FACTOR[w]);
+      return { key: k, cat: "vicio", catLabel: "Vício de linguagem", count, weight: w, label: WEIGHT_LABEL[w], density, tolerance: tol, penalty, status: penalty > 0 ? "pesa" : "ok", swap: meta.swap };
+    });
+    rows.sort((a, b) => b.penalty - a.penalty || b.count - a.count);
+    return rows;
+  }
+
   // Resumo por categoria: onde a fala informal mais pesa (ordenado pelo desconto, depois pela contagem).
   function byCategory(slangCounts, words) {
     const rows = analyze(slangCounts, words), acc = {};
@@ -240,14 +307,13 @@
     return Object.values(acc).sort((a, b) => b.penalty - a.penalty || b.count - a.count);
   }
 
-  // Nota de "vícios e gírias": vícios contam como antes (taxa por 100 palavras); gírias entram só pelo que pesa.
+  // Nota de "vícios e gírias": vícios e gírias entram só pelo que pesa (peso x frequência acima da tolerância).
   function languageScore(fillerCounts, slangCounts, words) {
-    const totalFiller = Object.values(fillerCounts || {}).reduce((a, b) => a + b, 0);
-    const fillerUnits = words > 0 ? (totalFiller / words) * 100 : 0;
+    const fillerUnits = analyzeFillers(fillerCounts, words).reduce((a, r) => a + r.penalty, 0);
     const slangUnits = analyze(slangCounts, words).reduce((a, r) => a + r.penalty, 0);
     const score = Math.max(0, Math.min(1, 1 - (fillerUnits + slangUnits) / SCORE_SCALE)) * 100;
     return { score, fillerUnits, slangUnits };
   }
 
-  window.AuraLang = { ENTRIES, WEIGHT_LABEL, CATEGORY_LABEL, CATEGORY_WHY, swaps, detectSlang, weightOf, categoryOf, catLabel, analyze, byCategory, languageScore, TOLERANCE };
+  window.AuraLang = { FILLERS, fillerSwaps, detectFillers, analyzeFillers, ENTRIES, WEIGHT_LABEL, CATEGORY_LABEL, CATEGORY_WHY, swaps, detectSlang, weightOf, categoryOf, catLabel, analyze, byCategory, languageScore, TOLERANCE };
 })();

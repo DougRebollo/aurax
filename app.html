@@ -1102,14 +1102,14 @@
     }
 
     // Gírias com peso: mostra TUDO que foi detectado e deixa claro o que pesou na nota e o que não.
-    function renderSlangCards(rows) {
+    function renderSlangCards(rows, variant = "slang-swap") {
       if (!rows.length) return "";
       return rows.map((r) => {
         const status = r.status === "pesa" ? `<span class="lang-chip warn">pesa na nota</span>`
           : r.status === "neutra" ? `<span class="lang-chip">neutra · só aparece</span>`
           : `<span class="lang-chip good">dentro do normal</span>`;
         const swap = r.status === "pesa" && r.swap ? `<span><span class="language-swap-arrow">→</span><span class="language-swap-suggestion">${r.swap}</span></span>` : "";
-        return `<div class="language-swap-card slang-swap">
+        return `<div class="language-swap-card ${variant}">
           <span><span class="language-swap-word">"${r.key}"</span><span class="language-swap-count">× ${r.count} · ${r.catLabel} · peso ${r.label}</span></span>
           ${swap}${status}
         </div>`;
@@ -1137,56 +1137,16 @@
       return OBJECTION_PHRASES.find((p) => lower.includes(p)) || null;
     }
 
-    function tokenizeWords(text) {
-      return text
-        .toLowerCase()
-        .replace(/[.,!?;:"'()]/g, "")
-        .split(/\s+/)
-        .filter(Boolean);
-    }
-
     // Gírias: o dicionário (com peso, tolerância e contexto) vive em lang.js.
     // Detectar tudo, mas só descontar o que pesa de verdade (frequência, contexto, impacto).
     const SLANG_LIBRARY = AuraLang.swaps;   // chave -> troca sugerida
     function detectSlang(text) { return AuraLang.detectSlang(text); }
 
-    // Vícios de linguagem: contados pro resumo, mas sem alerta ao vivo — são
-    // frequentes demais na fala natural pra avisar toda vez sem virar ruído.
-    // Sons de hesitação pura ("an", "hã"...) não têm sinônimo real — a troca
-    // sugerida pra eles é uma pausa silenciosa, não outra palavra.
-    const FILLER_LIBRARY = {
-      "né": "corte a palavra ou faça uma pausa",
-      "tipo": "por exemplo",
-      "é": "uma pausa silenciosa",
-      "an": "uma pausa silenciosa",
-      "hã": "uma pausa silenciosa",
-      "ahn": "uma pausa silenciosa",
-      "eh": "uma pausa silenciosa",
-      "hum": "uma pausa silenciosa",
-      "assim": "dessa forma",
-      "sabe": "entende / compreende",
-    };
-    const FILLER_WORDS = Object.keys(FILLER_LIBRARY);
-
-    // "então" não conta como vício (é conectivo normal). "é" só conta quando é
-    // hesitação: puxado ("éé", "ééé") ou repetido em sequência ("é é"). Um "é"
-    // sozinho é o verbo ("o preço é…") e o reconhecimento de fala não deixa
-    // distinguir de outro jeito.
-    const STRETCHED_E = /^é{2,}$/;
-    function detectFillerWords(text) {
-      const tokens = tokenizeWords(text);
-      const found = [];
-      tokens.forEach((t, i) => {
-        if (STRETCHED_E.test(t)) { found.push("é"); return; }
-        if (t === "é") {
-          const prev = tokens[i - 1], next = tokens[i + 1];
-          if (prev === "é" || next === "é" || STRETCHED_E.test(prev || "") || STRETCHED_E.test(next || "")) found.push("é");
-          return;
-        }
-        if (FILLER_WORDS.includes(t)) found.push(t);
-      });
-      return found;
-    }
+    // Vícios de linguagem ("né", "tipo", "ahn"...): o dicionário (peso, tolerância e contexto) também vive em lang.js.
+    // Contados pro resumo e pra nota, mas sem alerta ao vivo — são frequentes demais na fala natural pra
+    // avisar toda vez sem virar ruído. Sons de hesitação pura não têm sinônimo: a troca é uma pausa.
+    const FILLER_LIBRARY = AuraLang.fillerSwaps;   // vício -> troca sugerida
+    function detectFillerWords(text) { return AuraLang.detectFillers(text); }
 
     const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
@@ -2039,11 +1999,14 @@
         tips.push({ key: "fala_" + c.cat, type: "melhorar", text: `${c.label}: ${list} — ${AuraLang.CATEGORY_WHY[c.cat]}.` });
       });
 
+      // Vício só vira dica quando pesa (frequência acima da tolerância do peso dele).
       const totalFiller = Object.values(fillerCounts || {}).reduce((a, b) => a + b, 0);
-      if (totalFiller >= 15) {
-        tips.push({ key: "muitos_vicios", type: "melhorar", text: `${totalFiller} vícios de linguagem ("é", "né", "tipo"...) — reduzir isso deixa a fala mais assertiva.` });
-      } else if (totalFiller > 0 && totalFiller <= 5) {
-        tips.push({ key: "poucos_vicios", type: "positivo", text: `Poucos vícios de linguagem (${totalFiller}) — fala limpa e direta.` });
+      const heavyFillers = AuraLang.analyzeFillers(fillerCounts, sessionWordCount).filter((r) => r.status === "pesa");
+      if (heavyFillers.length && totalFiller >= 6) {
+        const list = heavyFillers.slice(0, 3).map((r) => `"${r.key}" ×${r.count}`).join(", ");
+        tips.push({ key: "muitos_vicios", type: "melhorar", text: `${totalFiller} vícios de linguagem, os que mais pesaram: ${list} — reduzir isso deixa a fala mais assertiva.` });
+      } else if (totalFiller > 0 && !heavyFillers.length) {
+        tips.push({ key: "poucos_vicios", type: "positivo", text: `Vícios de linguagem dentro do normal (${totalFiller}) — fala limpa e direta.` });
       }
 
       if (objections && objections.length) {
@@ -2170,7 +2133,7 @@
         summaryDynamicsEl.innerHTML = '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
       }
 
-      const fillerSwapHtml = renderLanguageSwapCards(sessionFillerCounts, FILLER_LIBRARY, "filler-swap");
+      const fillerSwapHtml = renderSlangCards(AuraLang.analyzeFillers(sessionFillerCounts, sessionWordCount), "filler-swap");
       const slangSwapHtml = renderSlangCards(AuraLang.analyze(sessionSlangCounts, sessionWordCount));
       summaryLanguageEl.innerHTML = `
         <div class="language-block-title">Vícios de linguagem ("é", "né", "tipo"...)</div>
