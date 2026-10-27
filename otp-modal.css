@@ -1,0 +1,134 @@
+/* AuraX — modal do código de verificação ("Glassy OTP").
+ * Usa os tokens do shell.css/glass.css (--accent, --ink, --glass-*, --bg), então segue o tema claro/escuro. */
+
+.otp-overlay {
+  position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--bg, #0b1020) 62%, transparent);
+  backdrop-filter: blur(12px) saturate(140%); -webkit-backdrop-filter: blur(12px) saturate(140%);
+  animation: otpFade 0.25s ease both;
+}
+@keyframes otpFade { from { opacity: 0; } to { opacity: 1; } }
+
+.otp-card {
+  --otp-acc: var(--accent, #7aa0ff);
+  --otp-ok: #34d399;
+  position: relative; width: min(400px, 100%); padding: 34px 28px 22px; border-radius: 28px; text-align: center; overflow: hidden;
+  color: var(--ink, #eef2fb);
+  background:
+    linear-gradient(135deg, var(--glass-a, rgba(255, 255, 255, 0.14)) 0%, var(--glass-b, rgba(255, 255, 255, 0.04)) 55%),
+    color-mix(in srgb, var(--bg, #0b1020) 72%, transparent);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  box-shadow: inset 0 1px 0 var(--glass-hi, rgba(255, 255, 255, 0.3)), 0 34px 90px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+  transition: border-color 0.5s;
+  animation: otpRise 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+@keyframes otpRise { from { opacity: 0; transform: translateY(18px) scale(0.97); } to { opacity: 1; transform: none; } }
+/* cantos chanfrados e faixa de brilho, como no modelo */
+.otp-card::before, .otp-card::after {
+  content: ""; position: absolute; width: 74px; height: 74px; pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 62%);
+}
+.otp-card::before { top: 0; left: 0; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.otp-card::after { bottom: 0; right: 0; transform: rotate(180deg); clip-path: polygon(0 0, 100% 0, 0 100%); }
+.otp-shine {
+  position: absolute; inset: -40% -10%; pointer-events: none; transform: rotate(-24deg);
+  background: linear-gradient(90deg, transparent 38%, rgba(255, 255, 255, 0.07) 50%, transparent 62%);
+}
+.otp-tint {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.7s;
+  background: radial-gradient(70% 55% at 50% 40%, rgba(52, 211, 153, 0.32), transparent 72%);
+}
+.otp-card > * { position: relative; }
+.otp-card > .otp-tint, .otp-card > .otp-shine { position: absolute; }
+
+.otp-icon {
+  width: 44px; height: 44px; margin: 0 auto 14px; border-radius: 14px; display: grid; place-items: center;
+  color: var(--otp-acc); border: 1px solid color-mix(in srgb, var(--otp-acc) 55%, transparent);
+  background: color-mix(in srgb, var(--otp-acc) 14%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--otp-acc) 25%, transparent);
+  transition: color 0.4s, border-color 0.4s, background 0.4s, box-shadow 0.4s;
+}
+.otp-icon svg { width: 22px; height: 22px; }
+.otp-title { margin: 0 0 6px; font-size: 25px; font-weight: 700; letter-spacing: -0.02em; }
+.otp-title span { color: var(--otp-acc); transition: color 0.4s; }
+.otp-sub { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-dim, #b2bbd1); }
+.otp-sub b { display: block; margin-top: 2px; color: var(--ink, #eef2fb); font-weight: 600; overflow-wrap: anywhere; }
+
+/* ---- caixas do código ---- */
+.otp-boxes { position: relative; display: flex; justify-content: center; gap: 10px; height: 58px; margin: 28px 0 14px; }
+.otp-overlay .otp-card .otp-box {
+  width: 46px; height: 58px; padding: 0; border-radius: 15px; text-align: center; font: 700 24px/1 var(--font, inherit);
+  color: var(--ink, #fff); caret-color: var(--otp-acc);
+  background: color-mix(in srgb, var(--ink, #fff) 7%, transparent); border: 1.5px solid color-mix(in srgb, var(--ink, #fff) 24%, transparent);
+  outline: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); backdrop-filter: none; -webkit-backdrop-filter: none;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.6s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.3s, background 0.2s;
+}
+.otp-overlay .otp-card .otp-box:focus, .otp-overlay .otp-card .otp-box.filled {
+  border-color: var(--otp-acc);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--otp-acc) 22%, transparent), 0 0 20px color-mix(in srgb, var(--otp-acc) 38%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.otp-boxes.spin { animation: otpSpin 1.5s cubic-bezier(0.55, 0.1, 0.45, 0.9) infinite; }
+@keyframes otpSpin { to { transform: rotate(360deg); } }
+.otp-card[data-state="verifying"] .otp-box { border-color: var(--otp-acc); pointer-events: none; }
+.otp-card[data-state="error"] .otp-box { border-color: var(--bad, #ff8585); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad, #ff8585) 20%, transparent); }
+.otp-boxes.shake { animation: otpShake 0.45s ease; }
+@keyframes otpShake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.otp-boxes.gone .otp-box { opacity: 0; transform: scale(0); transition: transform 0.35s ease, opacity 0.3s; }
+
+/* sucesso: caixa com o "check" e onda */
+.otp-check {
+  position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 16px;
+  display: grid; place-items: center; color: var(--otp-ok); opacity: 0; transform: scale(0.4); pointer-events: none;
+  border: 2px solid var(--otp-ok); background: color-mix(in srgb, var(--otp-ok) 14%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--otp-ok) 40%, transparent);
+}
+.otp-check svg { width: 26px; height: 26px; }
+.otp-check i { position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--otp-ok); opacity: 0; }
+.otp-card[data-state="success"] .otp-check { opacity: 1; transform: scale(1); transition: transform 0.5s cubic-bezier(0.2, 1.5, 0.4, 1), opacity 0.3s; }
+.otp-card[data-state="success"] .otp-check i { animation: otpRipple 1.3s ease-out 0.15s both; }
+@keyframes otpRipple { from { opacity: 0.7; transform: scale(1); } to { opacity: 0; transform: scale(3.4); } }
+.otp-card[data-state="success"] { border-color: color-mix(in srgb, var(--otp-ok) 55%, transparent); }
+.otp-card[data-state="success"] .otp-tint { opacity: 1; }
+.otp-card[data-state="success"] .otp-icon { color: var(--otp-ok); border-color: color-mix(in srgb, var(--otp-ok) 55%, transparent); background: color-mix(in srgb, var(--otp-ok) 14%, transparent); box-shadow: 0 0 22px color-mix(in srgb, var(--otp-ok) 30%, transparent); }
+.otp-card[data-state="success"] .otp-title span { color: var(--otp-ok); }
+
+/* mensagens e reenvio */
+.otp-msg { min-height: 20px; margin: 0 0 6px; font-size: 13px; color: var(--ink-dim, #b2bbd1); }
+.otp-card[data-state="error"] .otp-msg { color: var(--bad, #ff8585); }
+.otp-resend { margin: 0 0 18px; font-size: 12.5px; color: var(--ink-faint, #8a93ad); min-height: 18px; transition: opacity 0.3s; }
+.otp-resend b { color: var(--otp-acc); font-variant-numeric: tabular-nums; font-weight: 600; }
+.otp-card[data-state="success"] .otp-resend, .otp-card[data-state="success"] .otp-cancel { opacity: 0; pointer-events: none; }
+.otp-inline { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--otp-acc); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.otp-inline:disabled { opacity: 0.55; cursor: default; }
+
+/* botão (gel) */
+.otp-btn {
+  width: 100%; padding: 13px 16px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.4); color: #fff; font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer;
+  background: linear-gradient(180deg, #86a9ff 0%, #3b6fe0 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 6px rgba(20, 40, 140, 0.35), 0 10px 26px rgba(59, 111, 224, 0.38);
+  transition: filter 0.2s, opacity 0.2s, background 0.4s, box-shadow 0.4s;
+}
+.otp-btn:hover:not(:disabled) { filter: brightness(1.07); }
+.otp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.otp-card[data-state="verifying"] .otp-btn { opacity: 0.9; cursor: progress; }
+.otp-card[data-state="success"] .otp-btn {
+  opacity: 1; cursor: default; background: linear-gradient(180deg, #4ee0a6 0%, #17a673 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 6px rgba(5, 90, 60, 0.35), 0 10px 26px rgba(23, 166, 115, 0.4);
+}
+.otp-btn svg { width: 18px; height: 18px; flex: none; }
+.otp-spinner { animation: otpTurn 0.8s linear infinite; }
+@keyframes otpTurn { to { transform: rotate(360deg); } }
+.otp-cancel { display: block; margin: 12px auto 0; background: none; border: 0; padding: 4px 8px; font-size: 12.5px; color: var(--ink-faint, #8a93ad); cursor: pointer; transition: opacity 0.3s; }
+.otp-cancel:hover { color: var(--ink, #fff); }
+
+@media (max-width: 420px) {
+  .otp-card { padding: 30px 18px 18px; }
+  .otp-boxes { gap: 7px; }
+  .otp-overlay .otp-card .otp-box { width: 41px; height: 54px; font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .otp-boxes.spin, .otp-spinner, .otp-card, .otp-overlay, .otp-boxes.shake { animation: none; }
+  .otp-overlay .otp-card .otp-box { transition: none; }
+}

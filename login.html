@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
 <link rel="stylesheet" href="shell.css" />
 <link rel="stylesheet" href="glass.css" />
+<link rel="stylesheet" href="otp-modal.css" />
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
   body { display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -98,6 +99,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="otp-modal.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
@@ -227,7 +229,7 @@
           if (data.user && !data.session) {
             posthog.identify(data.user.id, { email });
             posthog.capture("signup_completed", { pending_email_confirmation: true });
-            showMessage("Conta criada! Confirme seu e-mail antes de entrar.", "success");
+            openEmailOtp(email);
           } else {
             posthog.identify(data.user.id, { email });
             posthog.capture("signup_completed");
@@ -241,11 +243,38 @@
           await redirectByRole();
         }
       } catch (err) {
-        showMessage(translateAuthError(err.message), "error");
+        if (err && /Email not confirmed/i.test(err.message || "")) {
+          try { await supabaseClient.auth.resend({ type: "signup", email }); } catch (e) { /* o modal oferece reenviar */ }
+          openEmailOtp(email);
+        } else {
+          showMessage(translateAuthError(err.message), "error");
+        }
       } finally {
         submitBtn.disabled = false;
       }
     });
+
+    // Código de 6 dígitos enviado por e-mail (confirmação de cadastro). Só aparece quando o Supabase
+    // está com "Confirm email" ligado; sem isso o cadastro entra direto, como antes.
+    function openEmailOtp(email) {
+      clearMessage();
+      AuraOtp.open({
+        email,
+        length: 6,
+        cooldown: 60,
+        verify: async (code) => {
+          const { error } = await supabaseClient.auth.verifyOtp({ email, token: code, type: "signup" });
+          if (error) return { ok: false, message: translateAuthError(error.message) };
+          posthog.capture("email_verified");
+          return { ok: true };
+        },
+        resend: async () => {
+          const { error } = await supabaseClient.auth.resend({ type: "signup", email });
+          return error ? { ok: false, message: translateAuthError(error.message) } : { ok: true };
+        },
+        onSuccess: () => { redirectByRole(); },
+      });
+    }
 
     function translateAuthError(message) {
       const map = {
@@ -255,6 +284,8 @@
         "Email not confirmed": "Confirme seu e-mail antes de entrar.",
         "Unable to validate email address: invalid format": "E-mail em formato inválido.",
         "New password should be different": "A nova senha precisa ser diferente da anterior.",
+        "Token has expired or is invalid": "Código incorreto ou expirado. Confira e tente de novo.",
+        "you can only request this after": "Aguarde um minuto para pedir um novo código.",
         "Auth session missing": "Esse link expirou. Peça um novo em “Esqueci minha senha”.",
         "rate limit": "Muitos pedidos de e-mail seguidos. Aguarde alguns minutos e tente de novo.",
       };
