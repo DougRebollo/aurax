@@ -1373,7 +1373,7 @@
       const secondHalf = data.filter((d) => d.t >= mid);
 
       const lines = [];
-      lines.push(`Pico de foco: ${(peakFocus.focused * 100).toFixed(0)}% aos ${formatTimeMMSS(peakFocus.t)}`);
+      lines.push(`Momento de expressão mais estável: ${(peakFocus.focused * 100).toFixed(0)}% aos ${formatTimeMMSS(peakFocus.t)}`);
 
       peakInsightsEl.innerHTML = lines.map((l) => `<div class="insight-line">${l}</div>`).join("");
     }
