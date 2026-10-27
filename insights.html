@@ -8,9 +8,9 @@
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32" />
 <link rel="shortcut icon" href="favicon.ico" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-<link rel="stylesheet" href="shell.css" />
-<script src="transition.js"></script>
-<link rel="stylesheet" href="glass.css" />
+<link rel="stylesheet" href="shell.css?v=b87d1bd4" />
+<script src="transition.js?v=357b4b50"></script>
+<link rel="stylesheet" href="glass.css?v=138390e5" />
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
   :root { --grid: var(--line); --text-dim: var(--ink-faint); }
@@ -21,34 +21,8 @@
   .legend-item { display: flex; align-items: center; gap: 6px; }
   .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
-  /* Os 4 cartões têm a mesma altura e o conteúdo centralizado; o do anel fica na horizontal (anel + texto). */
-  .stat-grid .stat-card { display: flex; flex-direction: column; justify-content: center; min-height: 118px; }
-  .stat-grid .stat-card-ring { flex-direction: row; align-items: center; gap: 16px; }
-  .stat-ring-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-  .stat-ring-text .stat-label { margin-top: 0; font-size: 13px; }
-  .stat-ring-text .stat-rank { margin-top: 0; }
-  .stat-value.is-range { font-size: 22px; white-space: nowrap; }
-  .orat-ring {
-    position: relative; flex-shrink: 0; width: 92px; height: 92px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-  }
-  /* anel oco: só a borda colorida (o miolo deixa o vidro aparecer) */
-  .orat-ring::before {
-    content: ""; position: absolute; inset: 0; border-radius: 50%;
-    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), color-mix(in srgb, var(--ink-faint) 28%, transparent) 0);
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px)); mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
-  }
-  .orat-ring-inner {
-    position: relative; width: 74px; height: 74px; border-radius: 50%; background: transparent;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-  }
-  .orat-ring-value { font-size: 24px; font-weight: 700; line-height: 1; font-family: var(--mono); }
-  .orat-ring-label { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
   #insightsBody { display: flex; flex-direction: column; gap: 20px; }
 
-  .filter-tabs { display: flex; gap: 4px; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; width: fit-content; }
-  .filter-tabs button { border: 0; background: transparent; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; color: var(--ink-dim); }
-  .filter-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 
   .language-swap-list { display: flex; flex-direction: column; gap: 8px; }
   .language-swap-card {
@@ -96,19 +70,20 @@
         <h1>Meus Insights</h1>
         <p>Como você tem evoluído nas suas próprias reuniões, sessão após sessão.</p>
       </div>
-      <div class="period-bar" id="periodBar" hidden>
-        <div class="filter-tabs" id="periodTabs" role="tablist" aria-label="Período">
-          <button type="button" data-p="week">Semana</button>
-          <button type="button" data-p="month">Mês</button>
-          <button type="button" data-p="year">Ano</button>
-          <button type="button" data-p="all">Tudo</button>
-        </div>
-        <div class="period-nav" id="periodNav">
-          <button type="button" class="p-btn" id="periodPrev" aria-label="Período anterior">‹</button>
-          <span class="period-label" id="periodLabel"></span>
-          <button type="button" class="p-btn" id="periodNext" aria-label="Próximo período">›</button>
-          <button type="button" class="p-today" id="periodToday">Hoje</button>
-        </div>
+    </div>
+
+    <div class="period-bar" id="periodBar" hidden>
+      <div class="filter-tabs" id="periodTabs" role="tablist" aria-label="Período">
+        <button type="button" data-p="week">Semana</button>
+        <button type="button" data-p="month">Mês</button>
+        <button type="button" data-p="year">Ano</button>
+        <button type="button" data-p="all">Tudo</button>
+      </div>
+      <div class="period-nav" id="periodNav">
+        <button type="button" class="p-btn" id="periodPrev" aria-label="Período anterior">‹</button>
+        <span class="period-label" id="periodLabel"></span>
+        <button type="button" class="p-btn" id="periodNext" aria-label="Próximo período">›</button>
+        <button type="button" class="p-today" id="periodToday">Hoje</button>
       </div>
     </div>
 
@@ -119,7 +94,7 @@
     </div>
 
     <div id="insightsBody" hidden>
-      <div class="stat-grid">
+      <div class="stat-grid stat-grid-4">
         <div class="card stat-card"><div class="stat-value" id="statTotalSessions">0</div><div class="stat-label">Sessões</div><div class="stat-delta" id="statSessionsDelta"></div></div>
         <div class="card stat-card stat-card-ring">
           <div class="orat-ring" id="oratRing" style="--score:0; --score-color:var(--ink-faint)">
@@ -186,9 +161,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="shell.js"></script>
-  <script src="lang.js"></script>
-  <script src="period.js"></script>
+  <script src="shell.js?v=37e2d61e"></script>
+  <script src="lang.js?v=db14ec62"></script>
+  <script src="period.js?v=d439e231"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";

@@ -8,9 +8,9 @@
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32" />
 <link rel="shortcut icon" href="favicon.ico" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-<link rel="stylesheet" href="shell.css" />
-<script src="transition.js"></script>
-<link rel="stylesheet" href="glass.css" />
+<link rel="stylesheet" href="shell.css?v=b87d1bd4" />
+<script src="transition.js?v=357b4b50"></script>
+<link rel="stylesheet" href="glass.css?v=138390e5" />
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
   .invite-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--line); }
@@ -36,9 +36,6 @@
   .remove-btn { background: none; border: 0; color: var(--bad); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
   .remove-btn:hover { background: var(--bad-soft); }
 
-  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; width: fit-content; max-width: 100%; }
-  .filter-tabs button { border: 0; background: transparent; padding: 5px 12px; border-radius: 6px; font-weight: 600; color: var(--ink-dim); }
-  .filter-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 
   #sessionsList { display: flex; flex-direction: column; gap: 10px; }
   .session-card { padding: 14px 16px; }
@@ -180,26 +177,37 @@
         <p id="greetingRole" style="display:none"></p>
         <p>Gerencie quem faz parte do seu time no AuraX.</p>
       </div>
-      <div class="period-bar" id="periodBar" hidden>
-        <div class="filter-tabs" id="periodTabs" role="tablist" aria-label="Período">
-          <button type="button" data-p="week">Semana</button>
-          <button type="button" data-p="month">Mês</button>
-          <button type="button" data-p="year">Ano</button>
-          <button type="button" data-p="all">Tudo</button>
-        </div>
-        <div class="period-nav" id="periodNav">
-          <button type="button" class="p-btn" id="periodPrev" aria-label="Período anterior">‹</button>
-          <span class="period-label" id="periodLabel"></span>
-          <button type="button" class="p-btn" id="periodNext" aria-label="Próximo período">›</button>
-          <button type="button" class="p-today" id="periodToday">Hoje</button>
-        </div>
+    </div>
+
+    <div class="period-bar" id="periodBar" hidden>
+      <div class="filter-tabs" id="periodTabs" role="tablist" aria-label="Período">
+        <button type="button" data-p="week">Semana</button>
+        <button type="button" data-p="month">Mês</button>
+        <button type="button" data-p="year">Ano</button>
+        <button type="button" data-p="all">Tudo</button>
+      </div>
+      <div class="period-nav" id="periodNav">
+        <button type="button" class="p-btn" id="periodPrev" aria-label="Período anterior">‹</button>
+        <span class="period-label" id="periodLabel"></span>
+        <button type="button" class="p-btn" id="periodNext" aria-label="Próximo período">›</button>
+        <button type="button" class="p-today" id="periodToday">Hoje</button>
       </div>
     </div>
 
-    <div class="stat-grid">
+    <div class="stat-grid stat-grid-3">
       <div class="card stat-card"><div class="stat-value" id="statTeamSessions">0</div><div class="stat-label">Sessões do time</div><div class="stat-delta" id="dTeamSessions"></div></div>
-      <div class="card stat-card"><div class="stat-value" id="statTeamOratoria">—</div><div class="stat-label">Oratória média do time</div><div class="stat-delta" id="dTeamOratoria"></div></div>
-      <div class="card stat-card"><div class="stat-value" id="statMyOratoria">—</div><div class="stat-label">Sua oratória média</div><div class="stat-delta" id="dMyOratoria"></div></div>
+      <div class="card stat-card stat-card-ring">
+        <div class="orat-ring" id="ringTeam" style="--score:0; --score-color:var(--ink-faint)">
+          <div class="orat-ring-inner"><div class="orat-ring-value" id="statTeamOratoria">—</div><div class="orat-ring-label">/100</div></div>
+        </div>
+        <div class="stat-ring-text"><div class="stat-label">Oratória média do time</div><div class="stat-rank" id="rankTeam"></div><div class="stat-delta" id="dTeamOratoria"></div></div>
+      </div>
+      <div class="card stat-card stat-card-ring">
+        <div class="orat-ring" id="ringMine" style="--score:0; --score-color:var(--ink-faint)">
+          <div class="orat-ring-inner"><div class="orat-ring-value" id="statMyOratoria">—</div><div class="orat-ring-label">/100</div></div>
+        </div>
+        <div class="stat-ring-text"><div class="stat-label">Sua oratória média</div><div class="stat-rank" id="rankMine"></div><div class="stat-delta" id="dMyOratoria"></div></div>
+      </div>
     </div>
 
     <div class="card chart-card" id="chartCard">
@@ -272,8 +280,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="shell.js"></script>
-  <script src="period.js"></script>
+  <script src="shell.js?v=37e2d61e"></script>
+  <script src="period.js?v=d439e231"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
@@ -525,12 +533,25 @@
       document.getElementById("statTeamSessions").textContent = rows.length;
       setDelta("dTeamSessions", rows.length, prev.length ? prev.length : null, "vs. período anterior");
 
+      const setRing = (ringId, valueId, rankId, score) => {
+        const ring = document.getElementById(ringId), val = document.getElementById(valueId), rankEl = document.getElementById(rankId);
+        if (score == null) {
+          val.textContent = "—"; val.style.color = ""; rankEl.textContent = "";
+          ring.style.setProperty("--score", 0); ring.style.setProperty("--score-color", "var(--ink-faint)");
+          return;
+        }
+        const rounded = Math.round(score), rk = oratoriaScoreRank(rounded);
+        val.textContent = rounded; val.style.color = rk.color;
+        ring.style.setProperty("--score", rounded); ring.style.setProperty("--score-color", rk.color);
+        rankEl.textContent = rk.label; rankEl.style.color = rk.color;
+      };
+
       const team = scoreAvg(rows);
-      document.getElementById("statTeamOratoria").textContent = team != null ? Math.round(team) : "—";
+      setRing("ringTeam", "statTeamOratoria", "rankTeam", team);
       setDelta("dTeamOratoria", team, scoreAvg(prev), "vs. anterior");
 
       const mine = scoreAvg(rows.filter((r) => r.user_id === currentUserId));
-      document.getElementById("statMyOratoria").textContent = mine != null ? Math.round(mine) : "—";
+      setRing("ringMine", "statMyOratoria", "rankMine", mine);
       setDelta("dMyOratoria", mine, scoreAvg(prev.filter((r) => r.user_id === currentUserId)), "vs. anterior");
 
       const tipCounts = {};
