@@ -124,7 +124,6 @@
       <div class="card chart-card">
         <p class="face-note">Estimativas a partir da expressão do seu rosto na câmera. Luz, ângulo, óculos e o jeito de cada rosto mudam o resultado, então use como um sinal auxiliar para você, não como um fato sobre como você se sente.</p>
         <div class="chart-legend">
-          <span class="legend-item"><span class="swatch" style="background:var(--accent)"></span>Olhos mais fechados</span>
           <span class="legend-item"><span class="swatch" style="background:var(--good)"></span>Expressão estável</span>
           <span class="legend-item"><span class="swatch" style="background:var(--warn)"></span>Sorriso e surpresa</span>
         </div>
@@ -190,7 +189,6 @@
       poucos_vicios: "Poucos vícios de linguagem",
       objecao_segura: "Boa recuperação em objeções",
       objecao_tensa: "Tensão ao responder objeções",
-      cansaco: "Olhos mais fechados por boa parte da sessão",
       boa_energia: "Boa energia/motivação",
       equilibrada: "Sessão equilibrada",
     };
@@ -215,7 +213,6 @@
       muitas_girias: "Grave um trecho seu e ouça de fora — a maioria das gírias é hábito automático que a gente só percebe ouvindo depois.",
       muitos_vicios: "Escolha 1 vício de cada vez pra focar na próxima call, em vez de tentar cortar todos de uma vez.",
       objecao_tensa: "Monte um roteiro curto (2-3 frases) pras objeções mais comuns antes da próxima call, pra não precisar improvisar na hora.",
-      cansaco: "Intercalar uma pausa curta entre reuniões consecutivas ajuda a chegar com mais energia na próxima.",
     };
 
     function average(arr) {
@@ -360,13 +357,11 @@
       }
 
       // --- Padrão emocional ---
-      const tiredPoints = chronological.map((s) => ({ date: s.date, value: s.tired || 0 }));
       const focusedPoints = chronological.map((s) => ({ date: s.date, value: s.focused || 0 }));
       const motivatedPoints = chronological.map((s) => ({ date: s.date, value: s.motivated || 0 }));
       renderLineChart(
         document.getElementById("emotionChartWrap"),
         [
-          { points: tiredPoints, color: "var(--accent)" },
           { points: focusedPoints, color: "var(--good)" },
           { points: motivatedPoints, color: "var(--warn)" },
         ],
@@ -415,7 +410,7 @@
       }
 
       // --- Principais pontos de melhoria (agregado por chave estável) ---
-      const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas"]; // recurso removido: sessões antigas ainda trazem essas dicas
+      const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas", "cansaco"]; // recurso removido: sessões antigas ainda trazem essas dicas
       const tipCounts = {};
       chronological.forEach((s) => {
         (s.tips || []).forEach((t) => {

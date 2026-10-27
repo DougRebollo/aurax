@@ -465,7 +465,6 @@
   #summary-section h3 { font-size: 0.9rem; margin: 16px 0 4px; color: var(--ink); }
 
   :root {
-    --series-tired: var(--accent);
     --series-focused: var(--good);
     --series-motivated: var(--warn);
     --grid: var(--line);
@@ -906,7 +905,6 @@
         <div id="statTiles">
           <div class="stat-tile"><div class="stat-value" id="tileFocused">0%</div><div class="stat-label">Constância</div></div>
           <div class="stat-tile"><div class="stat-value" id="tileMotivated">0%</div><div class="stat-label">Motivação</div></div>
-          <div class="stat-tile"><div class="stat-value" id="tileTired">0%</div><div class="stat-label">Cansaço</div></div>
         </div>
 
         <div id="liveAlerts"></div>
@@ -955,7 +953,7 @@
       <div id="estimated-section">
         <div id="estimated-title">Estimativas experimentais (beta) — aproximações, não reconhecidas diretamente pela IA</div>
         <div id="estimated"></div>
-        <div id="estimated-note">Calculadas a partir de sinais indiretos (abertura dos olhos, estabilidade da cabeça, expressão sustentada). Podem não ser precisas.</div>
+        <div id="estimated-note">Calculadas a partir de sinais indiretos (estabilidade da cabeça e expressão sustentada). Podem não ser precisas.</div>
       </div>
 
     </div>
@@ -985,7 +983,6 @@
 
     <h3>Como evoluiu ao longo da sessão</h3>
     <div id="trend-legend">
-      <span class="legend-item"><span class="swatch" style="background:var(--series-tired)"></span>Cansado</span>
       <span class="legend-item"><span class="swatch" style="background:var(--series-focused)"></span>Constância</span>
       <span class="legend-item"><span class="swatch" style="background:var(--series-motivated)"></span>Motivado</span>
     </div>
@@ -1177,7 +1174,6 @@
     const sessionStatusTextEl = document.getElementById("sessionStatusText");
     const tileFocusedEl = document.getElementById("tileFocused");
     const tileMotivatedEl = document.getElementById("tileMotivated");
-    const tileTiredEl = document.getElementById("tileTired");
     let cameraStartTime = 0;
 
     function updateSessionStatusDisplay() {
@@ -1194,24 +1190,21 @@
     const MISS_GRACE_FRAMES = 12;
     let missedFrames = 0;
 
-    // Histórico recente para calcular as estimativas (cansaço/foco/motivação).
+    // Histórico recente para calcular as estimativas (constância e sorriso).
     const HISTORY_SIZE = 60; // ~poucos segundos de janela
     const history = {
-      ear: [],       // abertura dos olhos (Eye Aspect Ratio)
       neutral: [],   // score de expressão neutra
       happy: [],     // score de expressão feliz
       surprised: [], // score de expressão surpresa
       headX: [],     // posição horizontal da cabeça
       headY: [],     // posição vertical da cabeça
     };
-    let runningMaxEAR = 0;
 
     const MODEL_URL = "https://cdn.jsdelivr.net/gh/vladmandic/face-api/model";
 
     async function loadModels() {
       await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
       await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
-      await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
     }
 
     function pushHistory(key, value) {
@@ -1235,21 +1228,7 @@
       return Math.hypot(p1.x - p2.x, p1.y - p2.y);
     }
 
-    // Eye Aspect Ratio: quanto menor, mais fechado o olho está.
-    function eyeAspectRatio(points) {
-      const vertical1 = distance(points[1], points[5]);
-      const vertical2 = distance(points[2], points[4]);
-      const horizontal = distance(points[0], points[3]);
-      if (horizontal === 0) return 0;
-      return (vertical1 + vertical2) / (2 * horizontal);
-    }
-
-    function updateEstimates(landmarks, expressions, box) {
-      const leftEye = landmarks.getLeftEye();
-      const rightEye = landmarks.getRightEye();
-      const ear = (eyeAspectRatio(leftEye) + eyeAspectRatio(rightEye)) / 2;
-
-      pushHistory("ear", ear);
+    function updateEstimates(expressions, box) {
       pushHistory("neutral", expressions.neutral);
       pushHistory("happy", expressions.happy);
       pushHistory("surprised", expressions.surprised);
@@ -1258,17 +1237,10 @@
       pushHistory("headX", (box.x + box.width / 2) / box.width);
       pushHistory("headY", (box.y + box.height / 2) / box.height);
 
-      runningMaxEAR = Math.max(runningMaxEAR * 0.995, ear); // decai bem devagar, se adapta com o tempo
-
-      const avgEAR = average(history.ear);
       const avgNeutral = average(history.neutral);
       const avgHappy = average(history.happy);
       const avgSurprised = average(history.surprised);
       const headVariance = variance(history.headX) + variance(history.headY);
-
-      // Cansado: olhos consistentemente bem mais fechados que o "normal" observado.
-      const earRatio = runningMaxEAR > 0 ? avgEAR / runningMaxEAR : 1;
-      const tired = clamp01((0.85 - earRatio) / 0.35);
 
       // Focado: cabeça parada + expressão neutra sustentada.
       // Peso maior pra expressão neutra do que pra estabilidade sozinha —
@@ -1281,7 +1253,7 @@
       // Motivado: felicidade/energia positiva sustentada.
       const motivated = clamp01(avgHappy * 0.8 + avgSurprised * 0.3);
 
-      return { tired, focused, motivated };
+      return { focused, motivated };
     }
 
     function clamp01(v) {
@@ -1326,7 +1298,6 @@
     const peakInsightsEl = document.getElementById("peakInsights");
 
     const TREND_SERIES = [
-      { key: "tired", label: "Cansado", color: "var(--series-tired)" },
       { key: "focused", label: "Constância", color: "var(--series-focused)" },
       { key: "motivated", label: "Motivado", color: "var(--series-motivated)" },
     ];
@@ -1411,23 +1382,12 @@
 
     function renderInsights(data) {
       const peakFocus = data.reduce((a, b) => (b.focused > a.focused ? b : a));
-      const peakTired = data.reduce((a, b) => (b.tired > a.tired ? b : a));
       const mid = data[data.length - 1].t / 2;
       const firstHalf = data.filter((d) => d.t < mid);
       const secondHalf = data.filter((d) => d.t >= mid);
 
       const lines = [];
       lines.push(`Pico de foco: ${(peakFocus.focused * 100).toFixed(0)}% aos ${formatTimeMMSS(peakFocus.t)}`);
-      lines.push(`Pico de cansaço: ${(peakTired.tired * 100).toFixed(0)}% aos ${formatTimeMMSS(peakTired.t)}`);
-
-      if (firstHalf.length && secondHalf.length) {
-        const tiredDelta = average(secondHalf.map((d) => d.tired)) - average(firstHalf.map((d) => d.tired));
-        if (tiredDelta > 0.05) {
-          lines.push(`Você ficou mais cansado na segunda metade da sessão (+${Math.round(tiredDelta * 100)} pontos)`);
-        } else if (tiredDelta < -0.05) {
-          lines.push(`Você ficou menos cansado na segunda metade da sessão (${Math.round(tiredDelta * 100)} pontos)`);
-        }
-      }
 
       peakInsightsEl.innerHTML = lines.map((l) => `<div class="insight-line">${l}</div>`).join("");
     }
@@ -1581,7 +1541,6 @@
     function summarizeObjectionWindow(samples) {
       if (!samples.length) return "Sem dados suficientes durante a resposta";
       const avgFocused = average(samples.map((s) => s.focused));
-      const avgTired = average(samples.map((s) => s.tired));
       const negativeCount = samples.filter((s) =>
         ["Nervoso/Medo", "Triste", "Bravo"].some((label) => s.dominantLabel.startsWith(label))
       ).length;
@@ -1592,9 +1551,6 @@
       }
       if (avgFocused > 0.55) {
         return `Resposta segura — manteve o foco (${Math.round(avgFocused * 100)}%)`;
-      }
-      if (avgTired > 0.5) {
-        return `Resposta com sinais de cansaço (${Math.round(avgTired * 100)}%)`;
       }
       return "Resposta neutra, sem sinais fortes";
     }
@@ -1753,7 +1709,6 @@
       sessionData.push({
         t: (now - sessionStartTime) / 1000,
         ...expressions,
-        tired: estimates.tired,
         focused: estimates.focused,
         motivated: estimates.motivated,
       });
@@ -1834,7 +1789,7 @@
 
     // Compara a primeira metade da sessão com a segunda: se o volume da voz
     // caiu bastante, é um sinal de cansaço vocal (a energia da fala vai
-    // esvaziando) — complementa o cansaço facial (que já olha pros olhos),
+    // esvaziando) —
     // já que uma pessoa pode ficar com a voz mais fraca antes de aparecer no rosto.
     const VOCAL_FATIGUE_DROP_RATIO = 0.25;
 
@@ -1955,7 +1910,7 @@
     // Dicas de autoavaliação ao final da sessão — regras simples sobre os
     // dados que já coletamos (nada de IA generativa aqui, é tudo heurística
     // direta a partir do que foi medido nesta mesma sessão).
-    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, avgTired, avgMotivated }) {
+    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, avgMotivated }) {
       const tips = [];
 
       if (wpm > 170) {
@@ -2022,9 +1977,6 @@
         }
       }
 
-      if (avgTired >= 0.4) {
-        tips.push({ key: "cansaco", type: "melhorar", text: "Olhos mais fechados por boa parte da sessão (estimativa pela câmera) — pode ser cansaço, luz ou ângulo da câmera." });
-      }
       if (avgMotivated >= 0.5) {
         tips.push({ key: "boa_energia", type: "positivo", text: "Expressão mais sorridente e expressiva durante a conversa (estimativa pela câmera)." });
       }
@@ -2081,7 +2033,7 @@
         .sort((a, b) => b[1] - a[1]);
       renderBarsInto(summaryEmotionsEl, emotionAverages, DISPLAY_LABELS_PT);
 
-      const estimatedAverages = ["tired", "focused", "motivated"]
+      const estimatedAverages = ["focused", "motivated"]
         .map((key) => [key, average(sessionData.map((d) => d[key] || 0))])
         .sort((a, b) => b[1] - a[1]);
       renderBarsInto(summaryEstimatedEl, estimatedAverages, ESTIMATED_LABELS_PT);
@@ -2149,7 +2101,6 @@
       `;
 
       const avgFocused = average(sessionData.map((d) => d.focused || 0));
-      const avgTired = average(sessionData.map((d) => d.tired || 0));
       const avgMotivated = average(sessionData.map((d) => d.motivated || 0));
 
       const tips = generateCoachingTips({
@@ -2160,7 +2111,6 @@
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         objections: sessionObjections,
-        avgTired,
         avgMotivated,
       });
       summaryTipsEl.innerHTML = tips.length > 1
@@ -2204,7 +2154,6 @@
         date: new Date().toISOString(),
         duration,
         focused: avgFocused,
-        tired: avgTired,
         motivated: avgMotivated,
         transcript: sessionTranscript,
         wpm: wpmSession,
@@ -2264,14 +2213,13 @@
       const lines = [];
 
       lines.push("Leituras da sessão (expressões e estimativas)");
-      const dataHeaders = ["tempo_minutos", ...Object.keys(EMOTION_LABELS_PT), "cansado", "focado", "motivado"];
+      const dataHeaders = ["tempo_minutos", ...Object.keys(EMOTION_LABELS_PT), "focado", "motivado"];
       lines.push(dataHeaders.join(","));
       sessionData.forEach((d) => {
         lines.push(
           dataHeaders
             .map((h) => {
               if (h === "tempo_minutos") return (d.t / 60).toFixed(2);
-              if (h === "cansado") return d.tired.toFixed(3);
               if (h === "focado") return d.focused.toFixed(3);
               if (h === "motivado") return d.motivated.toFixed(3);
               return (d[h] || 0).toFixed(3);
@@ -2348,7 +2296,6 @@
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         objections: sessionObjections,
-        avgTired: sessionData.length ? average(sessionData.map((d) => d.tired || 0)) : 0,
         avgMotivated: sessionData.length ? average(sessionData.map((d) => d.motivated || 0)) : 0,
       });
       lines.push("");
@@ -2910,14 +2857,12 @@
     }
 
     const ESTIMATED_LABELS_PT = {
-      tired: "Olhos mais fechados",
       focused: "Expressão estável",
       motivated: "Sorriso e surpresa",
     };
 
     function renderEstimated(estimates) {
       const entries = [
-        ["tired", estimates.tired],
         ["focused", estimates.focused],
         ["motivated", estimates.motivated],
       ].sort((a, b) => b[1] - a[1]);
@@ -2925,14 +2870,12 @@
 
       tileFocusedEl.textContent = `${Math.round(estimates.focused * 100)}%`;
       tileMotivatedEl.textContent = `${Math.round(estimates.motivated * 100)}%`;
-      tileTiredEl.textContent = `${Math.round(estimates.tired * 100)}%`;
     }
 
     async function detectLoop() {
       const options = new faceapi.TinyFaceDetectorOptions();
       const result = await faceapi
         .detectSingleFace(video, options)
-        .withFaceLandmarks(true)
         .withFaceExpressions();
 
       ctx.clearRect(0, 0, overlay.width, overlay.height);
@@ -2947,7 +2890,7 @@
         faceapi.draw.drawDetections(overlay, resized);
 
         const expressions = calibrateExpressions(result.expressions);
-        const estimates = updateEstimates(result.landmarks, expressions, result.detection.box);
+        const estimates = updateEstimates(expressions, result.detection.box);
         renderBars(expressions, estimates);
         renderEstimated(estimates);
         maybeSampleSession(expressions, estimates);
@@ -2956,7 +2899,6 @@
         if (objectionWindowActive) {
           objectionWindowSamples.push({
             focused: estimates.focused,
-            tired: estimates.tired,
             dominantLabel: dominantEl.textContent,
           });
           if (Date.now() > objectionWindowEnd) {
