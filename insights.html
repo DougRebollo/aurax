@@ -46,6 +46,30 @@
   .orat-ring-label { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
   #insightsBody { display: flex; flex-direction: column; gap: 20px; }
 
+  /* Filtro de período */
+  .period-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+  .filter-tabs { display: flex; gap: 4px; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; width: fit-content; }
+  .filter-tabs button { border: 0; background: transparent; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; color: var(--ink-dim); }
+  .filter-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+  .period-nav { display: flex; align-items: center; gap: 6px; }
+  .period-nav .p-btn { width: 32px; height: 32px; padding: 0; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: 18px; line-height: 1; }
+  .period-nav .p-btn:disabled { opacity: 0.35; cursor: default; }
+  .period-nav .p-today { height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: 12.5px; font-weight: 600; }
+  .period-label { min-width: 150px; text-align: center; font-size: 13.5px; font-weight: 600; color: var(--ink); text-transform: capitalize; }
+  .stat-delta { font-size: 11.5px; font-weight: 600; margin-top: 3px; color: var(--ink-faint); }
+  .stat-delta.up { color: var(--good); } .stat-delta.down { color: var(--bad); }
+  .year-summary { font-size: 13.5px; color: var(--ink-dim); line-height: 1.55; margin: 0 0 14px; }
+  .year-summary b { color: var(--ink); }
+  .year-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .year-table th { text-align: left; font-size: 11px; color: var(--ink-faint); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--line); text-transform: uppercase; letter-spacing: 0.04em; }
+  .year-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); }
+  .year-table tr:last-child td { border-bottom: 0; }
+  .year-table .m { font-weight: 600; text-transform: capitalize; }
+  .year-table .num { font-family: var(--mono); }
+  .year-table .dim { color: var(--ink-faint); }
+  .year-table tr.best td:first-child::after { content: " ★"; color: var(--warn); }
+  .year-bar { display: inline-block; height: 6px; border-radius: 999px; vertical-align: middle; margin-left: 8px; background: var(--good); }
+
   .language-swap-list { display: flex; flex-direction: column; gap: 8px; }
   .language-swap-card {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
@@ -92,7 +116,23 @@
         <h1>Meus Insights</h1>
         <p>Como você tem evoluído nas suas próprias reuniões, sessão após sessão.</p>
       </div>
+      <div class="period-bar" id="periodBar" hidden>
+        <div class="filter-tabs" id="periodTabs" role="tablist" aria-label="Período">
+          <button type="button" data-p="week">Semana</button>
+          <button type="button" data-p="month">Mês</button>
+          <button type="button" data-p="year">Ano</button>
+          <button type="button" data-p="all">Tudo</button>
+        </div>
+        <div class="period-nav" id="periodNav">
+          <button type="button" class="p-btn" id="periodPrev" aria-label="Período anterior">‹</button>
+          <span class="period-label" id="periodLabel"></span>
+          <button type="button" class="p-btn" id="periodNext" aria-label="Próximo período">›</button>
+          <button type="button" class="p-today" id="periodToday">Hoje</button>
+        </div>
+      </div>
     </div>
+
+    <div id="periodEmpty" class="card empty-state" hidden></div>
 
     <div id="emptyState" class="card empty-state" hidden>
       Nenhuma sessão registrada ainda. Finalize sua primeira sessão no AuraX pra começar a ver sua evolução aqui.
@@ -100,7 +140,7 @@
 
     <div id="insightsBody" hidden>
       <div class="stat-grid">
-        <div class="card stat-card"><div class="stat-value" id="statTotalSessions">0</div><div class="stat-label">Sessões</div></div>
+        <div class="card stat-card"><div class="stat-value" id="statTotalSessions">0</div><div class="stat-label">Sessões</div><div class="stat-delta" id="statSessionsDelta"></div></div>
         <div class="card stat-card stat-card-ring">
           <div class="orat-ring" id="oratRing" style="--score:0; --score-color:var(--ink-faint)">
             <div class="orat-ring-inner">
@@ -111,6 +151,7 @@
           <div class="stat-ring-text">
             <div class="stat-label">Oratória média</div>
             <div class="stat-rank" id="statAvgOratoriaRank"></div>
+            <div class="stat-delta" id="statDelta"></div>
           </div>
         </div>
         <div class="card stat-card"><div class="stat-value" id="statAvgTalk">—</div><div class="stat-label">Fala média sua</div></div>
@@ -127,6 +168,11 @@
       <div class="section-title">Evolução da nota de oratória</div>
       <div class="card chart-card">
         <div id="oratoriaChartWrap"></div>
+      </div>
+
+      <div id="yearSection" hidden>
+        <div class="section-title" id="yearTitle">Resumo do ano</div>
+        <div class="card chart-card" id="yearWrap"></div>
       </div>
 
       <div class="section-title">Padrão de expressão facial ao longo do tempo</div>
@@ -222,6 +268,8 @@
       objecao_tensa: "Monte um roteiro curto (2-3 frases) pras objeções mais comuns antes da próxima call, pra não precisar improvisar na hora.",
     };
 
+    const escapeHtml = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
     function average(arr) {
       if (!arr.length) return 0;
       return arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -245,7 +293,7 @@
     }
 
     function renderLineChart(containerEl, series, opts) {
-      const { maxY = 1, height = 200 } = opts || {};
+      const { maxY = 1, height = 200, labelFn = formatDateShort, allLabels = false } = opts || {};
       const points = series[0].points;
       if (points.length < 2) {
         containerEl.innerHTML = '<div class="chart-empty">Poucos dados ainda — precisa de pelo menos 2 sessões com essa métrica.</div>';
@@ -283,9 +331,9 @@
       });
 
       // Eixo X: mostra algumas datas (início, meio, fim) pra não poluir.
-      const labelIdxs = n <= 5 ? points.map((_, i) => i) : [0, Math.floor((n - 1) / 2), n - 1];
+      const labelIdxs = allLabels || n <= 5 ? points.map((_, i) => i) : [0, Math.floor((n - 1) / 2), n - 1];
       labelIdxs.forEach((i) => {
-        svg += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--text-dim)">${formatDateShort(points[i].date)}</text>`;
+        svg += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--text-dim)">${labelFn(points[i].date)}</text>`;
       });
 
       containerEl.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto;">${svg}</svg>`;
@@ -314,7 +362,23 @@
       });
     }
 
-    function renderInsights(sessions) {
+    // Agrega pontos por mês (média) — usado na visão de ano e quando o período é longo.
+    function monthlyAvg(points) {
+      const acc = {};
+      points.forEach((p) => {
+        const d = new Date(p.date), key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+        (acc[key] = acc[key] || { date: new Date(d.getFullYear(), d.getMonth(), 15).toISOString(), vals: [] }).vals.push(p.value);
+      });
+      return Object.keys(acc).sort().map((k) => ({ date: acc[k].date, value: average(acc[k].vals) }));
+    }
+    const monthShort = (iso) => new Date(iso).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+    const monthYearShort = (iso) => monthShort(iso) + "/" + String(new Date(iso).getFullYear()).slice(2);
+
+    function renderInsights(sessions, ctx) {
+      ctx = ctx || { mode: "all", gran: "session", label: "", prev: [] };
+      const gran = ctx.gran === "month";
+      const chartPts = (pts) => (gran ? monthlyAvg(pts) : pts);
+      const lineOpts = (o) => Object.assign({}, o, gran ? { labelFn: ctx.mode === "year" ? monthShort : monthYearShort, allLabels: ctx.mode === "year" } : {});
       const emptyStateEl = document.getElementById("emptyState");
       const bodyEl = document.getElementById("insightsBody");
 
@@ -329,10 +393,20 @@
       const chronological = [...sessions].sort((a, b) => new Date(a.date) - new Date(b.date));
 
       document.getElementById("statTotalSessions").textContent = chronological.length;
-      document.getElementById("statDateRange").textContent =
-        chronological.length >= 2
+      document.getElementById("statDateRange").textContent = ctx.mode !== "all" && ctx.label
+        ? ctx.label
+        : chronological.length >= 2
           ? `${formatDateShort(chronological[0].date)} — ${formatDateShort(chronological[chronological.length - 1].date)}`
           : formatDateShort(chronological[0].date);
+
+      // Comparação com o período anterior (semana, mês ou ano anterior).
+      const deltaEl = document.getElementById("statSessionsDelta");
+      deltaEl.className = "stat-delta"; deltaEl.textContent = "";
+      if (ctx.mode !== "all" && ctx.prev && ctx.prev.length) {   // sem sessões no período anterior, não há o que comparar
+        const d = chronological.length - ctx.prev.length;
+        deltaEl.textContent = (d > 0 ? "▲ +" : d < 0 ? "▼ " : "= ") + (d === 0 ? "igual ao " : d + " vs. ") + "período anterior";
+        deltaEl.className = "stat-delta " + (d > 0 ? "up" : d < 0 ? "down" : "");
+      }
 
       // --- Nota de oratória ao longo do tempo ---
       const oratoriaPoints = chronological
@@ -349,14 +423,22 @@
         ring.style.setProperty("--score-color", rank.color);
         rankEl.textContent = rank.label;
         rankEl.style.color = rank.color;
+        const scDelta = document.getElementById("statDelta");
+        scDelta.className = "stat-delta"; scDelta.textContent = "";
+        const prevScores = (ctx.prev || []).filter((x) => x.oratoria_score != null).map((x) => x.oratoria_score);
+        if (ctx.mode !== "all" && prevScores.length) {
+          const dd = avgScore - Math.round(average(prevScores));
+          scDelta.textContent = (dd > 0 ? "▲ +" : dd < 0 ? "▼ " : "= ") + dd + " vs. anterior";
+          scDelta.className = "stat-delta " + (dd > 0 ? "up" : dd < 0 ? "down" : "");
+        }
       } else {
         document.getElementById("statAvgOratoria").textContent = "—";
         rankEl.textContent = "";
       }
       renderLineChart(
         document.getElementById("oratoriaChartWrap"),
-        [{ points: oratoriaPoints, color: "var(--good)" }],
-        { maxY: 100 }
+        [{ points: chartPts(oratoriaPoints), color: "var(--good)" }],
+        lineOpts({ maxY: 100 })
       );
       if (!oratoriaPoints.length) {
         document.getElementById("oratoriaChartWrap").innerHTML =
@@ -368,9 +450,9 @@
       renderLineChart(
         document.getElementById("emotionChartWrap"),
         [
-          { points: focusedPoints, color: "var(--good)" },
+          { points: chartPts(focusedPoints), color: "var(--good)" },
         ],
-        { maxY: 1 }
+        lineOpts({ maxY: 1 })
       );
 
       // --- Vícios de linguagem ao longo do tempo ---
@@ -390,8 +472,8 @@
         : 10;
       renderLineChart(
         document.getElementById("fillerTrendWrap"),
-        [{ points: fillerTrendPoints, color: "var(--purple)" }],
-        { maxY: fillerMaxY }
+        [{ points: chartPts(fillerTrendPoints), color: "var(--purple)" }],
+        lineOpts({ maxY: fillerMaxY })
       );
 
       // --- Equilíbrio de conversa ---
@@ -471,6 +553,136 @@
       });
       document.getElementById("fillerFreqWrap").innerHTML = renderLanguageSwapCards(fillerTotals, FILLER_LIBRARY, "filler-swap");
       document.getElementById("slangFreqWrap").innerHTML = renderLanguageSwapCards(slangTotals, SLANG_LIBRARY, "slang-swap");
+
+      renderYear(chronological, ctx);
+    }
+
+    // Análise do ano: mês a mês (sessões, nota média, vícios por 100 palavras e o ponto mais recorrente).
+    function renderYear(sessions, ctx) {
+      const section = document.getElementById("yearSection");
+      if (ctx.mode !== "year") { section.hidden = true; return; }
+      section.hidden = false;
+      const year = ctx.range.start.getFullYear();
+      document.getElementById("yearTitle").textContent = "Resumo de " + year;
+      const months = Array.from({ length: 12 }, (_, m) => {
+        const list = sessions.filter((x) => new Date(x.date).getMonth() === m);
+        const scores = list.filter((x) => x.oratoria_score != null).map((x) => x.oratoria_score);
+        let words = 0, fillers = 0;
+        list.forEach((x) => {
+          const w = (x.wpm || 0) * ((x.duration || 0) / 60);
+          if (w) { words += w; fillers += Object.values(AuraShell.cleanFillers(x.filler_counts)).reduce((a, b) => a + b, 0); }
+        });
+        const tipCount = {};
+        list.forEach((x) => (x.tips || []).forEach((t) => {
+          if (t && t.key && t.type === "melhorar" && !["poucas_perguntas_abertas", "cansaco"].includes(t.key)) tipCount[t.key] = (tipCount[t.key] || 0) + 1;
+        }));
+        const top = Object.entries(tipCount).sort((a, b) => b[1] - a[1])[0];
+        return { m, n: list.length, avg: scores.length ? Math.round(average(scores)) : null, rate: words ? (fillers / words) * 100 : null, top: top ? (TIP_KEY_LABELS[top[0]] || top[0]) : null };
+      });
+      const withScore = months.filter((x) => x.avg != null);
+      const best = withScore.length ? withScore.reduce((a, b) => (b.avg > a.avg ? b : a)) : null;
+      const name = (m) => new Date(year, m, 1).toLocaleDateString("pt-BR", { month: "long" });
+      const first = withScore[0], last = withScore[withScore.length - 1];
+      const total = sessions.length, yearAvg = withScore.length ? Math.round(average(sessions.filter((x) => x.oratoria_score != null).map((x) => x.oratoria_score))) : null;
+      let summary = `Em <b>${year}</b>: <b>${total}</b> ${total === 1 ? "sessão" : "sessões"}` + (yearAvg != null ? `, nota média <b>${yearAvg}</b>` : "") + ".";
+      if (best) summary += ` Melhor mês: <b>${name(best.m)}</b> (${best.avg}).`;
+      if (first && last && first.m !== last.m) {
+        const diff = last.avg - first.avg;
+        summary += ` De ${name(first.m)} para ${name(last.m)}, a nota ${diff > 0 ? "subiu <b>+" + diff + "</b>" : diff < 0 ? "caiu <b>" + diff + "</b>" : "ficou igual"} pontos.`.replace("igual pontos","igual");
+      }
+      const maxAvg = 100;
+      document.getElementById("yearWrap").innerHTML = `<p class="year-summary">${summary}</p>
+        <div class="tbl-wrap" style="overflow-x:auto"><table class="year-table">
+          <thead><tr><th>Mês</th><th>Sessões</th><th>Nota média</th><th>Vícios / 100 palavras</th><th>Ponto mais recorrente</th></tr></thead>
+          <tbody>${months.map((x) => `<tr class="${best && x.m === best.m ? "best" : ""}">
+            <td class="m">${name(x.m)}</td>
+            <td class="num ${x.n ? "" : "dim"}">${x.n || "—"}</td>
+            <td class="num">${x.avg != null ? x.avg + `<span class="year-bar" style="width:${Math.round((x.avg / maxAvg) * 70)}px"></span>` : '<span class="dim">—</span>'}</td>
+            <td class="num ${x.rate == null ? "dim" : ""}">${x.rate != null ? x.rate.toFixed(1).replace(".", ",") : "—"}</td>
+            <td class="${x.top ? "" : "dim"}">${x.top ? escapeHtml(x.top) : "—"}</td></tr>`).join("")}</tbody></table></div>`;
+    }
+
+    // ===== Filtro de período (semana · mês · ano · tudo) =====
+    const PERIOD_KEY = "aurax_insights_period";
+    let allSessions = [];
+    let periodMode = "all";
+    let periodCursor = new Date();
+    try { const saved = localStorage.getItem(PERIOD_KEY); if (["week", "month", "year", "all"].includes(saved)) periodMode = saved; } catch (e) { /* ok */ }
+
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const startOfWeek = (d) => { const x = startOfDay(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }; // segunda-feira
+    function periodRange(mode, cursor) {
+      if (mode === "week") { const s = startOfWeek(cursor), e = new Date(s); e.setDate(e.getDate() + 7); return { start: s, end: e }; }
+      if (mode === "month") return { start: new Date(cursor.getFullYear(), cursor.getMonth(), 1), end: new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1) };
+      if (mode === "year") return { start: new Date(cursor.getFullYear(), 0, 1), end: new Date(cursor.getFullYear() + 1, 0, 1) };
+      return null;
+    }
+    function shiftCursor(mode, cursor, dir) {
+      const c = new Date(cursor);
+      if (mode === "week") c.setDate(c.getDate() + 7 * dir);
+      else if (mode === "month") c.setMonth(c.getMonth() + dir, 1);
+      else if (mode === "year") c.setFullYear(c.getFullYear() + dir);
+      return c;
+    }
+    function periodLabelText(mode, range) {
+      if (mode === "all") return "Todo o período";
+      if (mode === "year") return String(range.start.getFullYear());
+      if (mode === "month") return range.start.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      const last = new Date(range.end); last.setDate(last.getDate() - 1);
+      const sm = range.start.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""), em = last.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+      return range.start.getMonth() === last.getMonth()
+        ? `${range.start.getDate()} – ${last.getDate()} ${em} ${last.getFullYear()}`
+        : `${range.start.getDate()} ${sm} – ${last.getDate()} ${em} ${last.getFullYear()}`;
+    }
+    const inRange = (list, range) => list.filter((x) => { const t = new Date(x.date); return t >= range.start && t < range.end; });
+
+    function refreshPeriod() {
+      const range = periodRange(periodMode, periodCursor);
+      const filtered = range ? inRange(allSessions, range) : allSessions;
+      const prevRange = range ? periodRange(periodMode, shiftCursor(periodMode, periodCursor, -1)) : null;
+      const prev = prevRange ? inRange(allSessions, prevRange) : [];
+      const label = periodLabelText(periodMode, range);
+
+      document.querySelectorAll("#periodTabs button").forEach((b) => b.classList.toggle("active", b.dataset.p === periodMode));
+      const labelEl = document.getElementById("periodLabel");
+      labelEl.textContent = label;
+      const nav = document.getElementById("periodNav");
+      nav.style.visibility = periodMode === "all" ? "hidden" : "visible";
+      const now = new Date();
+      if (range) {
+        const earliest = allSessions.length ? new Date(allSessions[0].date) : now;
+        document.getElementById("periodPrev").disabled = earliest >= range.start;
+        document.getElementById("periodNext").disabled = range.end > now;
+        document.getElementById("periodToday").hidden = range.start <= now && now < range.end;
+      }
+
+      const emptyEl = document.getElementById("periodEmpty");
+      if (!filtered.length) {
+        emptyEl.hidden = false;
+        emptyEl.textContent = "Nenhuma sessão em " + label + ". Use as setas para ver outro período ou escolha “Tudo”.";
+        document.getElementById("insightsBody").hidden = true;
+        return;
+      }
+      emptyEl.hidden = true;
+      const spanDays = (new Date(filtered[filtered.length - 1].date) - new Date(filtered[0].date)) / 86400000;
+      const gran = periodMode === "year" || (periodMode === "all" && spanDays > 150) ? "month" : "session";
+      renderInsights(filtered, { mode: periodMode, range, label, gran, prev });
+    }
+
+    function setupPeriod() {
+      document.getElementById("periodBar").hidden = false;
+      document.getElementById("periodTabs").addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-p]");
+        if (!b) return;
+        periodMode = b.dataset.p;
+        periodCursor = new Date();
+        try { localStorage.setItem(PERIOD_KEY, periodMode); } catch (err) { /* ok */ }
+        posthog.capture("insights_period", { mode: periodMode });
+        refreshPeriod();
+      });
+      document.getElementById("periodPrev").addEventListener("click", () => { periodCursor = shiftCursor(periodMode, periodCursor, -1); refreshPeriod(); });
+      document.getElementById("periodNext").addEventListener("click", () => { periodCursor = shiftCursor(periodMode, periodCursor, 1); refreshPeriod(); });
+      document.getElementById("periodToday").addEventListener("click", () => { periodCursor = new Date(); refreshPeriod(); });
     }
 
 
@@ -500,7 +712,10 @@
         return;
       }
 
-      renderInsights(data || []);
+      allSessions = (data || []).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+      if (!allSessions.length) { renderInsights([]); return; }
+      setupPeriod();
+      refreshPeriod();
     }
 
     init();
