@@ -61,6 +61,8 @@
     font-size: 0.85rem;
     text-align: center;
   }
+  #noPlanBanner { display: block; }
+  #noPlanBanner[hidden] { display: none; }
   #profileIncompleteBanner {
     max-width: 640px;
     margin: 0 auto 16px;
@@ -874,6 +876,7 @@
   <div id="accountBlockedBanner" hidden>
     ⚠️ Assinatura pausada — pagamento falhou ou foi cancelado. Seus dados antigos continuam disponíveis, mas não é possível gravar novas sessões até reativar.
   </div>
+  <div id="noPlanBanner" class="no-plan-banner" hidden></div>
   <div id="profileIncompleteBanner" hidden>
     ⚠️ Complete seu cadastro para usar o AuraX.
     <button type="button" id="bannerUpdateBtn">Atualizar cadastro</button>
@@ -1686,6 +1689,11 @@
     }, 1000);
 
     startSessionBtn.addEventListener("click", () => {
+      if (noPlan) {
+        posthog.capture("record_blocked_no_plan");
+        AuraShell.showPlanPrompt({ canPay: !currentUserHasManager });
+        return;
+      }
       sessionActive = true;
       sessionStartTime = Date.now();
       lastSampleTime = 0;
@@ -3228,6 +3236,17 @@
 
     let currentUserId = null;
     let currentUserRole = null;
+    let currentUserHasManager = false;
+    // Conta sem plano ativo: pode navegar por tudo, mas "Iniciar sessão" abre o aviso para assinar.
+    let noPlan = false;
+    function showNoPlanBanner() {
+      noPlan = true;
+      const el = document.getElementById("noPlanBanner");
+      el.innerHTML = currentUserHasManager
+        ? "O plano do seu gestor ainda não está ativo, então a gravação está pausada. Dá para explorar o AuraX enquanto isso."
+        : 'Você ainda não tem um plano ativo. Dá para explorar o AuraX, mas para gravar sessões é preciso assinar. <a href="pagamento-pendente.html">Ver planos</a>';
+      el.hidden = false;
+    }
 
     async function requireAuthThenInit() {
       const { data: { session } } = await supabaseClient.auth.getSession();
@@ -3239,10 +3258,11 @@
 
       const { data: profile } = await supabaseClient
         .from("profiles")
-        .select("role, name, cargo, empresa")
+        .select("role, name, cargo, empresa, manager_id")
         .eq("id", currentUserId)
         .single();
       currentUserRole = profile ? profile.role : "funcionario";
+      currentUserHasManager = !!(profile && profile.manager_id);
       if (currentUserRole === "gestor") {
         document.getElementById("backToGestorBtn").style.display = "inline-block";
       }
@@ -3267,8 +3287,7 @@
       // os dados antigos, só não grava sessão nova (reforçado no banco).
       const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
       if (accountStatus === "pendente_pagamento") {
-        window.location.href = "pagamento-pendente.html";
-        return;
+        showNoPlanBanner(); // sem plano: navega à vontade, mas não grava
       }
       if (accountStatus === "bloqueada") {
         document.getElementById("accountBlockedBanner").hidden = false;
@@ -3415,10 +3434,7 @@
 
         // Libera a gravação só se a conta não estiver bloqueada por pagamento.
         const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
-        if (accountStatus === "pendente_pagamento") {
-          window.location.href = "pagamento-pendente.html";
-          return;
-        }
+        if (accountStatus === "pendente_pagamento") showNoPlanBanner();
         if (accountStatus !== "bloqueada") {
           startSessionBtn.disabled = false;
         }

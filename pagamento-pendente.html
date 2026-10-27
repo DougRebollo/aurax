@@ -13,7 +13,9 @@
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
   body { display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .card { width: 100%; max-width: 440px; padding: 36px 32px; text-align: center; }
+  .card { position: relative; width: 100%; max-width: 440px; padding: 36px 32px; text-align: center; }
+  .close-x { position: absolute; top: 14px; right: 16px; width: 34px; height: 34px; padding: 0; display: grid; place-items: center; border-radius: 10px; border: 0; background: transparent; color: var(--ink-dim); font-size: 24px; line-height: 1; }
+  .close-x:hover { background: var(--surface-2); color: var(--ink); filter: none; }
   .card.plan { max-width: 480px; }
   .plan-name { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
   .plan-amount { font-size: 44px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; color: var(--ink); margin: 0; }
@@ -40,6 +42,7 @@
 </head>
 <body class="glass">
   <div class="card">
+    <button type="button" class="close-x" id="closeX" aria-label="Fechar e explorar o AuraX" title="Fechar e explorar o AuraX" hidden>×</button>
     <div class="logo">AuraX</div>
 
     <div id="gestorView" hidden>
@@ -171,6 +174,11 @@
         window.location.href = "login.html";
         return;
       }
+
+      // O X leva para a área da pessoa: ela explora o AuraX, só não consegue gravar sem plano.
+      const closeX = document.getElementById("closeX");
+      closeX.hidden = false;
+      closeX.addEventListener("click", () => { window.location.href = profile.role === "gestor" ? "painel-gestor.html" : "app.html"; });
 
       const alreadyActive = await redirectIfAlreadyActive(profile);
       if (alreadyActive) return;

@@ -299,6 +299,16 @@ details.tips-fold > summary { cursor: pointer; font-size: 13px; font-weight: 600
 .sup-sub { margin: 0 0 16px; color: var(--ink-dim); font-size: 14px; }
 .sup-x { position: absolute; top: 12px; right: 14px; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-dim); font-size: 22px; line-height: 1; }
 .sup-x:hover { background: var(--surface-2); color: var(--ink); }
+.plan-prompt { text-align: center; }
+.plan-prompt h3 { margin-top: 6px; }
+.plan-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.plan-cta { display: block; padding: 12px 16px; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; text-decoration: none; text-align: center; }
+.plan-cta:hover { filter: brightness(0.94); }
+.plan-ghost { padding: 11px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-weight: 600; font-size: 14px; }
+.plan-ghost:hover { background: var(--surface); }
+.no-plan-banner { max-width: 640px; margin: 0 auto 16px; padding: 12px 16px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); color: var(--ink); font-size: 0.85rem; text-align: center; line-height: 1.5; }
+.no-plan-banner a { color: var(--accent); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.no-plan-banner a:hover { text-decoration: underline; }
 .sup-wa { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: 10px; background: var(--good-soft); color: var(--good); border: 1px solid color-mix(in srgb, var(--good) 35%, var(--line)); font-weight: 700; text-decoration: none; }
 .sup-wa:hover { filter: brightness(0.97); }
 .sup-wa svg { width: 20px; height: 20px; }

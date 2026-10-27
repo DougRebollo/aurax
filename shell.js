@@ -216,5 +216,36 @@
     return out;
   }
 
-  window.AuraShell = { init, cleanFillers };
+  // ===== Aviso "assine um plano" (conta sem plano tentando gravar) =====
+  function showPlanPrompt({ canPay }) {
+    const old = document.getElementById("planPromptOverlay");
+    if (old) old.remove();
+    const overlay = document.createElement("div");
+    overlay.id = "planPromptOverlay";
+    overlay.className = "sup-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "planPromptTitle");
+    overlay.innerHTML =
+      '<div class="sup-card plan-prompt">' +
+        '<button type="button" class="sup-x" aria-label="Fechar">×</button>' +
+        '<h3 id="planPromptTitle">' + (canPay ? "Assine um plano para gravar" : "Gravação pausada") + "</h3>" +
+        '<p class="sup-sub">' + (canPay
+          ? "Você pode explorar o AuraX à vontade, mas para gravar uma sessão é preciso ter um plano ativo."
+          : "O plano do seu gestor ainda não está ativo, então a gravação está pausada. Fale com ele para liberar.") + "</p>" +
+        '<div class="plan-actions">' +
+          (canPay ? '<a class="plan-cta" href="pagamento-pendente.html">Ver planos</a>' : "") +
+          '<button type="button" class="plan-ghost">' + (canPay ? "Agora não" : "Entendi") + "</button>" +
+        "</div>" +
+      "</div>";
+    document.body.appendChild(overlay);
+    const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey); };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay || e.target.closest(".sup-x, .plan-ghost")) close(); });
+    const focusEl = overlay.querySelector(".plan-cta, .plan-ghost");
+    if (focusEl) focusEl.focus();
+  }
+
+  window.AuraShell = { init, cleanFillers, showPlanPrompt };
 })();

@@ -171,7 +171,10 @@
     });
 
     // Depois de logado, manda cada papel pra tela certa.
-    async function redirectByRole() {
+    // fresh = acabou de criar/confirmar a conta: mostra a tela de plano (que tem um X para fechar).
+    // Nos acessos seguintes a pessoa vai direto para o app; sem plano ela só não consegue gravar.
+    async function redirectByRole(opts) {
+      const fresh = !!(opts && opts.fresh);
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) return;
 
@@ -194,7 +197,7 @@
       // Pagamento pendente bloqueia a conta inteira (gestor e time) — nunca
       // deixa passar pra tela de gravação ou pro painel antes de confirmar.
       const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: user.id });
-      if (accountStatus === "pendente_pagamento") {
+      if (accountStatus === "pendente_pagamento" && fresh) {
         window.location.href = "pagamento-pendente.html";
         return;
       }
@@ -233,7 +236,7 @@
           } else {
             posthog.identify(data.user.id, { email });
             posthog.capture("signup_completed");
-            await redirectByRole();
+            await redirectByRole({ fresh: true });
           }
         } else {
           const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -272,7 +275,7 @@
           const { error } = await supabaseClient.auth.resend({ type: "signup", email });
           return error ? { ok: false, message: translateAuthError(error.message) } : { ok: true };
         },
-        onSuccess: () => { redirectByRole(); },
+        onSuccess: () => { redirectByRole({ fresh: true }); },
       });
     }
 

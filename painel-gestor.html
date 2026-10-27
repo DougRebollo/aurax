@@ -165,6 +165,10 @@
     <div class="shell-main">
       <main class="content">
 
+    <div class="no-plan-banner" id="noPlanBanner" hidden style="max-width:none;margin:0">
+      Você ainda não tem um plano ativo. Dá para explorar o painel, mas para gravar sessões é preciso assinar. <a href="pagamento-pendente.html">Ver planos</a>
+    </div>
+
     <div class="card account-blocked-banner" id="accountBlockedBanner" hidden>
       ⚠️ Assinatura pausada — pagamento falhou ou foi cancelado. Os dados do time continuam disponíveis, mas ninguém consegue gravar sessão nova até reativar.
     </div>
@@ -716,8 +720,7 @@
 
       const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
       if (accountStatus === "pendente_pagamento") {
-        window.location.href = "pagamento-pendente.html";
-        return;
+        document.getElementById("noPlanBanner").hidden = false; // sem plano: o painel abre, só não grava
       }
       if (accountStatus === "bloqueada") {
         document.getElementById("accountBlockedBanner").hidden = false;
