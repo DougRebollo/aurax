@@ -180,28 +180,42 @@
         <p id="greetingRole" style="display:none"></p>
         <p>Gerencie quem faz parte do seu time no AuraX.</p>
       </div>
+      <div class="period-bar" id="periodBar" hidden>
+        <div class="filter-tabs" id="periodTabs" role="tablist" aria-label="Período">
+          <button type="button" data-p="week">Semana</button>
+          <button type="button" data-p="month">Mês</button>
+          <button type="button" data-p="year">Ano</button>
+          <button type="button" data-p="all">Tudo</button>
+        </div>
+        <div class="period-nav" id="periodNav">
+          <button type="button" class="p-btn" id="periodPrev" aria-label="Período anterior">‹</button>
+          <span class="period-label" id="periodLabel"></span>
+          <button type="button" class="p-btn" id="periodNext" aria-label="Próximo período">›</button>
+          <button type="button" class="p-today" id="periodToday">Hoje</button>
+        </div>
+      </div>
     </div>
 
     <div class="stat-grid">
-      <div class="card stat-card"><div class="stat-value" id="statTeamSessions">0</div><div class="stat-label">Sessões do time</div></div>
-      <div class="card stat-card"><div class="stat-value" id="statTeamOratoria">—</div><div class="stat-label">Oratória média do time</div></div>
-      <div class="card stat-card"><div class="stat-value" id="statMyOratoria">—</div><div class="stat-label">Sua oratória média</div></div>
+      <div class="card stat-card"><div class="stat-value" id="statTeamSessions">0</div><div class="stat-label">Sessões do time</div><div class="stat-delta" id="dTeamSessions"></div></div>
+      <div class="card stat-card"><div class="stat-value" id="statTeamOratoria">—</div><div class="stat-label">Oratória média do time</div><div class="stat-delta" id="dTeamOratoria"></div></div>
+      <div class="card stat-card"><div class="stat-value" id="statMyOratoria">—</div><div class="stat-label">Sua oratória média</div><div class="stat-delta" id="dMyOratoria"></div></div>
     </div>
 
     <div class="card chart-card" id="chartCard">
       <div class="chart-head">
         <div>
           <h3>Evolução da oratória</h3>
-          <div class="chart-sub">Média semanal da nota de oratória, você e seu time</div>
-        </div>
-        <div class="filter-tabs" id="chartRange">
-          <button type="button" data-w="4">4 semanas</button>
-          <button type="button" data-w="8" class="active">8 semanas</button>
-          <button type="button" data-w="12">12 semanas</button>
+          <div class="chart-sub" id="chartSub">Média semanal da nota de oratória, você e seu time</div>
         </div>
       </div>
       <div class="chart-kpis" id="chartKpis"></div>
       <div class="chart-wrap" id="chartWrap"></div>
+    </div>
+
+    <div id="yearSection" hidden>
+      <div class="section-title" id="yearTitle">Resumo do ano</div>
+      <div class="card chart-card" id="yearWrap"></div>
     </div>
 
     <div class="card focus-card" id="teamFocusCard" hidden>
@@ -259,6 +273,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js"></script>
+  <script src="period.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
@@ -451,34 +466,75 @@
       await loadInvites();
       updateTeamLimitUI();
       renderFilterTabs();
-      await renderTeamSummary();
-      await loadOratoriaChart();
-      await renderSessions();
+      await loadTeamRows();
+      mountPeriod();
     }
 
-    // Visão agregada do time inteiro (você + liderados), independente do
-    // filtro selecionado abaixo — é o resumo "sempre visível" no topo.
-    async function renderTeamSummary() {
-      const allPeople = [{ id: currentUserId, name: "Você" }].concat(teamMembers);
-      const targetIds = allPeople.map((p) => p.id);
+    // ===== Dados do time e filtro de período (a lógica do filtro fica em period.js) =====
+    let teamRowsAll = [];   // todas as sessões (você + time): user_id, date, oratoria_score, tips
+    let periodState = null;
+    let periodMounted = false;
+    const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas", "cansaco", "boa_energia"]; // perguntas: recurso removido; cansaço/energia vêm do rosto e não aparecem para o gestor
 
+    async function loadTeamRows() {
+      const ids = [currentUserId].concat(teamMembers.map((p) => p.id));
       const { data, error } = await supabaseClient
         .from("sessions")
-        .select("oratoria_score, tips")
-        .in("user_id", targetIds);
+        .select("user_id, date, oratoria_score, tips")
+        .in("user_id", ids)
+        .order("date", { ascending: true })
+        .limit(5000);
+      teamRowsAll = error || !data ? [] : data;
+    }
 
-      if (error || !data) return;
+    function mountPeriod() {
+      if (periodMounted) { applyPeriod(); return; }
+      periodMounted = true;
+      AuraPeriod.mount({
+        storageKey: "aurax_painel_period",
+        getEarliest: () => (teamRowsAll.length ? new Date(Math.min(...teamRowsAll.map((r) => new Date(r.date).getTime()))) : null),
+        onChange: (st) => { periodState = st; applyPeriod(); },
+      });
+    }
 
-      document.getElementById("statTeamSessions").textContent = data.length;
+    function applyPeriod() {
+      if (!periodState) return;
+      renderTeamSummary(periodState);
+      renderOratoriaChart();
+      renderYearSummary(periodState);
+      renderSessions();
+    }
 
-      const scored = data.filter((s) => s.oratoria_score != null);
-      document.getElementById("statTeamOratoria").textContent = scored.length
-        ? Math.round(average(scored.map((s) => s.oratoria_score)))
-        : "—";
+    // Visão agregada do time inteiro (você + liderados) no período escolhido — o resumo "sempre visível" no topo.
+    function renderTeamSummary(st) {
+      const rows = AuraPeriod.inRange(teamRowsAll, st.range);
+      const prev = st.prevRange ? AuraPeriod.inRange(teamRowsAll, st.prevRange) : [];
+      const scoreAvg = (list) => {
+        const v = list.filter((r) => r.oratoria_score != null).map((r) => r.oratoria_score);
+        return v.length ? average(v) : null;
+      };
+      const setDelta = (id, cur, prv, suffix) => {
+        const el = document.getElementById(id);
+        el.className = "stat-delta"; el.textContent = "";
+        if (st.mode === "all" || cur == null || prv == null) return;
+        const d = Math.round(cur) - Math.round(prv);
+        el.textContent = (d > 0 ? "▲ +" : d < 0 ? "▼ " : "= ") + (d === 0 ? "igual" : d) + " " + suffix;
+        el.className = "stat-delta " + (d > 0 ? "up" : d < 0 ? "down" : "");
+      };
 
-      const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas", "cansaco", "boa_energia"]; // perguntas: recurso removido; cansaço/energia vêm do rosto e não aparecem para o gestor // recurso removido: sessões antigas ainda trazem essas dicas
+      document.getElementById("statTeamSessions").textContent = rows.length;
+      setDelta("dTeamSessions", rows.length, prev.length ? prev.length : null, "vs. período anterior");
+
+      const team = scoreAvg(rows);
+      document.getElementById("statTeamOratoria").textContent = team != null ? Math.round(team) : "—";
+      setDelta("dTeamOratoria", team, scoreAvg(prev), "vs. anterior");
+
+      const mine = scoreAvg(rows.filter((r) => r.user_id === currentUserId));
+      document.getElementById("statMyOratoria").textContent = mine != null ? Math.round(mine) : "—";
+      setDelta("dMyOratoria", mine, scoreAvg(prev.filter((r) => r.user_id === currentUserId)), "vs. anterior");
+
       const tipCounts = {};
-      data.forEach((s) => {
+      rows.forEach((s) => {
         (s.tips || []).forEach((t) => {
           if (!t || !t.key || IGNORED_TIP_KEYS.includes(t.key)) return;
           if (!tipCounts[t.key]) tipCounts[t.key] = { type: t.type, count: 0 };
@@ -488,16 +544,49 @@
       const rankedTips = Object.entries(tipCounts).sort((a, b) => b[1].count - a[1].count);
       const topImprovement = rankedTips.find(([, info]) => info.type === "melhorar");
       const focusCardEl = document.getElementById("teamFocusCard");
-      if (topImprovement && data.length) {
+      if (topImprovement && rows.length) {
         const [key, info] = topImprovement;
         const label = TIP_KEY_LABELS[key] || key;
-        const pct = Math.round((info.count / data.length) * 100);
+        const pct = Math.round((info.count / rows.length) * 100);
         focusCardEl.hidden = false;
         document.getElementById("teamFocusTitle").textContent = `Principal ponto de melhoria do time: ${label}`;
-        document.getElementById("teamFocusFrequency").textContent = `Apareceu em ${info.count} de ${data.length} sessões do time (${pct}%).`;
+        document.getElementById("teamFocusFrequency").textContent = `Apareceu em ${info.count} de ${rows.length} sessões do time (${pct}%)` + (st.mode === "all" ? "." : ` em ${st.label}.`);
       } else {
         focusCardEl.hidden = true;
       }
+    }
+
+    // Análise do ano: mês a mês (sessões do time, nota do time e a sua).
+    function renderYearSummary(st) {
+      const section = document.getElementById("yearSection");
+      if (st.mode !== "year") { section.hidden = true; return; }
+      section.hidden = false;
+      const year = st.range.start.getFullYear();
+      document.getElementById("yearTitle").textContent = "Resumo de " + year;
+      const rows = AuraPeriod.inRange(teamRowsAll, st.range);
+      const avgScore = (list) => { const v = list.filter((r) => r.oratoria_score != null).map((r) => r.oratoria_score); return v.length ? Math.round(average(v)) : null; };
+      const months = Array.from({ length: 12 }, (_, m) => {
+        const list = rows.filter((r) => new Date(r.date).getMonth() === m);
+        return { m, n: list.length, team: avgScore(list), mine: avgScore(list.filter((r) => r.user_id === currentUserId)) };
+      });
+      const withScore = months.filter((x) => x.team != null);
+      const best = withScore.length ? withScore.reduce((a, b) => (b.team > a.team ? b : a)) : null;
+      const mName = (m) => new Date(year, m, 1).toLocaleDateString("pt-BR", { month: "long" });
+      let summary = `Em <b>${year}</b>: <b>${rows.length}</b> ${rows.length === 1 ? "sessão" : "sessões"} do time` + (avgScore(rows) != null ? `, nota média do time <b>${avgScore(rows)}</b>` : "") + ".";
+      if (best) summary += ` Melhor mês: <b>${mName(best.m)}</b> (${best.team}).`;
+      const first = withScore[0], last = withScore[withScore.length - 1];
+      if (first && last && first.m !== last.m) {
+        const diff = last.team - first.team;
+        summary += diff === 0 ? ` De ${mName(first.m)} para ${mName(last.m)}, a nota do time ficou igual.` : ` De ${mName(first.m)} para ${mName(last.m)}, a nota do time ${diff > 0 ? "subiu <b>+" + diff + "</b>" : "caiu <b>" + diff + "</b>"} pontos.`;
+      }
+      document.getElementById("yearWrap").innerHTML = `<p class="year-summary">${summary}</p>
+        <div style="overflow-x:auto"><table class="year-table">
+          <thead><tr><th>Mês</th><th>Sessões do time</th><th>Nota do time</th><th>Sua nota</th></tr></thead>
+          <tbody>${months.map((x) => `<tr class="${best && x.m === best.m ? "best" : ""}">
+            <td class="m">${mName(x.m)}</td>
+            <td class="num ${x.n ? "" : "dim"}">${x.n || "—"}</td>
+            <td class="num">${x.team != null ? x.team + `<span class="year-bar" style="width:${Math.round((x.team / 100) * 70)}px"></span>` : '<span class="dim">—</span>'}</td>
+            <td class="num ${x.mine == null ? "dim" : ""}">${x.mine != null ? x.mine : "—"}</td></tr>`).join("")}</tbody></table></div>`;
     }
 
     function renderFilterTabs() {
@@ -553,19 +642,17 @@
       const allPeople = [{ id: currentUserId, name: "Você" }].concat(teamMembers);
       const targetIds = selectedFilter === "todos" ? allPeople.map((p) => p.id) : [selectedFilter];
 
-      const { data, error } = await supabaseClient
-        .from("sessions")
-        .select("*")
-        .in("user_id", targetIds)
-        .order("date", { ascending: false })
-        .limit(30);
+      const st = periodState;
+      let query = supabaseClient.from("sessions").select("*").in("user_id", targetIds);
+      if (st && st.range) query = query.gte("date", st.range.start.toISOString()).lt("date", st.range.end.toISOString());
+      const { data, error } = await query.order("date", { ascending: false }).limit(60);
 
       if (error) {
         listEl.innerHTML = `<div class="empty-state">Não foi possível carregar as sessões agora.</div>`;
         return;
       }
       if (!data.length) {
-        listEl.innerHTML = `<div class="empty-state">Nenhuma sessão registrada ainda.</div>`;
+        listEl.innerHTML = `<div class="empty-state">${st && st.range ? "Nenhuma sessão em " + st.label + "." : "Nenhuma sessão registrada ainda."}</div>`;
         return;
       }
 
@@ -758,47 +845,72 @@
     function fmtDM(d) { return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); }
 
     // ===== Gráfico: evolução da oratória (você x time) =====
-    let chartRows = [];  // sessões com nota: você + time
-    let chartWeeks = 8;
-
-    async function loadOratoriaChart() {
-      const ids = [currentUserId].concat(teamMembers.map((p) => p.id));
-      const { data, error } = await supabaseClient
-        .from("sessions")
-        .select("user_id, date, oratoria_score")
-        .in("user_id", ids)
-        .not("oratoria_score", "is", null)
-        .order("date", { ascending: false })
-        .limit(1000);
-      chartRows = error || !data ? [] : data;
-      const mine = chartRows.filter((r) => r.user_id === currentUserId).map((r) => r.oratoria_score);
-      document.getElementById("statMyOratoria").textContent = mine.length ? Math.round(average(mine)) : "—";
-      renderOratoriaChart();
+    const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+    // Faixas do gráfico conforme o período: semana → dias; mês → semanas; ano → meses; tudo → semanas ou meses.
+    function bucketsFor(st) {
+      const out = [];
+      const mShort = (d) => d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+      const mLong = (d) => d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      if (st.mode === "week") {
+        for (let i = 0; i < 7; i++) {
+          const d = addDays(st.range.start, i);
+          out.push({ start: d, end: addDays(d, 1), label: WD[d.getDay()] + " " + d.getDate(), title: WD[d.getDay()] + " " + fmtDM(d) });
+        }
+      } else if (st.mode === "month") {
+        let w = startOfWeek(st.range.start);
+        while (w < st.range.end) {
+          const s0 = w < st.range.start ? st.range.start : w, e0 = addDays(w, 7) > st.range.end ? st.range.end : addDays(w, 7);
+          out.push({ start: s0, end: e0, label: fmtDM(s0), title: "Semana de " + fmtDM(s0) });
+          w = addDays(w, 7);
+        }
+      } else if (st.mode === "year") {
+        for (let m = 0; m < 12; m++) {
+          const d = new Date(st.range.start.getFullYear(), m, 1);
+          out.push({ start: d, end: new Date(d.getFullYear(), m + 1, 1), label: mShort(d), title: mLong(d) });
+        }
+      } else {
+        const dates = teamRowsAll.filter((r) => r.oratoria_score != null).map((r) => new Date(r.date).getTime());
+        if (!dates.length) return out;
+        const first = new Date(Math.min(...dates)), last = new Date(Math.max(...dates));
+        if ((last - first) / 86400000 > 150) {
+          let d = new Date(first.getFullYear(), first.getMonth(), 1);
+          while (d <= last) {
+            const e = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            out.push({ start: d, end: e, label: mShort(d) + "/" + String(d.getFullYear()).slice(2), title: mLong(d) });
+            d = e;
+          }
+        } else {
+          let w = startOfWeek(first);
+          while (w <= last) { out.push({ start: w, end: addDays(w, 7), label: fmtDM(w), title: "Semana de " + fmtDM(w) }); w = addDays(w, 7); }
+        }
+      }
+      return out;
     }
 
     function renderOratoriaChart() {
       const wrap = document.getElementById("chartWrap");
       const kpisEl = document.getElementById("chartKpis");
       const hasTeam = teamMembers.length > 0;
-      const thisWeek = startOfWeek(new Date());
-      const weeks = [];
-      for (let i = chartWeeks - 1; i >= 0; i--) weeks.push(addDays(thisWeek, -7 * i));
+      const st = periodState;
+      if (!st) return;
+      const buckets = bucketsFor(st);
+      const SUBS = { week: "Média diária", month: "Média semanal", year: "Média mensal", all: "Média por semana ou mês" };
+      document.getElementById("chartSub").textContent = `${SUBS[st.mode]} da nota de oratória, você e seu time`;
 
       const inRange = (rows, from, to) => rows.filter((r) => { const t = new Date(r.date).getTime(); return t >= from.getTime() && t < to.getTime(); });
       const avgOf = (rows) => (rows.length ? average(rows.map((r) => r.oratoria_score)) : null);
-      const mineRows = chartRows.filter((r) => r.user_id === currentUserId);
-      const teamRows = chartRows.filter((r) => r.user_id !== currentUserId);
+      const scoredRows = teamRowsAll.filter((r) => r.oratoria_score != null);
+      const mineRows = scoredRows.filter((r) => r.user_id === currentUserId);
+      const teamRows = scoredRows.filter((r) => r.user_id !== currentUserId);
 
-      const points = weeks.map((w) => {
-        const to = addDays(w, 7);
-        const a = inRange(mineRows, w, to), b = inRange(teamRows, w, to);
-        return { week: w, you: avgOf(a), youN: a.length, team: avgOf(b), teamN: b.length };
+      const points = buckets.map((bk) => {
+        const a = inRange(mineRows, bk.start, bk.end), b = inRange(teamRows, bk.start, bk.end);
+        return { label: bk.label, title: bk.title, you: avgOf(a), youN: a.length, team: avgOf(b), teamN: b.length };
       });
 
       // KPIs: média do período e variação vs. período anterior de mesmo tamanho
-      const pStart = weeks[0], pEnd = addDays(thisWeek, 7), prevStart = addDays(pStart, -7 * chartWeeks);
       const kpi = (label, dotClass, rows) => {
-        const cur = inRange(rows, pStart, pEnd), prev = inRange(rows, prevStart, pStart);
+        const cur = st.range ? inRange(rows, st.range.start, st.range.end) : rows, prev = st.prevRange ? inRange(rows, st.prevRange.start, st.prevRange.end) : [];
         const c = avgOf(cur), p = avgOf(prev);
         let delta = `<div class="kpi-delta">${cur.length ? "" : "sem sessões no período"}</div>`;
         if (c != null && p != null) {
@@ -824,7 +936,7 @@
       let hi = Math.min(100, Math.ceil((Math.max(...vals) + 8) / 10) * 10);
       if (hi - lo < 30) { hi = Math.min(100, lo + 30); lo = Math.max(0, hi - 30); }
       const n = points.length;
-      const x = (i) => m.l + (i / (n - 1)) * (W - m.l - m.r);
+      const x = (i) => (n > 1 ? m.l + (i / (n - 1)) * (W - m.l - m.r) : m.l + (W - m.l - m.r) / 2);
       const y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
       const base = H - m.b;
 
@@ -838,9 +950,9 @@
         svg += `<line x1="${m.l}" y1="${y(70)}" x2="${W - m.r}" y2="${y(70)}" style="stroke:var(--good)" stroke-width="1" stroke-dasharray="4 4" opacity="0.7"/>`;
         svg += `<text x="${W - m.r}" y="${y(70) - 4}" text-anchor="end" font-size="10" style="fill:var(--good)">meta: 70 (Bom)</text>`;
       }
-      const every = n > 8 ? 2 : 1;
+      const every = Math.ceil(n / 12);
       points.forEach((p, i) => {
-        if (i % every === 0 || i === n - 1) svg += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="11" style="fill:var(--ink-faint)">${fmtDM(p.week)}</text>`;
+        if (i % every === 0 || i === n - 1) svg += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="11" style="fill:var(--ink-faint)">${p.label}</text>`;
       });
 
       const series = [{ key: "you", color: "var(--purple)", grad: "gYou" }];
@@ -863,7 +975,7 @@
       });
       svg += `<line id="chartGuide" y1="${m.t}" y2="${base}" style="stroke:var(--ink-faint)" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>`;
 
-      wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Evolução semanal da nota de oratória">${svg}</svg><div class="chart-tip" id="chartTip" hidden></div>`;
+      wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Evolução da nota de oratória">${svg}</svg><div class="chart-tip" id="chartTip" hidden></div>`;
 
       const svgEl = wrap.querySelector("svg"), guide = wrap.querySelector("#chartGuide"), tip = wrap.querySelector("#chartTip");
       const show = (ev) => {
@@ -874,7 +986,7 @@
         guide.setAttribute("x1", x(i)); guide.setAttribute("x2", x(i)); guide.setAttribute("visibility", "visible");
         const row = (label, color, v, cnt) =>
           `<div class="tt-row"><span class="tt-dot" style="background:${color}"></span>${label}: ${v != null ? `<b>${Math.round(v)}</b> <span style="color:var(--ink-faint)">(${cnt} ${cnt === 1 ? "sessão" : "sessões"})</span>` : `<span style="color:var(--ink-faint)">sem sessões</span>`}</div>`;
-        tip.innerHTML = `<div class="tt-title">Semana de ${fmtDM(p.week)}</div>${row("Você", "var(--purple)", p.you, p.youN)}${hasTeam ? row("Time", "var(--accent)", p.team, p.teamN) : ""}`;
+        tip.innerHTML = `<div class="tt-title">${p.title}</div>${row("Você", "var(--purple)", p.you, p.youN)}${hasTeam ? row("Time", "var(--accent)", p.team, p.teamN) : ""}`;
         tip.hidden = false;
         const left = (x(i) / W) * 100;
         tip.style.left = `calc(${left}% ${i > n / 2 ? "- 12px" : "+ 12px"})`;
@@ -886,13 +998,6 @@
       svgEl.addEventListener("pointerleave", hide);
     }
 
-    document.getElementById("chartRange").addEventListener("click", (e) => {
-      const b = e.target.closest("button[data-w]");
-      if (!b) return;
-      chartWeeks = Number(b.dataset.w);
-      document.querySelectorAll("#chartRange button").forEach((x) => x.classList.toggle("active", x === b));
-      renderOratoriaChart();
-    });
     let chartResizeTimer = null;
     window.addEventListener("resize", () => {
       clearTimeout(chartResizeTimer);

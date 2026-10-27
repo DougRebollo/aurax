@@ -350,3 +350,25 @@ html.vt-enter body:has(.sidebar) .shell-main { animation: vtFadeIn var(--vt-ente
 .score-explain .se-text { display: block; color: var(--ink-dim); }
 .score-explain .se-foot { padding-bottom: 12px; color: var(--ink-faint); }
 .face-note { margin: 6px 0 14px; font-size: 12.5px; line-height: 1.5; color: var(--ink-faint); }
+
+/* ===== Filtro de período e resumo do ano (period.js) ===== */
+.period-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.period-nav { display: flex; align-items: center; gap: 6px; }
+.period-nav .p-btn { width: 32px; height: 32px; padding: 0; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: 18px; line-height: 1; }
+.period-nav .p-btn:disabled { opacity: 0.35; cursor: default; }
+.period-nav .p-today { height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: 12.5px; font-weight: 600; }
+.period-label { min-width: 150px; text-align: center; font-size: 13.5px; font-weight: 600; color: var(--ink); text-transform: capitalize; }
+.stat-delta { font-size: 11.5px; font-weight: 600; margin-top: 3px; color: var(--ink-faint); }
+.stat-delta.up { color: var(--good); } .stat-delta.down { color: var(--bad); }
+.year-summary { font-size: 13.5px; color: var(--ink-dim); line-height: 1.55; margin: 0 0 14px; }
+.year-summary b { color: var(--ink); }
+.year-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.year-table th { text-align: left; font-size: 11px; color: var(--ink-faint); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--line); text-transform: uppercase; letter-spacing: 0.04em; }
+.year-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); }
+.year-table tr:last-child td { border-bottom: 0; }
+.year-table .m { font-weight: 600; text-transform: capitalize; }
+.year-table .num { font-family: var(--mono); }
+.year-table .dim { color: var(--ink-faint); }
+.year-table tr.best td:first-child::after { content: " ★"; color: var(--warn); }
+.year-bar { display: inline-block; height: 6px; border-radius: 999px; vertical-align: middle; margin-left: 8px; background: var(--good); }
+

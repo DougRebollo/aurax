@@ -46,29 +46,9 @@
   .orat-ring-label { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
   #insightsBody { display: flex; flex-direction: column; gap: 20px; }
 
-  /* Filtro de período */
-  .period-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
   .filter-tabs { display: flex; gap: 4px; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; width: fit-content; }
   .filter-tabs button { border: 0; background: transparent; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; color: var(--ink-dim); }
   .filter-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
-  .period-nav { display: flex; align-items: center; gap: 6px; }
-  .period-nav .p-btn { width: 32px; height: 32px; padding: 0; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: 18px; line-height: 1; }
-  .period-nav .p-btn:disabled { opacity: 0.35; cursor: default; }
-  .period-nav .p-today { height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: 12.5px; font-weight: 600; }
-  .period-label { min-width: 150px; text-align: center; font-size: 13.5px; font-weight: 600; color: var(--ink); text-transform: capitalize; }
-  .stat-delta { font-size: 11.5px; font-weight: 600; margin-top: 3px; color: var(--ink-faint); }
-  .stat-delta.up { color: var(--good); } .stat-delta.down { color: var(--bad); }
-  .year-summary { font-size: 13.5px; color: var(--ink-dim); line-height: 1.55; margin: 0 0 14px; }
-  .year-summary b { color: var(--ink); }
-  .year-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .year-table th { text-align: left; font-size: 11px; color: var(--ink-faint); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--line); text-transform: uppercase; letter-spacing: 0.04em; }
-  .year-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); }
-  .year-table tr:last-child td { border-bottom: 0; }
-  .year-table .m { font-weight: 600; text-transform: capitalize; }
-  .year-table .num { font-family: var(--mono); }
-  .year-table .dim { color: var(--ink-faint); }
-  .year-table tr.best td:first-child::after { content: " ★"; color: var(--warn); }
-  .year-bar { display: inline-block; height: 6px; border-radius: 999px; vertical-align: middle; margin-left: 8px; background: var(--good); }
 
   .language-swap-list { display: flex; flex-direction: column; gap: 8px; }
   .language-swap-card {
@@ -208,6 +188,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js"></script>
   <script src="lang.js"></script>
+  <script src="period.js"></script>
   <script>
     const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
@@ -602,89 +583,24 @@
             <td class="${x.top ? "" : "dim"}">${x.top ? escapeHtml(x.top) : "—"}</td></tr>`).join("")}</tbody></table></div>`;
     }
 
-    // ===== Filtro de período (semana · mês · ano · tudo) =====
-    const PERIOD_KEY = "aurax_insights_period";
+    // ===== Filtro de período (semana · mês · ano · tudo): a lógica fica em period.js =====
     let allSessions = [];
-    let periodMode = "all";
-    let periodCursor = new Date();
-    try { const saved = localStorage.getItem(PERIOD_KEY); if (["week", "month", "year", "all"].includes(saved)) periodMode = saved; } catch (e) { /* ok */ }
 
-    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const startOfWeek = (d) => { const x = startOfDay(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }; // segunda-feira
-    function periodRange(mode, cursor) {
-      if (mode === "week") { const s = startOfWeek(cursor), e = new Date(s); e.setDate(e.getDate() + 7); return { start: s, end: e }; }
-      if (mode === "month") return { start: new Date(cursor.getFullYear(), cursor.getMonth(), 1), end: new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1) };
-      if (mode === "year") return { start: new Date(cursor.getFullYear(), 0, 1), end: new Date(cursor.getFullYear() + 1, 0, 1) };
-      return null;
-    }
-    function shiftCursor(mode, cursor, dir) {
-      const c = new Date(cursor);
-      if (mode === "week") c.setDate(c.getDate() + 7 * dir);
-      else if (mode === "month") c.setMonth(c.getMonth() + dir, 1);
-      else if (mode === "year") c.setFullYear(c.getFullYear() + dir);
-      return c;
-    }
-    function periodLabelText(mode, range) {
-      if (mode === "all") return "Todo o período";
-      if (mode === "year") return String(range.start.getFullYear());
-      if (mode === "month") return range.start.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-      const last = new Date(range.end); last.setDate(last.getDate() - 1);
-      const sm = range.start.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""), em = last.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
-      return range.start.getMonth() === last.getMonth()
-        ? `${range.start.getDate()} – ${last.getDate()} ${em} ${last.getFullYear()}`
-        : `${range.start.getDate()} ${sm} – ${last.getDate()} ${em} ${last.getFullYear()}`;
-    }
-    const inRange = (list, range) => list.filter((x) => { const t = new Date(x.date); return t >= range.start && t < range.end; });
-
-    function refreshPeriod() {
-      const range = periodRange(periodMode, periodCursor);
-      const filtered = range ? inRange(allSessions, range) : allSessions;
-      const prevRange = range ? periodRange(periodMode, shiftCursor(periodMode, periodCursor, -1)) : null;
-      const prev = prevRange ? inRange(allSessions, prevRange) : [];
-      const label = periodLabelText(periodMode, range);
-
-      document.querySelectorAll("#periodTabs button").forEach((b) => b.classList.toggle("active", b.dataset.p === periodMode));
-      const labelEl = document.getElementById("periodLabel");
-      labelEl.textContent = label;
-      const nav = document.getElementById("periodNav");
-      nav.style.visibility = periodMode === "all" ? "hidden" : "visible";
-      const now = new Date();
-      if (range) {
-        const earliest = allSessions.length ? new Date(allSessions[0].date) : now;
-        document.getElementById("periodPrev").disabled = earliest >= range.start;
-        document.getElementById("periodNext").disabled = range.end > now;
-        document.getElementById("periodToday").hidden = range.start <= now && now < range.end;
-      }
-
+    function refreshPeriod(st) {
+      const filtered = AuraPeriod.inRange(allSessions, st.range);
+      const prev = st.prevRange ? AuraPeriod.inRange(allSessions, st.prevRange) : [];
       const emptyEl = document.getElementById("periodEmpty");
       if (!filtered.length) {
         emptyEl.hidden = false;
-        emptyEl.textContent = "Nenhuma sessão em " + label + ". Use as setas para ver outro período ou escolha “Tudo”.";
+        emptyEl.textContent = "Nenhuma sessão em " + st.label + ". Use as setas para ver outro período ou escolha “Tudo”.";
         document.getElementById("insightsBody").hidden = true;
         return;
       }
       emptyEl.hidden = true;
       const spanDays = (new Date(filtered[filtered.length - 1].date) - new Date(filtered[0].date)) / 86400000;
-      const gran = periodMode === "year" || (periodMode === "all" && spanDays > 150) ? "month" : "session";
-      renderInsights(filtered, { mode: periodMode, range, label, gran, prev });
+      const gran = st.mode === "year" || (st.mode === "all" && spanDays > 150) ? "month" : "session";
+      renderInsights(filtered, { mode: st.mode, range: st.range, label: st.label, gran, prev });
     }
-
-    function setupPeriod() {
-      document.getElementById("periodBar").hidden = false;
-      document.getElementById("periodTabs").addEventListener("click", (e) => {
-        const b = e.target.closest("button[data-p]");
-        if (!b) return;
-        periodMode = b.dataset.p;
-        periodCursor = new Date();
-        try { localStorage.setItem(PERIOD_KEY, periodMode); } catch (err) { /* ok */ }
-        posthog.capture("insights_period", { mode: periodMode });
-        refreshPeriod();
-      });
-      document.getElementById("periodPrev").addEventListener("click", () => { periodCursor = shiftCursor(periodMode, periodCursor, -1); refreshPeriod(); });
-      document.getElementById("periodNext").addEventListener("click", () => { periodCursor = shiftCursor(periodMode, periodCursor, 1); refreshPeriod(); });
-      document.getElementById("periodToday").addEventListener("click", () => { periodCursor = new Date(); refreshPeriod(); });
-    }
-
 
     async function init() {
       const { data: { session } } = await supabaseClient.auth.getSession();
@@ -714,8 +630,11 @@
 
       allSessions = (data || []).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
       if (!allSessions.length) { renderInsights([]); return; }
-      setupPeriod();
-      refreshPeriod();
+      AuraPeriod.mount({
+        storageKey: "aurax_insights_period",
+        getEarliest: () => new Date(Math.min(...allSessions.map((r) => new Date(r.date).getTime()))),
+        onChange: refreshPeriod,
+      });
     }
 
     init();
