@@ -36,9 +36,11 @@
   .client-cell { display: flex; align-items: center; gap: 10px; min-width: 160px; font-weight: 600; }
 
   .detail { scroll-margin-top: 20px; }
-  .detail-grid { display: grid; grid-template-columns: minmax(250px, 0.9fr) minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+  .detail-grid { display: grid; grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.6fr); gap: 28px; align-items: start; }
+  .word-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 22px; align-items: stretch; }
+  .word-groups .word-group { margin-top: 0; }
   .detail-col { min-width: 0; }
-  .detail-wide { margin-top: 20px; padding-top: 4px; }
+  .detail-wide { margin-top: 24px; padding-top: 4px; }
   .detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
   .detail-head h2 { margin: 0; font-size: 16px; }
   .detail-meta { color: var(--ink-faint); font-size: 12px; margin-top: 2px; }
@@ -425,16 +427,16 @@
             <div class="detail-col">
               ${window.AuraFocus ? window.AuraFocus.render(h, previousSessionsOf(h)) : ""}
               ${aiHtml}
-            </div>
-            <div class="detail-col">
-              <div class="section-label">Dinâmica da sessão</div>
+              <div class="section-label" style="margin-top:18px">Dinâmica da sessão</div>
               ${dynamicsHtml}
               ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
-              ${wordGroup("topics", "Palavras-chave", "Assuntos que apareceram na conversa", h.keyword_counts, negotiationTagsHtml)}
-              ${wordGroup("slang", "Gírias", "Informal demais para a reunião — a seta mostra a troca sugerida", h.slang_counts, slangTagsHtml)}
-              ${wordGroup("fillers", "Vícios de linguagem", "Muletas que quebram o raciocínio — troque por uma pausa curta", cleanFillerCounts, fillerTagsHtml)}
             </div>
           </div>
+          ${negotiationTagsHtml || slangTagsHtml || fillerTagsHtml ? `<div class="word-groups">
+            ${wordGroup("topics", "Palavras-chave", "Assuntos que apareceram na conversa", h.keyword_counts, negotiationTagsHtml)}
+            ${wordGroup("slang", "Gírias", "Informal demais para a reunião — a seta mostra a troca sugerida", h.slang_counts, slangTagsHtml)}
+            ${wordGroup("fillers", "Vícios de linguagem", "Muletas que quebram o raciocínio — troque por uma pausa curta", cleanFillerCounts, fillerTagsHtml)}
+          </div>` : ""}
           <div class="detail-wide">
             ${renderTipsBlock(h.tips)}
             ${h.objections && h.objections.length ? `<div class="section-label">Objeções (${h.objections.length})</div>
