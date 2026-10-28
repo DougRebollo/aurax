@@ -49,6 +49,16 @@
   .link-btn.danger { color: var(--bad); }
   .link-btn.danger:hover { background: var(--bad-soft); }
   input.name-input { font-weight: 600; max-width: 220px; }
+  .tips-block { margin-top: 4px; }
+  .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin-top: 8px; }
+  .tips-col-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 8px; }
+  .tips-col.improve .tips-col-title { color: var(--warn); }
+  .tips-col.good .tips-col-title { color: var(--good); }
+  .tip-card { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; margin-bottom: 8px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+  .tip-card .ic { flex: none; width: 22px; height: 22px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+  .tip-card.improve .ic { background: var(--warn-soft); color: var(--warn); }
+  .tip-card.good .ic { background: var(--good-soft); color: var(--good); }
+  .tip-card.improve { border-color: color-mix(in srgb, var(--warn) 28%, var(--line)); }
   .section-label { font-size: 11px; font-weight: 700; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em; margin: 18px 0 6px; }
   .section-label:first-child { margin-top: 0; }
 
@@ -230,6 +240,15 @@
         })
         .join(" ");
     }
+    // Dicas da sessão em cartões, separando o que melhorar do que foi bem (sempre visíveis: são o coração do produto).
+    function renderTipsBlock(tips) {
+      if (!tips || !tips.length) return "";
+      const card = (t) => `<div class="tip-card ${t.type === "positivo" ? "good" : "improve"}"><span class="ic">${t.type === "positivo" ? "✓" : "→"}</span><span>${escapeHtml(t.text)}</span></div>`;
+      const improve = tips.filter((t) => t.type !== "positivo"), good = tips.filter((t) => t.type === "positivo");
+      const col = (cls, title, list) => list.length ? `<div class="tips-col ${cls}"><div class="tips-col-title">${title} (${list.length})</div>${list.map(card).join("")}</div>` : "";
+      return `<div class="tips-block"><div class="section-label">Dicas desta sessão</div><div class="tips-grid">${col("improve", "Para melhorar", improve)}${col("good", "O que foi bem", good)}</div></div>`;
+    }
+
     function renderCoachingTips(tips) {
       if (!tips || !tips.length) return "";
       return tips
@@ -376,10 +395,7 @@
             </div>
             <div class="detail-col">
               ${window.AuraFocus ? window.AuraFocus.render(h, previousSessionsOf(h)) : ""}
-              ${h.tips && h.tips.length ? `<div class="section-label">Dicas desta sessão (${h.tips.length})</div>${renderCoachingTips([...h.tips].sort((a, b) => (a.type === "positivo") - (b.type === "positivo")))}` : ""}
               ${aiHtml}
-              ${h.objections && h.objections.length ? `<div class="section-label">Objeções (${h.objections.length})</div>
-                ${h.objections.map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`).join("")}` : ""}
             </div>
             <div class="detail-col">
               <div class="section-label">Dinâmica da sessão</div>
@@ -392,6 +408,9 @@
             </div>
           </div>
           <div class="detail-wide">
+            ${renderTipsBlock(h.tips)}
+            ${h.objections && h.objections.length ? `<div class="section-label">Objeções (${h.objections.length})</div>
+              ${h.objections.map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`).join("")}` : ""}
             ${h.notes ? `<div class="section-label">Seu comentário</div><div class="insight-line">${escapeHtml(h.notes)}</div>` : ""}
             ${h.transcript && h.transcript.length ? `<details class="session-transcript"><summary>Ver transcrição (${h.transcript.length} falas)</summary>${h.transcript.map(renderTranscriptLineHtml).join("")}</details>` : ""}
           </div>
