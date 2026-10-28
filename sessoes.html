@@ -49,6 +49,20 @@
   .link-btn.danger { color: var(--bad); }
   .link-btn.danger:hover { background: var(--bad-soft); }
   input.name-input { font-weight: 600; max-width: 220px; }
+  .word-group { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); border-left-width: 3px; }
+  .word-group.topics { border-left-color: var(--accent); }
+  .word-group.slang { border-left-color: var(--purple); }
+  .word-group.fillers { border-left-color: var(--warn); }
+  .word-group-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .word-group-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
+  .word-group.topics .word-group-title { color: var(--accent); }
+  .word-group.slang .word-group-title { color: var(--purple); }
+  .word-group.fillers .word-group-title { color: var(--warn); }
+  .word-group-count { font-size: 12px; font-weight: 600; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .word-group-hint { font-size: 12px; color: var(--ink-faint); margin: 3px 0 8px; line-height: 1.4; }
+  .word-group-tags .slang-tag, .word-group-tags .topic-tag, .word-group-tags .filler-tag { display: inline-block; font-size: 12.5px; border-radius: 999px; padding: 3px 10px; margin: 0 4px 6px 0; }
+  .topic-tag { background: var(--accent-soft); color: var(--accent); }
+  .filler-tag { background: var(--warn-soft); color: var(--warn); }
   .tips-block { margin-top: 4px; }
   .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin-top: 8px; }
   .tips-col-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 8px; }
@@ -231,6 +245,20 @@
       const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
       return entries.map(([kw, count]) => `<span class="keyword-tag">${escapeHtml(kw)} × ${count}</span>`).join(" ");
     }
+    function renderFillerTags(counts) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      return entries.map(([w, c]) => `<span class="filler-tag">${escapeHtml(w)} × ${c}</span>`).join(" ");
+    }
+    function renderTopicTags(counts) {
+      const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
+      return entries.map(([w, c]) => `<span class="topic-tag">${escapeHtml(w)} × ${c}</span>`).join(" ");
+    }
+    // Um painel por tipo de palavra: assunto da conversa, gírias (com a troca sugerida) e vícios.
+    function wordGroup(cls, title, hint, counts, tagsHtml) {
+      if (!tagsHtml) return "";
+      const total = sumCounts(counts);
+      return `<div class="word-group ${cls}"><div class="word-group-head"><span class="word-group-title">${title}</span><span class="word-group-count">${total}×</span></div><div class="word-group-hint">${hint}</div><div class="word-group-tags">${tagsHtml}</div></div>`;
+    }
     function renderSlangTags(counts) {
       const entries = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]);
       return entries
@@ -358,9 +386,10 @@
       const panel = document.getElementById("detailPanel");
       if (!h) { panel.innerHTML = '<div class="detail-empty">Selecione uma sessão para ver os detalhes.</div>'; return; }
 
-      const negotiationTagsHtml = renderKeywordTags(h.keyword_counts);
+      const negotiationTagsHtml = renderTopicTags(h.keyword_counts);
       const slangTagsHtml = renderSlangTags(h.slang_counts);
-      const fillerTagsHtml = renderKeywordTags(AuraShell.cleanFillers(h.filler_counts));
+      const cleanFillerCounts = AuraShell.cleanFillers(h.filler_counts);
+      const fillerTagsHtml = renderFillerTags(cleanFillerCounts);
 
       const aiHtml = h.ai_summary
         ? `<div class="ai-box"><h3>Resumo por IA</h3>
@@ -401,10 +430,9 @@
               <div class="section-label">Dinâmica da sessão</div>
               ${dynamicsHtml}
               ${h.wpm != null ? `<div class="session-secondary-stats">Ritmo ${h.wpm} palavras/min · Pausas longas ${h.pauses || 0}</div>` : ""}
-              ${negotiationTagsHtml || slangTagsHtml || fillerTagsHtml ? `<div class="section-label">Palavras-chave, gírias e vícios</div>
-                ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
-                ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
-                ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}` : ""}
+              ${wordGroup("topics", "Palavras-chave", "Assuntos que apareceram na conversa", h.keyword_counts, negotiationTagsHtml)}
+              ${wordGroup("slang", "Gírias", "Informal demais para a reunião — a seta mostra a troca sugerida", h.slang_counts, slangTagsHtml)}
+              ${wordGroup("fillers", "Vícios de linguagem", "Muletas que quebram o raciocínio — troque por uma pausa curta", cleanFillerCounts, fillerTagsHtml)}
             </div>
           </div>
           <div class="detail-wide">
