@@ -289,8 +289,6 @@ input::placeholder, textarea::placeholder { color: var(--ink-faint); }
 .fn-compare .up { color: var(--good); font-weight: 700; }
 .fn-compare .down { color: var(--bad); font-weight: 700; }
 .fn-strength { margin-top: 8px; font-size: 12px; color: var(--good); font-weight: 600; }
-details.tips-fold { margin-top: 14px; }
-details.tips-fold > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-dim); margin-bottom: 8px; }
 
 /* ===== Suporte (modal do menu lateral) ===== */
 .sup-overlay { position: fixed; inset: 0; z-index: 1100; background: var(--overlay); display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }

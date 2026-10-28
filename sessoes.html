@@ -8,7 +8,7 @@
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32" />
 <link rel="shortcut icon" href="favicon.ico" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-<link rel="stylesheet" href="shell.css?v=b87d1bd4" />
+<link rel="stylesheet" href="shell.css?v=e3c8769f" />
 <script src="transition.js?v=357b4b50"></script>
 <link rel="stylesheet" href="glass.css?v=138390e5" />
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
@@ -31,7 +31,7 @@
   tr.selected td { background: var(--accent-soft); }
   td.month-row {
     background: var(--surface-2); font-size: 12px; font-weight: 700; color: var(--ink-dim);
-    padding: 8px 16px; text-transform: capitalize;
+    padding: 8px 16px;
   }
   .client-cell { display: flex; align-items: center; gap: 10px; min-width: 160px; font-weight: 600; }
 
@@ -210,7 +210,8 @@
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     }
     function monthLabel(dateStr) {
-      return new Date(dateStr).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      const t = new Date(dateStr).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      return t.charAt(0).toUpperCase() + t.slice(1);   // "Outubro de 2026" (só a 1ª letra maiúscula)
     }
     function sumCounts(counts) {
       return Object.values(counts || {}).reduce((a, b) => a + b, 0);
@@ -281,7 +282,7 @@
       list.forEach((h) => {
         const key = monthKey(h.date);
         if (key !== lastMonth) {
-          html += `<tr><td class="month-row" colspan="6">${monthLabel(h.date)}</td></tr>`;
+          html += `<tr><td class="month-row" colspan="5">${monthLabel(h.date)}</td></tr>`;
           lastMonth = key;
         }
         html += `
@@ -375,6 +376,7 @@
             </div>
             <div class="detail-col">
               ${window.AuraFocus ? window.AuraFocus.render(h, previousSessionsOf(h)) : ""}
+              ${h.tips && h.tips.length ? `<div class="section-label">Dicas desta sessão (${h.tips.length})</div>${renderCoachingTips([...h.tips].sort((a, b) => (a.type === "positivo") - (b.type === "positivo")))}` : ""}
               ${aiHtml}
               ${h.objections && h.objections.length ? `<div class="section-label">Objeções (${h.objections.length})</div>
                 ${h.objections.map((o) => `<div class="insight-line">${formatClock(o.t)} — "${escapeHtml(o.phrase)}" → ${escapeHtml(o.result)}</div>`).join("")}` : ""}
@@ -387,7 +389,6 @@
                 ${negotiationTagsHtml ? `<div class="keyword-tags">${negotiationTagsHtml}</div>` : ""}
                 ${slangTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${slangTagsHtml}</div>` : ""}
                 ${fillerTagsHtml ? `<div class="keyword-tags" style="margin-top:6px">${fillerTagsHtml}</div>` : ""}` : ""}
-              ${h.tips && h.tips.length ? `<details class="tips-fold"><summary>Ver todas as dicas desta sessão (${h.tips.length})</summary>${renderCoachingTips(h.tips)}</details>` : ""}
             </div>
           </div>
           <div class="detail-wide">
