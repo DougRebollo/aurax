@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>AuraX</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="shortcut icon" href="favicon.ico" />
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<link rel="stylesheet" href="shell.css?v=b87d1bd4" />
+<script src="transition.js?v=357b4b50"></script>
+<link rel="stylesheet" href="glass.css?v=138390e5" />
+<script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+  body { display: flex; justify-content: center; padding: 28px 16px 60px; }
+  .card { width: 100%; max-width: 560px; padding: 30px 28px; }
+  .logo { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .logo::before { content: ""; flex: none; background: url(assets/favicon.svg) center / contain no-repeat; width: 32px; height: 32px; }
+  h1 { margin: 14px 0 6px; font-size: 21px; text-align: center; letter-spacing: -0.01em; }
+  .lead { margin: 0 0 22px; text-align: center; color: var(--ink-dim); font-size: 14px; line-height: 1.55; }
+  .q { margin: 22px 0 0; }
+  .q > label, .q > .ql { display: block; font-weight: 600; font-size: 14.5px; line-height: 1.4; margin-bottom: 4px; color: var(--ink); }
+  .q .hint { display: block; font-size: 12.5px; color: var(--ink-faint); margin-bottom: 10px; font-weight: 400; }
+  .scale { display: flex; gap: 8px; flex-wrap: wrap; }
+  .scale button { flex: 1 1 0; min-width: 44px; padding: 11px 0; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-weight: 700; font-size: 15px; }
+  .scale.nps button { min-width: 36px; padding: 10px 0; font-size: 14px; }
+  .scale button:hover { border-color: var(--accent); }
+  .scale button.on { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+  .ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-faint); margin-top: 6px; }
+  textarea, input[type="text"] { width: 100%; padding: 11px 13px; border-radius: 12px; font: inherit; }
+  textarea { min-height: 110px; resize: vertical; }
+  .submit { width: 100%; margin-top: 26px; padding: 13px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; }
+  .submit:disabled { opacity: 0.55; cursor: not-allowed; }
+  .msg { margin-top: 14px; font-size: 13px; padding: 10px 12px; border-radius: 10px; display: none; }
+  .msg.error { display: block; background: var(--bad-soft); color: var(--bad); }
+  .done { text-align: center; padding: 20px 0 6px; }
+  .done .ok { width: 54px; height: 54px; border-radius: 50%; margin: 0 auto 14px; display: grid; place-items: center; background: var(--good-soft); color: var(--good); font-size: 26px; font-weight: 700; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .foot { margin-top: 18px; text-align: center; font-size: 12px; color: var(--ink-faint); line-height: 1.5; }
+</style>
+</head>
+<body class="glass">
+  <div class="card">
+    <div class="logo">AuraX</div>
+
+    <form id="form" novalidate>
+      <h1>Sua opinião sobre o AuraX</h1>
+      <p class="lead">São 5 perguntas rápidas, menos de 2 minutos. Seu retorno sincero é o que mais ajuda a melhorar o produto.</p>
+
+      <div class="q">
+        <span class="ql">1. A nota de oratória pareceu justa para a sua fala?</span>
+        <div class="scale" data-q="q_nota_justa" role="group" aria-label="Pergunta 1"></div>
+        <div class="ends"><span>Nada justa</span><span>Muito justa</span></div>
+      </div>
+
+      <div class="q">
+        <span class="ql">2. O "foco para a próxima reunião" te ajudou?</span>
+        <div class="scale" data-q="q_foco_util" role="group" aria-label="Pergunta 2"></div>
+        <div class="ends"><span>Não ajudou</span><span>Ajudou muito</span></div>
+      </div>
+
+      <div class="q">
+        <span class="ql">3. Os vícios e gírias que o AuraX apontou batem com o jeito que você fala?</span>
+        <div class="scale" data-q="q_girias_batem" role="group" aria-label="Pergunta 3"></div>
+        <div class="ends"><span>Não bateram</span><span>Bateram bem</span></div>
+      </div>
+
+      <div class="q">
+        <span class="ql">4. De 0 a 10, o quanto você recomendaria o AuraX a outro gestor ou vendedor?</span>
+        <div class="scale nps" data-q="q_recomenda" role="group" aria-label="Pergunta 4"></div>
+        <div class="ends"><span>Não recomendaria</span><span>Com certeza</span></div>
+      </div>
+
+      <div class="q">
+        <label for="aberta">5. O que mais te incomodou, confundiu ou faltou?</label>
+        <span class="hint">Pode ser qualquer coisa: uma tela, um número que não fez sentido, algo que você esperava e não achou.</span>
+        <textarea id="aberta" maxlength="2000" placeholder="Escreva aqui…"></textarea>
+      </div>
+
+      <div class="q">
+        <label for="quem">Seu nome (opcional)</label>
+        <input type="text" id="quem" maxlength="120" placeholder="Para eu saber quem respondeu" autocomplete="name" />
+      </div>
+
+      <input type="text" class="hp" id="site" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <button type="submit" class="submit" id="submitBtn">Enviar respostas</button>
+      <div class="msg" id="msg" role="alert"></div>
+      <p class="foot">As respostas ficam só com a equipe do AuraX e são usadas para melhorar o produto.</p>
+    </form>
+
+    <div class="done" id="done" hidden>
+      <div class="ok">✓</div>
+      <h1>Obrigado!</h1>
+      <p class="lead">Recebi as suas respostas. Elas vão direto para o que vamos melhorar no AuraX.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SURVEY_ID = "teste-gestor-1";
+
+    const answers = {};
+    function buildScale(el) {
+      const q = el.dataset.q, isNps = el.classList.contains("nps");
+      const from = isNps ? 0 : 1, to = isNps ? 10 : 5;
+      for (let v = from; v <= to; v++) {
+        const b = document.createElement("button");
+        b.type = "button"; b.textContent = v; b.setAttribute("aria-pressed", "false");
+        b.addEventListener("click", () => {
+          answers[q] = v;
+          el.querySelectorAll("button").forEach((x) => { const on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-pressed", on); });
+        });
+        el.appendChild(b);
+      }
+    }
+    document.querySelectorAll(".scale").forEach(buildScale);
+
+    // ?r=nome já preenche o campo de nome (para mandar um link por pessoa)
+    try { const r = new URLSearchParams(location.search).get("r"); if (r) document.getElementById("quem").value = r.slice(0, 120); } catch (e) { /* ok */ }
+
+    const msg = document.getElementById("msg");
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.className = "msg";
+      if (document.getElementById("site").value) return;   // campo-isca: robô preenche, gente não
+      const required = ["q_nota_justa", "q_foco_util", "q_girias_batem", "q_recomenda"];
+      if (required.some((k) => answers[k] == null)) {
+        msg.textContent = "Responda as quatro primeiras perguntas (a quinta é opcional).";
+        msg.className = "msg error";
+        return;
+      }
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      const row = {
+        survey: SURVEY_ID,
+        respondent: document.getElementById("quem").value.trim() || null,
+        ...answers,
+        q_aberta: document.getElementById("aberta").value.trim() || null,
+        user_agent: navigator.userAgent.slice(0, 300),
+      };
+      const { error } = await supabaseClient.from("survey_responses").insert(row);
+      if (error) {
+        msg.textContent = "Não consegui enviar agora. Tente de novo em instantes.";
+        msg.className = "msg error";
+        btn.disabled = false;
+        return;
+      }
+      document.getElementById("form").hidden = true;
+      document.getElementById("done").hidden = false;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  </script>
+</body>
+</html>
