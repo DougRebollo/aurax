@@ -3057,9 +3057,31 @@
         detectLoop();
         maybeShowOnboarding();
       } catch (err) {
-        statusEl.textContent = "Erro: " + err.message;
         console.error(err);
+        showStartupError(err);
       }
+    }
+
+    // Câmera negada/fechada não pode prender a pessoa numa tela de carregamento:
+    // explica em português e deixa tentar de novo ou seguir pro resto do app.
+    function showStartupError(err) {
+      const name = (err && err.name) || "";
+      const camera = /NotAllowed|Permission|Security|NotFound|NotReadable|Overconstrained/i.test(name + " " + (err && err.message));
+      const title = camera ? "Precisamos da sua câmera" : "Não foi possível iniciar";
+      const hint = camera
+        ? "O navegador não liberou a câmera. Clique no ícone de câmera (ou no cadeado) na barra de endereço, escolha Permitir e tente de novo. Se outro programa estiver usando a câmera, feche-o."
+        : "Algo falhou ao carregar. Tente de novo em instantes.";
+      statusEl.innerHTML = "";
+      const box = document.createElement("div");
+      box.style.cssText = "max-width:420px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center";
+      box.innerHTML = '<strong style="font-size:1.05rem;color:var(--ink)"></strong><span style="line-height:1.5"></span>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button type="button" id="retryStartBtn">Tentar de novo</button>' +
+        '<button type="button" class="ghost" id="skipStartBtn">Ir para Minhas Sessões</button></div>';
+      box.querySelector("strong").textContent = title;
+      box.querySelector("span").textContent = hint;
+      statusEl.appendChild(box);
+      document.getElementById("retryStartBtn").addEventListener("click", () => window.location.reload());
+      document.getElementById("skipStartBtn").addEventListener("click", () => { window.location.href = "sessoes.html"; });
     }
 
     switchBtn.addEventListener("click", async () => {
