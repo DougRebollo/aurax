@@ -95,6 +95,10 @@ serve(async (req) => {
       cancel_url: `${SITE_URL}/pagamento-pendente.html?checkout=cancel`,
       client_reference_id: user.id,
       metadata: { supabase_user_id: user.id },
+      locale: "pt-BR",
+      // Cupom de 100% (ex.: amigo testando) não pede cartão; cobrança normal continua pedindo.
+      allow_promotion_codes: true,
+      payment_method_collection: "if_required",
     });
 
     return json({ url: session.url });

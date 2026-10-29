@@ -15,3 +15,6 @@ verify_jwt = true
 
 [functions.support-notify]
 verify_jwt = true
+
+[functions.create-portal-session]
+verify_jwt = true

@@ -147,7 +147,11 @@
   // Menu lateral. Montado duas vezes: logo ao abrir a página, com o último estado guardado (o menu fica
   // fixo na troca de página, sem esperar o banco), e de novo depois da consulta, com o dado atualizado.
   const SHELL_CACHE_KEY = "aurax_shell";
-  function sidebarHtml({ active, name, role, hasManager }) {
+  function manageHtml(has) {
+    return has ? '<a href="#" id="shellManagePlan">Gerenciar assinatura</a>' : "";
+  }
+
+  function sidebarHtml({ active, name, role, hasManager, hasSubscription }) {
     const isGestor = role === "gestor";
     const isIndividual = !isGestor && !hasManager; // conta sem gestor = plano Individual
     return (
@@ -164,9 +168,9 @@
         '<button type="button" class="nav-item" id="shellSupport">' + icon("support") + "Suporte</button></nav>" +
       '<div class="sidebar-spacer"></div>' +
       (isGestor
-        ? '<div class="plan-box"><b>Plano Profissional</b><small>1 gestor + 5 colaboradores</small><a href="' + WHATSAPP_URL + '" target="_blank" rel="noopener">Falar com Vendas</a></div>'
+        ? '<div class="plan-box"><b>Plano Profissional</b><small>1 gestor + 5 colaboradores</small><a href="' + WHATSAPP_URL + '" target="_blank" rel="noopener">Falar com Vendas</a>' + manageHtml(hasSubscription) + '</div>'
         : isIndividual
-          ? '<div class="plan-box"><b>Plano Individual</b><small>Uso pessoal</small><a href="' + WHATSAPP_URL + '" target="_blank" rel="noopener">Quero um plano de equipe</a></div>'
+          ? '<div class="plan-box"><b>Plano Individual</b><small>Uso pessoal</small><a href="' + WHATSAPP_URL + '" target="_blank" rel="noopener">Quero um plano de equipe</a>' + manageHtml(hasSubscription) + '</div>'
           : "") +
       '<div class="user-chip"><div class="avatar">' + initials(name) + "</div><div><strong>" + name.replace(/</g, "&lt;") + "</strong><span>" + (isGestor ? "Gestor" : isIndividual ? "Individual" : "Funcionário") + "</span></div></div>" +
       themeButtonHtml() +
@@ -179,14 +183,32 @@
 
     let name = (session && session.user && session.user.email) || "";
     let role = "funcionario";
-    let hasManager = false;
+    let hasManager = false, hasSubscription = false;
     try {
-      const { data } = await client.from("profiles").select("name, role, manager_id").eq("id", session.user.id).single();
-      if (data) { name = data.name || name; role = data.role || role; hasManager = !!data.manager_id; }
+      const { data } = await client.from("profiles").select("name, role, manager_id, stripe_customer_id").eq("id", session.user.id).single();
+      if (data) { name = data.name || name; role = data.role || role; hasManager = !!data.manager_id; hasSubscription = !!data.stripe_customer_id; }
     } catch (e) { /* segue com os valores padrão */ }
 
-    try { sessionStorage.setItem(SHELL_CACHE_KEY, JSON.stringify({ name, role, hasManager })); } catch (e) { /* ok */ }
-    el.innerHTML = sidebarHtml({ active, name, role, hasManager });
+    try { sessionStorage.setItem(SHELL_CACHE_KEY, JSON.stringify({ name, role, hasManager, hasSubscription })); } catch (e) { /* ok */ }
+    el.innerHTML = sidebarHtml({ active, name, role, hasManager, hasSubscription });
+
+    const manage = document.getElementById("shellManagePlan");
+    if (manage) manage.addEventListener("click", async (e) => {
+      e.preventDefault();
+      manage.textContent = "Abrindo…";
+      try {
+        const res = await fetch(client.supabaseUrl + "/functions/v1/create-portal-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || !body.url) throw new Error(body.error || "falhou");
+        window.location.href = body.url;
+      } catch (err) {
+        manage.textContent = "Gerenciar assinatura";
+        alert("Não foi possível abrir o gerenciamento agora. Fale com o suporte.");
+      }
+    });
 
     const themeBtn = document.getElementById("shellTheme");
     themeBtn.addEventListener("click", () => {
@@ -264,7 +286,7 @@
       if (!el || !cached) return;
       const file = (location.pathname.split("/").pop() || "").replace(".html", "");
       const active = { app: "gravar", sessoes: "sessoes", insights: "insights", "painel-gestor": "painel" }[file];
-      if (active) el.innerHTML = sidebarHtml({ active, name: cached.name || "", role: cached.role, hasManager: !!cached.hasManager });
+      if (active) el.innerHTML = sidebarHtml({ active, name: cached.name || "", role: cached.role, hasManager: !!cached.hasManager, hasSubscription: !!cached.hasSubscription });
     } catch (e) { /* sem cache: o menu aparece quando o banco responder */ }
   })();
 
