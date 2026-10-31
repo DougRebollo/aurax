@@ -1,7 +1,7 @@
 -- AuraX: sessões em que a pessoa falou pouco (< 35% do tempo) não devem ser penalizadas
 -- por ritmo, pausas e projeção (elas medem o silêncio, não a fala). Esta migração aplica a
 -- regra nova às sessões já gravadas: marca essas 3 dimensões como "excluded" e recalcula a nota
--- só com as demais. Pode rodar de novo sem problema. Rode no Supabase -> SQL Editor.
+-- só com as demais (a média dá peso 2 a "vícios e gírias"). Pode rodar de novo sem problema. Rode no Supabase -> SQL Editor.
 
 with calc as (
   select
@@ -10,7 +10,8 @@ with calc as (
               case when e->>'key' in ('ritmo','pausas','projecao') then e || '{"excluded": true}'::jsonb else e end
               order by ord)
        from jsonb_array_elements(s.oratoria_subscores) with ordinality as t(e, ord)) as new_subs,
-    (select round(avg((e->>'score')::numeric))
+    (select round(sum((e->>'score')::numeric * case when e->>'key' = 'vicios' then 2 else 1 end)
+                  / sum(case when e->>'key' = 'vicios' then 2 else 1 end))
        from jsonb_array_elements(s.oratoria_subscores) as t(e)
       where e->>'key' not in ('ritmo','pausas','projecao')) as new_score
   from sessions s
@@ -31,3 +32,4 @@ select to_char(date, 'DD/MM HH24:MI') as quando, client_name, oratoria_score as 
 from sessions
 where (dynamics->>'pctYou') ~ '^[0-9]+$' and (dynamics->>'pctYou')::int < 35
 order by date desc limit 20;
+

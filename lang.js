@@ -31,7 +31,8 @@
   const CAP_PER_TERM = 3;                                       // teto de unidades por termo
   // Soma geral: vários termos leves, cada um abaixo da própria tolerância, ainda somam fala informal demais.
   // Densidade ponderada = (usos x peso) por 100 palavras; acima de AGG_TOL, cada ponto vale AGG_FACTOR unidade.
-  const AGG_TOL = 3, AGG_FACTOR = 1, AGG_CAP = 5, AGG_MIN_WORDS = 150;
+  const AGG_TOL = 2, AGG_FACTOR = 1, AGG_CAP = 6, AGG_MIN_WORDS = 150;
+  const SLANG_BOOST = 2;     // gíria pesa mais que vício de preenchimento (no desconto por termo e na soma geral)
   const SCORE_SCALE = 12;                                       // 12 unidades = nota 0 (mesma escala dos vícios)
 
   const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -315,13 +316,12 @@
     const fillerUnits = analyzeFillers(fillerCounts, words).reduce((a, r) => a + r.penalty, 0);
     const slangUnits = analyze(slangCounts, words).reduce((a, r) => a + r.penalty, 0);
     let weighted = 0, informal = 0;
-    analyzeFillers(fillerCounts, words).concat(analyze(slangCounts, words)).forEach((r) => {
-      if (r.weight > 0) { weighted += r.count * r.weight; informal += r.count; }
-    });
+    analyzeFillers(fillerCounts, words).forEach((r) => { if (r.weight > 0) { weighted += r.count * r.weight; informal += r.count; } });
+    analyze(slangCounts, words).forEach((r) => { if (r.weight > 0) { weighted += r.count * r.weight * SLANG_BOOST; informal += r.count; } });
     const density = words > 0 ? (weighted / words) * 100 : 0;
     const aggUnits = words >= AGG_MIN_WORDS ? Math.min(AGG_CAP, Math.max(0, density - AGG_TOL) * AGG_FACTOR) : 0;
     // O desconto geral não soma com o por termo (evita contar duas vezes): vale o maior dos dois.
-    const units = Math.max(fillerUnits + slangUnits, aggUnits);
+    const units = Math.max(fillerUnits + slangUnits * SLANG_BOOST, aggUnits);
     const score = Math.max(0, Math.min(1, 1 - units / SCORE_SCALE)) * 100;
     return { score, fillerUnits, slangUnits, aggUnits, density, informal };
   }

@@ -1021,8 +1021,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js?v=67e68e42"></script>
   <script src="focus.js?v=a79abb56"></script>
-  <script src="lang.js?v=e721e22d"></script>
-  <script src="explain.js?v=427ae0ae"></script>
+  <script src="lang.js?v=903825a1"></script>
+  <script src="explain.js?v=341f3fcf"></script>
   <script>
     const EMOTION_LABELS_PT = {
       neutral: "Neutro",
@@ -1760,7 +1760,10 @@
 if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.excluded = true; });
       const counted = subScores.filter((s) => !s.excluded);
       const base = counted.length ? counted : subScores;
-      const overall = base.length ? Math.round(average(base.map((s) => s.score))) : null;
+      // "Vícios e gírias" vale o dobro na média: é o ponto que mais muda a percepção do cliente e o foco do AuraX.
+      const wOf = (s) => (s.key === "vicios" ? 2 : 1);
+      const wSum = base.reduce((a, s) => a + wOf(s), 0);
+      const overall = base.length ? Math.round(base.reduce((a, s) => a + s.score * wOf(s), 0) / wSum) : null;
       return { overall, subScores };
     }
 
