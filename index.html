@@ -215,7 +215,7 @@
   .cine { --c-bg: #05070d; --c-ink: #f2f5fb; --c-dim: #8d97ab; --c-line: rgba(255, 255, 255, 0.1); --c-blue: #6c8cff; --c-cyan: #4fd1e8;
     position: relative; background: var(--c-bg); color: var(--c-ink); }
   .cine-mono { font-family: var(--font); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-dim); }
-  .cine-hero { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 clamp(20px, 4vw, 56px) clamp(28px, 5vh, 56px); isolation: isolate; }
+  .cine-hero { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 clamp(20px, 4vw, 56px) clamp(96px, 18vh, 200px); isolation: isolate; }
   #heroCanvas, #heroFx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
   .cine-hud { position: absolute; z-index: 2; right: clamp(20px, 4vw, 56px); top: 34%; width: 230px; border-left: 1px solid var(--c-line); padding-left: 18px; }
   .cine-hud .row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--c-line); }
@@ -223,6 +223,7 @@
   .cine-hud .score { margin-top: 14px; font-size: 54px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; color: var(--c-ink); font-family: var(--font); }
   .cine-hud .score small { font-size: 14px; color: var(--c-dim); font-weight: 400; letter-spacing: 0; }
   .cine-hud .scan { margin-top: 10px; color: var(--c-cyan); }
+  .cine-hero::after { content: ""; position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 34%; pointer-events: none; background: linear-gradient(to bottom, rgba(5, 7, 13, 0) 0%, rgba(5, 7, 13, 0.72) 62%, #05070d 100%); }
   .cine-title { position: relative; z-index: 2; margin: 0; font-size: clamp(2.4rem, 7vw, 6.6rem); line-height: 0.93; letter-spacing: -0.04em; font-weight: 600; text-transform: uppercase; text-wrap: balance; max-width: 15ch; }
   .cine-title em { font-style: normal; color: var(--c-blue); }
   .cine-foot { position: relative; z-index: 2; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: clamp(18px, 3vh, 30px); }
@@ -638,7 +639,7 @@
       "void main(){float d=texture2D(u_depth,v_uv).r;vec2 off=u_mouse*(d-0.42)*vec2(0.042,0.034);vec2 uv=v_uv-off;" +
       "vec4 c=texture2D(u_photo,uv);float m=texture2D(u_mask,uv).r;float t=texture2D(u_trail,v_uv).r;" +
       "float keep=1.0-smoothstep(0.08,0.85,t);float light=1.0+(d-0.5)*u_mouse.x*0.22+u_mouse.y*(0.5-v_uv.y)*0.06;" +
-      "float a=m*keep*smoothstep(1.0,0.78,v_uv.y)*smoothstep(0.0,0.06,v_uv.y);gl_FragColor=vec4(c.rgb*light*a,a);}";
+      "float sx=smoothstep(0.0,0.22,v_uv.x)*smoothstep(1.0,0.78,v_uv.x);float side=mix(1.0,sx,smoothstep(0.5,0.78,v_uv.y));float a=m*keep*side*smoothstep(1.0,0.68,v_uv.y)*smoothstep(0.0,0.06,v_uv.y);gl_FragColor=vec4(c.rgb*light*a,a);}";
     const sh = (type, src) => { const s_ = gl.createShader(type); gl.shaderSource(s_, src); gl.compileShader(s_); return gl.getShaderParameter(s_, gl.COMPILE_STATUS) ? s_ : null; };
     const v = sh(gl.VERTEX_SHADER, vs), f = sh(gl.FRAGMENT_SHADER, fs);
     if (!v || !f) return false;
