@@ -83,6 +83,12 @@
 
   /* Seções */
   .lp-section { padding-block: 84px; }
+  .lp-measure { padding-block: 64px 8px; }
+  .lp-measure h2 { margin: 0 0 22px; font-size: clamp(2rem, 5vw, 3.9rem); line-height: 0.96; letter-spacing: -0.04em; font-weight: 600; text-transform: uppercase; text-wrap: balance; max-width: 16ch; }
+  .lp-measure h2 em { font-style: normal; color: var(--accent); }
+  .lp-measure-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .lp-measure-list li { padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 15px; font-weight: 600; color: var(--ink); }
+  .lp-measure-note { margin: 16px 0 0; color: var(--ink-dim); font-size: 1rem; max-width: 640px; }
   .lp-head { max-width: 640px; margin-bottom: 44px; }
   .lp-head h2 { font-size: clamp(1.7rem, 3.2vw, 2.3rem); letter-spacing: -0.02em; line-height: 1.12; margin: 0 0 12px; text-wrap: balance; }
   .lp-head p { color: var(--ink-dim); font-size: 1.02rem; margin: 0; }
@@ -211,9 +217,6 @@
   .cine-mono { font-family: var(--font); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-dim); }
   .cine-hero { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 clamp(20px, 4vw, 56px) clamp(28px, 5vh, 56px); isolation: isolate; }
   #heroCanvas, #heroFx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
-  .cine-cols { position: absolute; z-index: 2; top: 92px; left: clamp(20px, 4vw, 56px); right: clamp(20px, 4vw, 56px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
-  .cine-cols p { margin: 0; max-width: 230px; line-height: 1.6; }
-  .cine-cols b { display: block; color: var(--c-ink); font-weight: 500; margin-bottom: 6px; }
   .cine-hud { position: absolute; z-index: 2; right: clamp(20px, 4vw, 56px); top: 34%; width: 230px; border-left: 1px solid var(--c-line); padding-left: 18px; }
   .cine-hud .row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--c-line); }
   .cine-hud .row span:last-child { color: var(--c-ink); font-variant-numeric: tabular-nums; }
@@ -232,8 +235,6 @@
   .cine-fade { height: 240px; margin-top: -1px; background: linear-gradient(to bottom, var(--c-bg) 0%, color-mix(in srgb, var(--c-bg) 55%, var(--bg)) 40%, var(--bg) 100%); }
 
   @media (max-width: 860px) {
-    .cine-cols { grid-template-columns: 1fr 1fr; top: 84px; }
-    .cine-cols p:nth-child(n+3) { display: none; }
     .cine-hud { position: relative; right: auto; top: auto; width: auto; margin: 0 0 18px; z-index: 2; }
     .cine-hud .row { display: none; }
     .cine-hud .score { font-size: 38px; }
@@ -269,11 +270,6 @@
   <div class="cine-hero" id="cineHero">
     <canvas id="heroCanvas" aria-hidden="true"></canvas>
     <canvas id="heroFx" aria-hidden="true"></canvas>
-    <div class="cine-cols cine-mono rise" style="animation-delay:.2s">
-      <p><b>O que medimos</b>Ritmo · Pausas · Vícios · Clareza · Projeção.</p>
-      <p><b>Como funciona</b>Roda no navegador. Sem bot na sua call.</p>
-      <p><b>Para quem</b>Heads comerciais, gestores e líderes de equipe.</p>
-    </div>
     <div class="cine-hud cine-mono rise" id="hud" style="animation-delay:.6s" aria-hidden="true">
       <div class="row"><span>Ritmo</span><span><i id="hRitmo">132</i> pal/min</span></div>
       <div class="row"><span>Pausas longas</span><span id="hPausas">1</span></div>
@@ -344,6 +340,14 @@
     <div class="lp-proof-item"><b>Vídeo e áudio ficam no navegador</b><span>Só o resumo da sessão é salvo na sua conta.</span></div>
     <div class="lp-proof-item"><b>Autoavaliação, não vigilância</b><span>É você vendo a própria performance, reunião após reunião.</span></div>
   </div>
+</section>
+
+<section class="lp-wrap lp-measure" id="o-que-medimos">
+  <h2>O que <em>medimos</em></h2>
+  <ul class="lp-measure-list">
+    <li>Ritmo</li><li>Pausas</li><li>Vícios de linguagem</li><li>Gírias</li><li>Clareza</li><li>Projeção</li>
+  </ul>
+  <p class="lp-measure-note">Tudo calculado sobre a sua própria fala, reunião após reunião, com a nota e o ponto principal a melhorar no fim de cada call.</p>
 </section>
 
 <section class="lp-section" id="funcionalidades">
