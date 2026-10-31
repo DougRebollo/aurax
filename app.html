@@ -8,7 +8,7 @@
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32" />
 <link rel="shortcut icon" href="favicon.ico" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-<link rel="stylesheet" href="shell.css?v=e3c8769f" />
+<link rel="stylesheet" href="shell.css?v=19d2fb14" />
 <script src="transition.js?v=357b4b50"></script>
 <link rel="stylesheet" href="glass.css?v=138390e5" />
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
@@ -800,12 +800,27 @@
   button.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
   button.ghost:hover { background: var(--surface-2); filter: none; }
   button.danger { background: var(--bad); color: #fff; box-shadow: none; }
+  .session-prep { width: 100%; max-width: 720px; align-self: stretch; margin-top: 16px; padding: 16px 18px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+  .prep-row { display: flex; align-items: center; gap: 12px; }
+  .prep-n { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--surface-2); color: var(--ink-dim); border: 1px solid var(--line); transition: background .2s, color .2s, border-color .2s; }
+  .prep-row.done .prep-n { background: var(--good-soft); color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, var(--line)); }
+  .prep-input { flex: 1; min-width: 0; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; font-size: 14px; outline: none; }
+  .prep-input:focus { border-color: var(--accent); }
+  .prep-input.need { border-color: var(--bad); animation: prepShake .35s; }
+  @keyframes prepShake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  .prep-btn { flex: 1; margin: 0; padding: 11px 16px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+  .prep-btn.primary { background: var(--accent); color: #fff; }
+  .prep-btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+  #micToggleBtn.on { background: var(--good-soft); color: var(--good); border: 1px solid color-mix(in srgb, var(--good) 45%, var(--line)); box-shadow: none; }
+  .prep-hint { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-faint); line-height: 1.4; }
+  .prep-hint.ready { color: var(--good); }
+  #session-prep #sessionTimer { margin-top: 0; text-align: center; }
   #session-controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
   .sidebar button.nav-item { margin: 0; padding: 8px 10px; background: transparent; color: var(--ink-dim); box-shadow: none; border-radius: 8px; filter: none; font-size: 14px; }
   .sidebar button.nav-item:hover { background: var(--surface-2); color: var(--ink); }
 
   /* navegação agora vive na sidebar; o botão "Atualizar cadastro" continua aqui */
-  .status-panel-nav .ghost:not(#updateProfileBtn) { display: none !important; }
+  .status-panel-nav { display: none !important; }
   .status-panel-nav { margin-bottom: 10px; }
 
   /* elementos sobre o vídeo continuam escuros nos dois temas */
@@ -891,13 +906,8 @@
           <button type="button" id="howItWorksBtn" class="ghost">Como funciona</button>
           <button type="button" id="insightsBtn" class="ghost">Meus Insights</button>
           <button type="button" id="sessionsBtn" class="ghost">Minhas Sessões</button>
-          <button type="button" id="updateProfileBtn" class="ghost">Atualizar cadastro</button>
           <button type="button" id="backToGestorBtn" class="ghost" style="display:none">Painel do Gestor</button>
           <button type="button" id="logoutBtn" class="ghost">Sair</button>
-        </div>
-        <div class="status-row">
-          <span class="status-label">Cliente</span>
-          <input type="text" id="clientNameInput" placeholder="Nome (opcional)" class="status-client-input" />
         </div>
         <div class="status-row"><span class="status-label">Câmera ativa</span><span id="cameraUptime" class="status-value">00:00</span></div>
         <div class="status-row"><span class="status-label">Confiança da detecção</span><span id="detectionConfidence" class="status-value">—</span></div>
@@ -941,9 +951,21 @@
         <button id="switchCam" style="display:none">Trocar câmera</button>
       </div>
 
-      <div id="session-controls">
-        <button id="startSessionBtn">Iniciar sessão</button>
-        <button id="endSessionBtn" class="danger" style="display:none">Finalizar sessão</button>
+      <div id="session-prep" class="session-prep">
+        <div class="prep-row" id="prepStepName">
+          <span class="prep-n">1</span>
+          <input type="text" id="clientNameInput" class="prep-input" placeholder="Nome do cliente (obrigatório)" maxlength="80" autocomplete="off" />
+        </div>
+        <div class="prep-row" id="prepStepMic">
+          <span class="prep-n">2</span>
+          <button type="button" id="micToggleBtn" class="prep-btn">Ativar microfone</button>
+        </div>
+        <div class="prep-row" id="prepStepStart">
+          <span class="prep-n">3</span>
+          <button type="button" id="startSessionBtn" class="prep-btn primary" disabled>Iniciar sessão</button>
+          <button type="button" id="endSessionBtn" class="prep-btn danger" style="display:none">Finalizar sessão</button>
+        </div>
+        <p class="prep-hint" id="prepHint">Preencha o nome do cliente e ative o microfone para iniciar.</p>
         <div id="sessionTimer"></div>
       </div>
 
@@ -961,9 +983,6 @@
     <div id="transcript-section">
       <div id="transcript-header">
         <h2>Transcrição ao vivo</h2>
-        <div style="display:flex; gap:6px;">
-          <button id="micToggleBtn">Ativar microfone</button>
-        </div>
       </div>
       <div id="transcript-note">Análise individual: tudo o que o seu microfone captar é considerado fala sua. Use fone de ouvido na call para a voz de quem fala com você não entrar na sua análise.</div>
       <div id="transcriptMeta">
@@ -1019,7 +1038,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="shell.js?v=67e68e42"></script>
+  <script src="shell.js?v=1f7eee8b"></script>
   <script src="focus.js?v=a79abb56"></script>
   <script src="lang.js?v=903825a1"></script>
   <script src="explain.js?v=341f3fcf"></script>
@@ -1573,6 +1592,15 @@
     }, 1000);
 
     startSessionBtn.addEventListener("click", () => {
+      if (!clientNameInputEl.value.trim()) {
+        clientNameInputEl.classList.add("need");
+        clientNameInputEl.focus();
+        return;
+      }
+      if (!transcribing) {
+        micToggleBtn.focus();
+        return;
+      }
       if (noPlan) {
         posthog.capture("record_blocked_no_plan");
         AuraShell.showPlanPrompt({ canPay: !currentUserHasManager });
@@ -1597,8 +1625,10 @@
       sessionConfidences = [];
       sessionVolumes = [];
       currentClientName = clientNameInputEl.value.trim();
+      clientNameInputEl.disabled = true;
       startSessionBtn.style.display = "none";
-      endSessionBtn.style.display = "inline-block";
+      endSessionBtn.style.display = "block";
+      updateStartGate();
       summarySection.style.display = "none";
       leftSummaryCardsEl.style.display = "none";
       summaryOratoriaEl.innerHTML = '<div class="insight-line">Fale um pouco pra começar a ver sua nota aqui.</div>';
@@ -1665,8 +1695,9 @@
     endSessionBtn.addEventListener("click", () => {
       const durationSeconds = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 1000) : 0;
       sessionActive = false;
-      startSessionBtn.style.display = "inline-block";
+      startSessionBtn.style.display = "block";
       endSessionBtn.style.display = "none";
+      clientNameInputEl.disabled = false;
       sessionTimerEl.textContent = "";
       updateSessionStatusDisplay();
       openSavedModal();
@@ -1683,6 +1714,7 @@
       transcriptWordCount = 0;
       updateTranscriptCount();
       clientNameInputEl.value = "";
+      updateStartGate();
       summarySection.style.display = "none";
       leftSummaryCardsEl.style.display = "none";
       summaryOratoriaEl.innerHTML = '<div class="insight-line">Fale um pouco pra começar a ver sua nota aqui.</div>';
@@ -2733,6 +2765,7 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
           micPulseEl.classList.add("hidden");
           micToggleBtn.textContent = "Ativar microfone";
           teardownAudioAnalyser();
+          updateStartGate();
         }
       };
 
@@ -2785,6 +2818,7 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         transcriptStatusEl.textContent = "Ouvindo...";
         micPulseEl.classList.remove("hidden");
         micToggleBtn.textContent = "Parar transcrição";
+        updateStartGate();
         recognition.start();
         setupAudioAnalyser().catch((err) => {
           console.error("Não foi possível analisar o áudio (ritmo/pausas):", err);
@@ -2800,8 +2834,32 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         micPulseEl.classList.add("hidden");
         micToggleBtn.textContent = "Ativar microfone";
         teardownAudioAnalyser();
+        updateStartGate();
       }
     });
+
+    // ===== Preparar sessão: nome do cliente + microfone + iniciar (os 3 juntos) =====
+    // "Iniciar sessão" só libera com o nome do cliente preenchido e o microfone ativo.
+    let startBlocked = false; // conta bloqueada ou cadastro incompleto (definido no bootstrap)
+    const prepHintEl = document.getElementById("prepHint");
+    function updateStartGate() {
+      const nameOk = clientNameInputEl.value.trim().length > 0;
+      const micOk = transcribing;
+      document.getElementById("prepStepName").classList.toggle("done", nameOk);
+      document.getElementById("prepStepMic").classList.toggle("done", micOk);
+      micToggleBtn.classList.toggle("on", micOk);
+      const ready = nameOk && micOk && !startBlocked;
+      document.getElementById("prepStepStart").classList.toggle("done", sessionActive);
+      startSessionBtn.disabled = !ready;
+      if (sessionActive) { prepHintEl.textContent = ""; prepHintEl.classList.remove("ready"); return; }
+      prepHintEl.classList.toggle("ready", ready);
+      prepHintEl.textContent = startBlocked ? "" : ready ? "Tudo certo: é só iniciar a sessão."
+        : !nameOk && !micOk ? "Preencha o nome do cliente e ative o microfone para iniciar."
+        : !nameOk ? "Falta o nome do cliente."
+        : "Falta ativar o microfone.";
+    }
+    clientNameInputEl.addEventListener("input", () => { clientNameInputEl.classList.remove("need"); updateStartGate(); });
+    updateStartGate();
 
     async function startCamera(facingMode = "user") {
       if (stream) {
@@ -3163,7 +3221,8 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
       cpProfile = profile;
       if (profileIsIncomplete) {
         document.getElementById("profileIncompleteBanner").hidden = false;
-        startSessionBtn.disabled = true;
+        startBlocked = true;
+        updateStartGate();
       }
 
       // Pagamento pendente bloqueia a conta inteira — nunca deixa chegar na
@@ -3176,7 +3235,8 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
       }
       if (accountStatus === "bloqueada") {
         document.getElementById("accountBlockedBanner").hidden = false;
-        startSessionBtn.disabled = true;
+        startBlocked = true;
+        updateStartGate();
         micToggleBtn.disabled = true;
       }
 
@@ -3321,7 +3381,8 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         const { data: accountStatus } = await supabaseClient.rpc("effective_account_status", { uid: currentUserId });
         if (accountStatus === "pendente_pagamento") showNoPlanBanner();
         if (accountStatus !== "bloqueada") {
-          startSessionBtn.disabled = false;
+          startBlocked = false;
+          updateStartGate();
         }
         posthog.identify(currentUserId, { email: cpSession.user.email, role: currentUserRole });
       } catch (err) {

@@ -192,6 +192,14 @@
     try { sessionStorage.setItem(SHELL_CACHE_KEY, JSON.stringify({ name, role, hasManager, hasSubscription })); } catch (e) { /* ok */ }
     el.innerHTML = sidebarHtml({ active, name, role, hasManager, hasSubscription });
 
+    const editBtn = document.getElementById("pageUpdateProfile");
+    if (editBtn) {
+      // Painel do Gestor: sempre; Meus Insights: só para quem não é gestor (o gestor edita no painel).
+      const only = editBtn.getAttribute("data-for");
+      editBtn.hidden = only === "nongestor" && role === "gestor";
+      editBtn.addEventListener("click", () => openProfileEditor({ client, session }));
+    }
+
     const manage = document.getElementById("shellManagePlan");
     if (manage) manage.addEventListener("click", async (e) => {
       e.preventDefault();
@@ -247,6 +255,60 @@
     return out;
   }
 
+  // ===== Atualizar cadastro (nome, cargo e empresa) — usado no Painel do Gestor e em Meus Insights =====
+  async function openProfileEditor({ client, session }) {
+    const old = document.getElementById("profileEditOverlay");
+    if (old) old.remove();
+    const overlay = document.createElement("div");
+    overlay.id = "profileEditOverlay";
+    overlay.className = "sup-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.innerHTML =
+      '<div class="sup-card">' +
+        '<button type="button" class="sup-x" aria-label="Fechar">×</button>' +
+        '<h3>Atualizar cadastro</h3>' +
+        '<p class="sup-sub">Mantenha seus dados em dia.</p>' +
+        '<label class="sup-field">Nome<input type="text" id="peName" maxlength="80" /></label>' +
+        '<label class="sup-field">Cargo<input type="text" id="peCargo" maxlength="80" placeholder="Ex.: Gerente Comercial" /></label>' +
+        '<label class="sup-field">Empresa<input type="text" id="peEmpresa" maxlength="80" placeholder="Ex.: Registro Rural" /></label>' +
+        '<div class="sup-msg" id="peMsg"></div>' +
+        '<div class="plan-actions"><button type="button" class="plan-cta" id="peSave">Salvar</button></div>' +
+      "</div>";
+    document.body.appendChild(overlay);
+    const $ = (id) => overlay.querySelector("#" + id);
+    overlay.querySelectorAll(".sup-field input").forEach((i) => { i.style.cssText = "display:block;width:100%;margin-top:5px;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:400;outline:none"; });
+    const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey); };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay || e.target.closest(".sup-x")) close(); });
+    const clean = (v) => (v && v !== "EMPTY" ? v : "");
+    try {
+      const { data } = await client.from("profiles").select("name, cargo, empresa").eq("id", session.user.id).single();
+      if (data) { $("peName").value = clean(data.name); $("peCargo").value = clean(data.cargo); $("peEmpresa").value = clean(data.empresa); }
+    } catch (e) { /* campos vazios */ }
+    $("peName").focus();
+    $("peSave").addEventListener("click", async () => {
+      const nome = $("peName").value.trim(), cargo = $("peCargo").value.trim(), empresa = $("peEmpresa").value.trim();
+      const msg = $("peMsg");
+      msg.className = "sup-msg"; msg.textContent = "";
+      if (!nome || !cargo || !empresa) { msg.className = "sup-msg error"; msg.textContent = "Preencha nome, cargo e empresa."; return; }
+      const btn = $("peSave"); btn.disabled = true; btn.textContent = "Salvando…";
+      try {
+        const { data, error } = await client.from("profiles").update({ name: nome, cargo, empresa }).eq("id", session.user.id).select();
+        if (error || !data || !data.length) throw new Error("save");
+        try { const c = JSON.parse(sessionStorage.getItem(SHELL_CACHE_KEY) || "{}"); c.name = nome; sessionStorage.setItem(SHELL_CACHE_KEY, JSON.stringify(c)); } catch (e) { /* ok */ }
+        const chip = document.querySelector(".user-chip strong"); if (chip) chip.textContent = nome;
+        const av = document.querySelector(".user-chip .avatar"); if (av) av.textContent = initials(nome);
+        const greet = document.getElementById("greeting"); if (greet && /^Olá/.test(greet.textContent)) greet.textContent = "Olá, " + nome.split(" ")[0];
+        close();
+      } catch (e) {
+        msg.className = "sup-msg error"; msg.textContent = "Não foi possível salvar. Tente de novo.";
+        btn.disabled = false; btn.textContent = "Salvar";
+      }
+    });
+  }
+
   // ===== Aviso "assine um plano" (conta sem plano tentando gravar) =====
   function showPlanPrompt({ canPay }) {
     const old = document.getElementById("planPromptOverlay");
@@ -290,5 +352,5 @@
     } catch (e) { /* sem cache: o menu aparece quando o banco responder */ }
   })();
 
-  window.AuraShell = { init, cleanFillers, showPlanPrompt };
+  window.AuraShell = { init, cleanFillers, showPlanPrompt, openProfileEditor };
 })();
