@@ -20,7 +20,7 @@
     pausas: (h) => `<b>${esc(h.pauses || 0)}</b> ${h.pauses === 1 ? "pausa longa" : "pausas longas"} (silêncio de mais de 1min30). Até 2 não descontam; cada pausa a mais tira 10 pontos.`,
     vicios: (h) => {
       const heavy = heavyTerms(h).sort((a, b) => b.penalty - a.penalty).slice(0, 4);
-      return "Vícios e gírias só descontam o que passa da tolerância por 100 palavras (de 0,5 a 1,5, conforme o peso da expressão). Um uso isolado não pesa. "
+      return "Vícios e gírias descontam o que passa da tolerância por 100 palavras (de 0,5 a 1,5, conforme o peso da expressão); um uso isolado não pesa. Além disso, a soma de tudo o que é informal também conta: acima de 3 pontos ponderados por 100 palavras, o excesso desconta, mesmo que cada termo, sozinho, esteja dentro da tolerância. "
         + (heavy.length ? `Pesaram nesta sessão: ${heavy.map((r) => `<b>“${esc(r.key)}”</b> ×${r.count}`).join(", ")}.` : "Nesta sessão nada passou da tolerância.");
     },
     clareza: () => "Média da confiança com que o reconhecimento de fala do navegador entendeu você. É um indicador indireto: ruído, microfone e sotaque também baixam esse número, não só a dicção.",

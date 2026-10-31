@@ -29,6 +29,9 @@
   const TOLERANCE = { 0: Infinity, 1: 1.5, 2: 0.5, 3: 0.1 };   // usos por 100 palavras sem desconto
   const FACTOR = { 0: 0, 1: 0.5, 2: 1, 3: 2 };                 // unidades de desconto por uso acima da tolerância
   const CAP_PER_TERM = 3;                                       // teto de unidades por termo
+  // Soma geral: vários termos leves, cada um abaixo da própria tolerância, ainda somam fala informal demais.
+  // Densidade ponderada = (usos x peso) por 100 palavras; acima de AGG_TOL, cada ponto vale AGG_FACTOR unidade.
+  const AGG_TOL = 3, AGG_FACTOR = 1, AGG_CAP = 5, AGG_MIN_WORDS = 150;
   const SCORE_SCALE = 12;                                       // 12 unidades = nota 0 (mesma escala dos vícios)
 
   const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -311,9 +314,17 @@
   function languageScore(fillerCounts, slangCounts, words) {
     const fillerUnits = analyzeFillers(fillerCounts, words).reduce((a, r) => a + r.penalty, 0);
     const slangUnits = analyze(slangCounts, words).reduce((a, r) => a + r.penalty, 0);
-    const score = Math.max(0, Math.min(1, 1 - (fillerUnits + slangUnits) / SCORE_SCALE)) * 100;
-    return { score, fillerUnits, slangUnits };
+    let weighted = 0, informal = 0;
+    analyzeFillers(fillerCounts, words).concat(analyze(slangCounts, words)).forEach((r) => {
+      if (r.weight > 0) { weighted += r.count * r.weight; informal += r.count; }
+    });
+    const density = words > 0 ? (weighted / words) * 100 : 0;
+    const aggUnits = words >= AGG_MIN_WORDS ? Math.min(AGG_CAP, Math.max(0, density - AGG_TOL) * AGG_FACTOR) : 0;
+    // O desconto geral não soma com o por termo (evita contar duas vezes): vale o maior dos dois.
+    const units = Math.max(fillerUnits + slangUnits, aggUnits);
+    const score = Math.max(0, Math.min(1, 1 - units / SCORE_SCALE)) * 100;
+    return { score, fillerUnits, slangUnits, aggUnits, density, informal };
   }
 
-  window.AuraLang = { FILLERS, fillerSwaps, detectFillers, analyzeFillers, ENTRIES, WEIGHT_LABEL, CATEGORY_LABEL, CATEGORY_WHY, swaps, detectSlang, weightOf, categoryOf, catLabel, analyze, byCategory, languageScore, TOLERANCE };
+  window.AuraLang = { FILLERS, fillerSwaps, detectFillers, analyzeFillers, ENTRIES, WEIGHT_LABEL, CATEGORY_LABEL, CATEGORY_WHY, swaps, detectSlang, weightOf, categoryOf, catLabel, analyze, byCategory, languageScore, TOLERANCE, AGG_TOL };
 })();

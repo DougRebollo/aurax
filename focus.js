@@ -218,16 +218,18 @@
     },
     muitas_girias(h) {
       const L0 = window.AuraLang;
-      const counts = Object.fromEntries(Object.entries(h.slang_counts || {}).filter(([k]) => !L0 || L0.categoryOf(k) === "giria"));
+      const counts = Object.assign({}, h.slang_counts || {});
+      Object.entries(h.filler_counts || {}).forEach(([k, c]) => { if (k !== "então") counts[k] = (counts[k] || 0) + c; });
       const top = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      const swapOf = (w) => (L0 && (L0.swaps[w] || (L0.fillerSwaps && L0.fillerSwaps[w]))) || SLANG_SWAPS[w] || "";
       const total = top.reduce((n, [, c]) => n + c, 0);
       const word = top[0] && top[0][0];
       const line = word ? youLines(h).find((l) => (" " + l.text.toLowerCase() + " ").includes(" " + word + " ")) : null;
       return {
         title: "Gírias e informalidades",
-        why: `${total} ocorrências` + (top.length ? ` — mais frequentes: ${top.slice(0, 3).map(([w, c]) => `“${esc(w)}” ×${c}${(L0 && L0.swaps[w]) || SLANG_SWAPS[w] ? ` → ${esc((L0 && L0.swaps[w]) || SLANG_SWAPS[w])}` : ""}`).join(", ")}.` : "."),
+        why: `${total} ocorrências somadas` + (top.length ? ` — mais frequentes: ${top.slice(0, 3).map(([w, c]) => `“${esc(w)}” ×${c}${swapOf(w) ? ` → ${esc(swapOf(w))}` : ""}`).join(", ")}.` : "."),
         example: line ? { label: `Um trecho seu (${clock(line.t)})`, html: quote(line.text, [word]) } : null,
-        goal: "Meta: no máximo 2 gírias por reunião.",
+        goal: "Meta: reduzir pela metade as gírias e vícios na próxima reunião.",
       };
     },
   };

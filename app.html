@@ -1020,9 +1020,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js?v=67e68e42"></script>
-  <script src="focus.js?v=c83e6e1d"></script>
-  <script src="lang.js?v=db14ec62"></script>
-  <script src="explain.js?v=5700e8bc"></script>
+  <script src="focus.js?v=a79abb56"></script>
+  <script src="lang.js?v=e721e22d"></script>
+  <script src="explain.js?v=427ae0ae"></script>
   <script>
     const EMOTION_LABELS_PT = {
       neutral: "Neutro",
@@ -1950,6 +1950,12 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
       if (heavyGirias.length) {
         const list = heavyGirias.slice(0, 3).map((r) => `"${r.key}" ×${r.count}`).join(", ");
         tips.push({ key: "muitas_girias", type: "melhorar", text: `Gírias que pesaram na nota: ${list} — troque por termos mais profissionais.` });
+      }
+      // Muitos termos leves, cada um dentro da tolerância, ainda somam fala informal demais.
+      const langAgg = AuraLang.languageScore(fillerCounts, slangCounts, sessionWordCount);
+      if (langAgg.aggUnits >= 1 && !tips.some((t) => t.key === "muitas_girias")) {
+        const rate = sessionWordCount > 0 ? ((langAgg.informal / sessionWordCount) * 100).toFixed(1).replace(".", ",") : "0";
+        tips.push({ key: "muitas_girias", type: "melhorar", text: `${langAgg.informal} gírias e vícios somados (${rate} a cada 100 palavras) — cada um isolado é tolerável, mas juntos deixam a fala informal; escolha os 2 mais frequentes para cortar.` });
       }
       // Fala informal que atrapalha negociação, por categoria (insegurança, minimizador, vagueza...).
       AuraLang.byCategory(slangCounts, sessionWordCount).filter((c) => c.cat !== "giria" && c.penalty > 0).forEach((c) => {
