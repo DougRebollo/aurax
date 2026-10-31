@@ -99,6 +99,7 @@
   function pickCandidate(h) {
     const cands = [];
     (h.oratoria_subscores || []).forEach((s) => {
+      if (s.excluded) return; // sessão de escuta: ritmo/pausas/projeção não são o foco
       const key = s.key === "ritmo" ? (h.wpm > 160 ? "ritmo_rapido" : "ritmo_lento") : s.key;
       cands.push({ key, sub: s.key, weight: 100 - s.score });
     });
@@ -264,7 +265,7 @@
     const cand = pickCandidate(h);
     if (!cand || !BUILDERS[cand.key]) return null;
     const b = BUILDERS[cand.key](h);
-    const subs = (h.oratoria_subscores || []).slice().sort((x, y) => y.score - x.score);
+    const subs = (h.oratoria_subscores || []).filter((x) => !x.excluded).sort((x, y) => y.score - x.score);
     const best = subs[0] && subs[0].score >= 80 && subs[0].key !== cand.sub ? subs[0] : null;
     const polish = cand.weight < 25; // nada realmente fraco: o foco é só o critério mais baixo
     if (polish && cand.sub) {

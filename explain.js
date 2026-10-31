@@ -30,13 +30,15 @@
   function html(h) {
     const subs = (h && h.oratoria_subscores) || [];
     if (!subs.length) return "";
+    const counted = subs.filter((s) => !s.excluded);
+    const dropped = subs.length - counted.length;
     const rows = subs.map((s) => {
       const fn = CRITERIA[s.key];
-      return `<li><span class="se-name">${esc(s.label)} <b>${Math.round(s.score)}</b></span>${fn ? `<span class="se-text">${fn(h)}</span>` : ""}</li>`;
+      return `<li${s.excluded ? ' style="opacity:.55"' : ""}><span class="se-name">${esc(s.label)} <b>${Math.round(s.score)}</b>${s.excluded ? " (fora da nota)" : ""}</span>${fn ? `<span class="se-text">${fn(h)}</span>` : ""}</li>`;
     }).join("");
     return `<details class="score-explain">
       <summary>Como esta nota é calculada</summary>
-      <p>A nota geral é a <b>média simples</b> das dimensões que puderam ser medidas nesta sessão (<b>${subs.length} de 5</b>). Uma dimensão sem dados suficientes fica de fora, em vez de entrar como zero.</p>
+      <p>A nota geral é a <b>média simples</b> das dimensões que puderam ser medidas nesta sessão (<b>${counted.length} de 5</b>). Uma dimensão sem dados suficientes fica de fora, em vez de entrar como zero.${dropped ? " Nesta sessão você falou pouco (menos de 35% do tempo), então ritmo, pausas e projeção — que medem a sua fala, não o seu silêncio — aparecem esmaecidos e não entram na nota." : ""}</p>
       <ul>${rows}</ul>
       <p class="se-foot">São aproximações automáticas para você acompanhar a sua própria evolução, sessão após sessão. Não são uma avaliação fonoaudiológica nem um julgamento sobre você.</p>
     </details>`;

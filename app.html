@@ -316,6 +316,7 @@
     width: 100%;
     max-width: 640px;
   }
+  .bar-row.bar-excluded { opacity: 0.45; }
   .bar-row {
     display: flex;
     align-items: center;
@@ -1019,9 +1020,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js?v=67e68e42"></script>
-  <script src="focus.js?v=23822fba"></script>
+  <script src="focus.js?v=c83e6e1d"></script>
   <script src="lang.js?v=db14ec62"></script>
-  <script src="explain.js?v=5cf58870"></script>
+  <script src="explain.js?v=5700e8bc"></script>
   <script>
     const EMOTION_LABELS_PT = {
       neutral: "Neutro",
@@ -1718,8 +1719,13 @@
     // monótona x mais expressiva). Com fone de ouvido, isso fica bem mais
     // confiável, já que o mic só capta a sua própria voz de verdade.
     // por isso o fone continua sendo recomendado pra maior precisão.
-    function computeOratoriaScore({ wpm, pauseCount, fillerCounts, slangCounts, wordCount, ownConfidences, ownVolumes }) {
+    // Sessão de escuta: se você falou pouco (< 35% do tempo), ritmo, pausas e projeção medem o seu silêncio,
+    // não a sua fala. Eles aparecem, mas ficam de fora da nota (marcados com excluded).
+    const LISTENING_SHARE = 35;
+    function computeOratoriaScore({ wpm, pauseCount, fillerCounts, slangCounts, wordCount, ownConfidences, ownVolumes, talkShare }) {
       const subScores = [];
+      const listening = talkShare != null && talkShare < LISTENING_SHARE;
+      const WHEN_LISTENING = ["ritmo", "pausas", "projecao"];
 
       if (wpm > 0) {
         let paceScore;
@@ -1751,7 +1757,10 @@
         subScores.push({ key: "projecao", label: "Projeção de voz", score: projScore });
       }
 
-      const overall = subScores.length ? Math.round(average(subScores.map((s) => s.score))) : null;
+if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.excluded = true; });
+      const counted = subScores.filter((s) => !s.excluded);
+      const base = counted.length ? counted : subScores;
+      const overall = base.length ? Math.round(average(base.map((s) => s.score))) : null;
       return { overall, subScores };
     }
 
@@ -1795,7 +1804,7 @@
     function oratoriaInsightLines({ subScores, wpm, pauseCount, ownConfidences, ownVolumes }) {
       const lines = [];
       subScores
-        .filter((s) => s.score < 60)
+        .filter((s) => s.score < 60 && !s.excluded)
         .sort((a, b) => a.score - b.score)
         .slice(0, 2)
         .forEach((s) => {
@@ -1839,10 +1848,11 @@
             <div class="bar-label">${s.label}</div>
             <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.score)}%; background:${oratoriaScoreColor(s.score)}"></div></div>
             <div class="bar-pct">${Math.round(s.score)}%</div>
-          </div>`
+          </div>`.replace('class="bar-row"', s.excluded ? 'class="bar-row bar-excluded" title="Fora da nota: você falou pouco nesta sessão"' : 'class="bar-row"')
         )
         .join("");
-      const insightsHtml = insightLines.map((l) => `<div class="insight-line">${l}</div>`).join("");
+      const insightsHtml = insightLines.map((l) => `<div class="insight-line">${l}</div>`).join("") +
+        (subScores.some((s) => s.excluded) ? '<div class="insight-line">Você falou pouco nesta sessão: ritmo, pausas e projeção aparecem esmaecidos e não entram na nota.</div>' : "");
       return `
         <div class="oratoria-card">
           <div class="oratoria-score-badge" style="--score:${overall}; --score-color:${color}">
@@ -1882,6 +1892,7 @@
         wordCount: sessionWordCount,
         ownConfidences: sessionConfidences,
         ownVolumes: sessionVolumes,
+        talkShare: sessionTotalSamples >= 20 ? Math.round((sessionSpeechSamples / sessionTotalSamples) * 100) : null,
       });
       const insights = oratoriaInsightLines({
         subScores: result.subScores,
@@ -1899,13 +1910,16 @@
     function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections }) {
       const tips = [];
 
-      if (wpm > 170) {
+      const spoke = !dynamics || dynamics.pctYou >= LISTENING_SHARE; // sessão de escuta: ritmo e pausas não refletem a sua fala
+      if (!spoke) {
+        // sem dicas de ritmo/pausas
+      } else if (wpm > 170) {
         tips.push({ key: "ritmo_acelerado", type: "melhorar", text: `Ritmo de fala acelerado (${wpm} palavras/min) — desacelerar passa mais segurança.` });
       } else if (wpm > 0 && wpm < 100) {
         tips.push({ key: "ritmo_tranquilo", type: "positivo", text: `Ritmo de fala tranquilo (${wpm} palavras/min) — bom controle de pausas.` });
       }
 
-      if (pauseCount >= 5) {
+      if (spoke && pauseCount >= 5) {
         tips.push({ key: "muitas_pausas", type: "melhorar", text: `Muitas pausas longas (${pauseCount}) — pode passar hesitação.` });
       }
 
@@ -2034,6 +2048,7 @@
         <div style="margin-top:8px">${keywordTagsHtml || '<span class="insight-line">Nenhuma palavra-chave de negociação identificada.</span>'}</div>
       `;
 
+      const dynamicsForScore = computeConversationDynamics(sessionTranscript);
       const oratoriaResult = computeOratoriaScore({
         wpm: wpmSession,
         pauseCount: sessionPauseCount,
@@ -2042,6 +2057,7 @@
         wordCount: sessionWordCount,
         ownConfidences: sessionConfidences,
         ownVolumes: sessionVolumes,
+        talkShare: dynamicsForScore ? dynamicsForScore.pctYou : null,
       });
       const oratoriaInsights = oratoriaInsightLines({
         subScores: oratoriaResult.subScores,
