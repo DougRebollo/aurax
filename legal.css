@@ -1,0 +1,22 @@
+/* Páginas legais (Termos de Uso e Política de Privacidade). Usa os tokens do shell.css/glass.css. */
+body.legal { display: flex; justify-content: center; padding: 28px 16px 64px; }
+.legal-card { width: 100%; max-width: 780px; padding: 34px 36px 40px; }
+.legal-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.legal-logo { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--ink); text-decoration: none; }
+.legal-logo::before { content: ""; flex: none; width: 30px; height: 30px; background: url(assets/favicon.svg) center / contain no-repeat; }
+.legal-nav { display: flex; gap: 14px; font-size: 13px; }
+.legal-nav a { color: var(--ink-dim); text-decoration: none; }
+.legal-nav a:hover, .legal-nav a.on { color: var(--accent); }
+.legal-card h1 { margin: 18px 0 4px; font-size: 26px; letter-spacing: -0.02em; }
+.legal-meta { margin: 0 0 22px; font-size: 13px; color: var(--ink-faint); }
+.legal-card h2 { margin: 30px 0 8px; font-size: 17px; letter-spacing: -0.01em; }
+.legal-card p, .legal-card li { font-size: 14.5px; line-height: 1.65; color: var(--ink); }
+.legal-card p { margin: 8px 0; }
+.legal-card ul { margin: 8px 0; padding-left: 22px; }
+.legal-card li { margin: 4px 0; }
+.legal-card a { color: var(--accent); }
+.legal-callout { margin: 16px 0; padding: 14px 16px; border-radius: 14px; background: var(--accent-soft); border: 1px solid var(--line); font-size: 14px; line-height: 1.6; }
+.legal-card table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13.5px; }
+.legal-card th, .legal-card td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
+.legal-card th { color: var(--ink-dim); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+@media (max-width: 640px) { .legal-card { padding: 24px 18px 30px; } .legal-card table { display: block; overflow-x: auto; } }

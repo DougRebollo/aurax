@@ -37,6 +37,8 @@
   .role-hint { font-size: 12.5px; color: var(--ink-dim); margin: 8px 0 0; line-height: 1.45; }
   .role-option.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
   .forgot-row { text-align: right; margin-top: 8px; }
+  .legal-note { margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-faint); text-align: center; }
+  .legal-note a { color: var(--accent); }
   .forgot-row button { background: none; border: 0; color: var(--accent); font-size: 12.5px; font-weight: 600; padding: 0; }
   .invite-banner { padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); color: var(--ink); font-size: 13px; line-height: 1.45; margin: 0 0 14px; text-align: left; }
 </style>
@@ -81,6 +83,7 @@
       <div class="forgot-row" id="forgotRow"><button type="button" id="forgotBtn">Esqueci minha senha</button></div>
 
       <button type="submit" class="submit" id="submitBtn">Entrar</button>
+      <p class="legal-note" id="legalNote" style="display:none">Ao criar a conta, você concorda com os <a href="termos.html" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</p>
     </form>
 
     <form id="resetForm" hidden>
@@ -159,12 +162,14 @@
       if (mode === "signup") {
         nameField.style.display = "block";
         submitBtn.textContent = "Criar conta";
+        legalNote.style.display = "block";
         formSubtitle.textContent = "Crie sua conta no AuraX";
         toggleText.textContent = "Já tem conta?";
         toggleModeBtn.textContent = "Entrar";
       } else {
         nameField.style.display = "none";
         submitBtn.textContent = "Entrar";
+        legalNote.style.display = "none";
         formSubtitle.textContent = "Entre com sua conta";
         toggleText.textContent = "Ainda não tem conta?";
         toggleModeBtn.textContent = "Criar conta";
