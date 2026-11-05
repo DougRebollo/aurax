@@ -1,3 +1,15 @@
+// Paleta de teste (Navy/Cream/Coral): ?paleta=navy liga, ?paleta=off desliga. Guardada em localStorage. Ver palette.css.
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get("paleta");
+    if (q === "navy" || q === "1") localStorage.setItem("aurax_palette", "navy");
+    else if (q === "off" || q === "0") localStorage.removeItem("aurax_palette");
+    if (localStorage.getItem("aurax_palette") === "navy") {
+      document.documentElement.setAttribute("data-palette", "navy");
+      document.write('<link rel="stylesheet" href="palette.css?v=3" />');
+    }
+  } catch (e) { /* sem armazenamento: usa a paleta normal */ }
+})();
 /* AuraX — transição entre páginas por FADE (esmaecer).
  * Ao clicar num link interno, a página atual esmaece; a página nova abre invisível e aparece suavemente.
  * Funciona em qualquer navegador e é um movimento sutil (só opacidade), então vale também com "reduzir
