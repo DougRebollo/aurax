@@ -1,10 +1,10 @@
-// Paleta de teste (Navy/Cream/Coral): ?paleta=navy liga, ?paleta=off desliga. Guardada em localStorage. Ver palette.css.
+// Paleta Navy/Cream/Coral: agora é o padrão do AuraX. ?paleta=off desliga (guardado em localStorage); ?paleta=navy volta. Ver palette.css.
 (function () {
   try {
     var q = new URLSearchParams(location.search).get("paleta");
-    if (q === "navy" || q === "1") localStorage.setItem("aurax_palette", "navy");
-    else if (q === "off" || q === "0") localStorage.removeItem("aurax_palette");
-    if (localStorage.getItem("aurax_palette") === "navy") {
+    if (q === "navy" || q === "1") localStorage.removeItem("aurax_palette");
+    else if (q === "off" || q === "0") localStorage.setItem("aurax_palette", "off");
+    if (localStorage.getItem("aurax_palette") !== "off") {
       document.documentElement.setAttribute("data-palette", "navy");
       document.write('<link rel="stylesheet" href="palette.css?v=3" />');
     }
