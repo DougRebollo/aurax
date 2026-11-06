@@ -18,3 +18,7 @@ verify_jwt = true
 
 [functions.create-portal-session]
 verify_jwt = true
+
+[functions.notify-admin]
+# Chamada pelo banco (pg_net), sem token de usuário. A função valida tudo sozinha (ver o comentário no código).
+verify_jwt = false
