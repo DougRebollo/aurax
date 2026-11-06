@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Admin — AuraX</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="shell.css?v=19d2fb14" />
+<script src="transition.js?v=4e230cf0"></script>
+<link rel="stylesheet" href="glass.css?v=138390e5" />
+<script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+  body { padding: 24px 20px 60px; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
+  .brand::before { content: ""; width: 30px; height: 30px; background: url(assets/favicon.svg) center / contain no-repeat; }
+  .brand small { font-weight: 500; font-size: 13px; color: var(--ink-faint); margin-left: 6px; }
+  .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-dim); }
+  .btn { padding: 9px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn:hover { background: var(--surface-2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); }
+  .gate { max-width: 460px; margin: 90px auto; padding: 30px; text-align: center; }
+  .gate h2 { margin: 0 0 8px; } .gate p { color: var(--ink-dim); margin: 0 0 18px; }
+  .banner { padding: 13px 18px; border-radius: 14px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; font-weight: 600; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .kpi { padding: 18px 20px; }
+  .kpi b { display: block; font-size: 30px; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .kpi span { display: block; margin-top: 4px; font-size: 12.5px; color: var(--ink-dim); }
+  .kpi.good b { color: var(--good); } .kpi.warn b { color: var(--warn); } .kpi.bad b { color: var(--bad); }
+  .panel { padding: 20px 22px; margin-bottom: 18px; }
+  .panel h3 { margin: 0 0 12px; font-size: 15px; }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filters input, .filters select { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 13.5px; }
+  .filters input { flex: 1 1 240px; }
+  .tw { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-faint); }
+  td.wrap { white-space: normal; min-width: 160px; }
+  tr.new td { background: var(--accent-soft); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .p-ativa { background: var(--good-soft); color: var(--good); } .p-pend { background: var(--warn-soft); color: var(--warn); } .p-block { background: var(--bad-soft); color: var(--bad); }
+  .p-tipo { background: var(--surface-2); color: var(--ink-dim); border: 1px solid var(--line); }
+  .novo { margin-left: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--on-accent, #fff); }
+  .muted { color: var(--ink-faint); }
+  a.mail { color: var(--ink); text-decoration: none; border-bottom: 1px dotted var(--ink-faint); }
+  .err { color: var(--bad); font-size: 13px; margin-top: 10px; }
+  .foot { margin-top: 22px; font-size: 12.5px; color: var(--ink-faint); }
+</style>
+</head>
+<body class="glass">
+<div class="wrap">
+  <div id="gate" class="card gate" hidden></div>
+  <div id="app" hidden>
+    <div class="top">
+      <div class="brand">AuraX <small>Admin da plataforma</small></div>
+      <div class="actions">
+        <span id="updated">—</span>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="auto" checked /> atualizar sozinho (1 min)</label>
+        <button class="btn" id="refresh" type="button">Atualizar</button>
+        <button class="btn" id="csv" type="button">Exportar CSV</button>
+        <a class="btn" href="app.html">Voltar ao app</a>
+      </div>
+    </div>
+
+    <div class="banner" id="newBanner" hidden><span id="newText"></span><button class="btn primary" id="seen" type="button">Marcar como visto</button></div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="card panel"><h3>Cadastros por dia (últimos 30 dias)</h3><div id="chart"></div></div>
+
+    <div class="card panel">
+      <h3>Cadastros</h3>
+      <div class="filters">
+        <input type="search" id="q" placeholder="Buscar por nome, e-mail ou empresa…" />
+        <select id="ftipo"><option value="">Todos os tipos</option><option>Individual</option><option>Gestor</option><option>Colaborador</option></select>
+        <select id="fstatus"><option value="">Todos os status</option><option value="ativa">Ativa</option><option value="pendente_pagamento">Pendente</option><option value="bloqueada">Bloqueada</option></select>
+      </div>
+      <div class="tw"><table id="tbl"><thead><tr>
+        <th>Cadastro</th><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Empresa · cargo</th><th>Status</th><th>Stripe</th><th>E-mail ok</th><th>Sessões</th><th>Último acesso</th>
+      </tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="err" id="err" hidden></div>
+    </div>
+    <div class="foot">Dados lidos direto do banco, só para administradores. "Stripe" indica que a pessoa já tem um cliente criado no Stripe (iniciou ou concluiu o checkout). Receita estimada: apenas contas ativas com Stripe (Individual R$ 119,90, Gestor R$ 219; colaboradores não pagam).</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const $ = (id) => document.getElementById(id);
+  const PRICE = { Individual: 119.9, Gestor: 219 };
+  const SEEN_KEY = "aurax_admin_seen";
+  let users = [], timer = null;
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmtDT = (d) => d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+  const brl = (n) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const STATUS = { ativa: ["Ativa", "p-ativa"], pendente_pagamento: ["Pendente", "p-pend"], bloqueada: ["Bloqueada", "p-block"] };
+
+  function gate(title, text, btn) {
+    $("app").hidden = true; const g = $("gate"); g.hidden = false;
+    g.innerHTML = "<h2>" + title + "</h2><p>" + text + "</p>" + (btn || "");
+  }
+
+  async function load() {
+    const { data, error } = await client.rpc("admin_users");
+    if (error) {
+      if (/forbidden|42501/i.test(error.message + (error.code || ""))) return gate("Acesso restrito", "Esta área é só para administradores da plataforma.", '<a class="btn" href="app.html">Voltar ao app</a>');
+      if (/does not exist|PGRST202|42883/i.test(error.message + (error.code || ""))) return gate("Falta um passo no banco", "Rode o arquivo supabase-schema-15-admin.sql no Supabase (SQL Editor) e recarregue.", "");
+      $("err").hidden = false; $("err").textContent = "Não foi possível carregar: " + error.message; return;
+    }
+    $("gate").hidden = true; $("app").hidden = false;
+    users = data || []; $("err").hidden = true;
+    $("updated").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    render();
+  }
+
+  function render() {
+    const now = Date.now(), DAY = 864e5;
+    const seen = Number(localStorage.getItem(SEEN_KEY) || 0);
+    const total = users.length;
+    const last7 = users.filter((u) => now - new Date(u.created_at) < 7 * DAY).length;
+    const today = users.filter((u) => new Date(u.created_at).toDateString() === new Date().toDateString()).length;
+    const paying = users.filter((u) => u.account_status === "ativa" && u.has_stripe && u.tipo !== "Colaborador");
+    const mrr = paying.reduce((a, u) => a + (PRICE[u.tipo] || 0), 0);
+    const count = (st) => users.filter((u) => u.account_status === st && u.tipo !== "Colaborador").length;
+    $("kpis").innerHTML = [
+      ["", total, "cadastros no total"], ["", today + " / " + last7, "hoje / últimos 7 dias"],
+      ["good", paying.length, "pagantes ativos"], ["good", brl(mrr), "receita mensal estimada"],
+      ["warn", count("pendente_pagamento"), "pendentes de pagamento"], ["bad", count("bloqueada"), "bloqueadas"],
+      ["", users.filter((u) => u.sessions_count > 0).length, "já gravaram uma sessão"],
+    ].map((k) => '<div class="card kpi ' + k[0] + '"><b>' + k[1] + "</b><span>" + k[2] + "</span></div>").join("");
+
+    const novos = users.filter((u) => new Date(u.created_at).getTime() > seen);
+    $("newBanner").hidden = !(seen && novos.length);
+    if (seen && novos.length) $("newText").textContent = novos.length === 1 ? "1 cadastro novo desde a sua última visita: " + (novos[0].name || novos[0].email) : novos.length + " cadastros novos desde a sua última visita";
+
+    // gráfico: cadastros por dia, 30 dias
+    const days = [], map = {};
+    for (let i = 29; i >= 0; i--) { const d = new Date(now - i * DAY); const k = d.toISOString().slice(0, 10); days.push(k); map[k] = 0; }
+    users.forEach((u) => { const k = new Date(u.created_at).toISOString().slice(0, 10); if (k in map) map[k]++; });
+    const max = Math.max(1, ...days.map((k) => map[k])), W = 1000, H = 120, bw = W / days.length;
+    $("chart").innerHTML = '<svg viewBox="0 0 ' + W + " " + (H + 22) + '" width="100%" role="img" aria-label="Cadastros por dia">' + days.map((k, i) => {
+      const h = Math.round((map[k] / max) * (H - 16)); const x = i * bw + 3;
+      return '<rect x="' + x + '" y="' + (H - h) + '" width="' + (bw - 6) + '" height="' + h + '" rx="4" fill="var(--accent)" opacity="' + (map[k] ? 1 : 0.15) + '"><title>' + k.split("-").reverse().join("/") + ": " + map[k] + "</title></rect>" +
+        (map[k] ? '<text x="' + (x + (bw - 6) / 2) + '" y="' + (H - h - 4) + '" text-anchor="middle" font-size="11" fill="var(--ink-dim)">' + map[k] + "</text>" : "") +
+        (i % 5 === 0 || i === days.length - 1 ? '<text x="' + (x + (bw - 6) / 2) + '" y="' + (H + 15) + '" text-anchor="middle" font-size="10.5" fill="var(--ink-faint)">' + k.slice(8) + "/" + k.slice(5, 7) + "</text>" : "");
+    }).join("") + "</svg>";
+
+    renderRows();
+  }
+
+  function renderRows() {
+    const q = $("q").value.trim().toLowerCase(), ft = $("ftipo").value, fs = $("fstatus").value;
+    const seen = Number(localStorage.getItem(SEEN_KEY) || 0), now = Date.now();
+    const list = users.filter((u) => (!ft || u.tipo === ft) && (!fs || u.account_status === fs) &&
+      (!q || [u.name, u.email, u.empresa, u.cargo].some((v) => (v || "").toLowerCase().includes(q))));
+    $("rows").innerHTML = list.map((u) => {
+      const st = STATUS[u.account_status] || [u.account_status, "p-tipo"];
+      const isNew = now - new Date(u.created_at) < 864e5 || (seen && new Date(u.created_at).getTime() > seen);
+      return '<tr class="' + (isNew ? "new" : "") + '"><td>' + fmtDT(u.created_at) + (now - new Date(u.created_at) < 864e5 ? '<span class="novo">NOVO</span>' : "") + "</td>" +
+        "<td><b>" + esc(u.name) + "</b></td>" +
+        '<td><a class="mail" href="mailto:' + esc(u.email) + '">' + esc(u.email) + "</a></td>" +
+        '<td><span class="pill p-tipo">' + esc(u.tipo) + "</span>" + (u.tipo === "Colaborador" && u.manager_email ? '<br><span class="muted" style="font-size:11.5px">de ' + esc(u.manager_email) + "</span>" : "") + "</td>" +
+        '<td class="wrap">' + esc(u.empresa || "—") + (u.cargo ? ' <span class="muted">· ' + esc(u.cargo) + "</span>" : "") + "</td>" +
+        '<td><span class="pill ' + st[1] + '">' + st[0] + "</span></td>" +
+        "<td>" + (u.has_stripe ? "✓" : '<span class="muted">—</span>') + "</td>" +
+        "<td>" + (u.email_confirmed ? "✓" : '<span class="muted">—</span>') + "</td>" +
+        "<td>" + u.sessions_count + "</td><td>" + fmtDT(u.last_sign_in_at) + "</td></tr>";
+    }).join("") || '<tr><td colspan="10" class="muted">Nenhum cadastro encontrado.</td></tr>';
+  }
+
+  function toCsv() {
+    const head = ["cadastro", "nome", "email", "tipo", "empresa", "cargo", "status", "stripe", "email_confirmado", "sessoes", "ultimo_acesso"];
+    const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+    const lines = [head.join(",")].concat(users.map((u) => [u.created_at, u.name, u.email, u.tipo, u.empresa, u.cargo, u.account_status, u.has_stripe, u.email_confirmed, u.sessions_count, u.last_sign_in_at].map(q).join(",")));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = "aurax-cadastros.csv"; a.click();
+  }
+
+  ["q", "ftipo", "fstatus"].forEach((id) => $(id).addEventListener("input", renderRows));
+  $("refresh").addEventListener("click", load);
+  $("csv").addEventListener("click", toCsv);
+  $("seen").addEventListener("click", () => { localStorage.setItem(SEEN_KEY, String(Date.now())); render(); });
+  $("auto").addEventListener("change", schedule);
+  function schedule() { clearInterval(timer); if ($("auto").checked) timer = setInterval(load, 60000); }
+
+  (async function init() {
+    const { data: { session } } = await client.auth.getSession();
+    if (!session) return gate("Área do administrador", "Entre com a sua conta de administrador para ver os cadastros.", '<a class="btn primary" href="login.html">Entrar</a>');
+    if (!localStorage.getItem(SEEN_KEY)) localStorage.setItem(SEEN_KEY, String(Date.now()));   // primeira visita: só passa a avisar dos próximos
+    await load(); schedule();
+  })();
+</script>
+</body>
+</html>
