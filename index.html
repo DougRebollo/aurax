@@ -88,6 +88,7 @@
   .lp-measure h2 em { font-style: normal; color: var(--accent); }
   .lp-measure-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none; }
   .lp-measure-list li { padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 15px; font-weight: 600; color: var(--ink); }
+  .lp-measure-cta { margin-top: 20px; }
   .lp-measure-note { margin: 16px 0 0; color: var(--ink-dim); font-size: 1rem; max-width: 640px; }
   .lp-head { max-width: 640px; margin-bottom: 44px; }
   .lp-head h2 { font-size: clamp(1.7rem, 3.2vw, 2.3rem); letter-spacing: -0.02em; line-height: 1.12; margin: 0 0 12px; text-wrap: balance; }
@@ -349,6 +350,7 @@
     <li>Ritmo</li><li>Pausas</li><li>Vícios de linguagem</li><li>Gírias</li><li>Clareza</li><li>Projeção</li>
   </ul>
   <p class="lp-measure-note">Tudo calculado sobre a sua própria fala, reunião após reunião, com a nota e o ponto principal a melhorar no fim de cada call.</p>
+  <div class="lp-measure-cta"><a class="lp-btn ghost big" id="dictCta" href="dicionario.html">Dicionário AuraX</a></div>
 </section>
 
 <section class="lp-section" id="funcionalidades">
@@ -548,13 +550,15 @@
 <footer class="lp-foot">
   <div class="lp-wrap">
     <span>AuraX, feito para quem lidera pelo exemplo e quer evoluir além das palavras.</span>
-    <span><a href="termos.html">Termos de Uso</a> &nbsp;·&nbsp; <a href="privacidade.html">Privacidade</a> &nbsp;·&nbsp; <a href="login.html">Acessar o app</a></span>
+    <span><a href="dicionario.html">Dicionário AuraX</a> &nbsp;·&nbsp; <a href="termos.html">Termos de Uso</a> &nbsp;·&nbsp; <a href="privacidade.html">Privacidade</a> &nbsp;·&nbsp; <a href="login.html">Acessar o app</a></span>
   </div>
 </footer>
 <script>
   const WHATSAPP_NUMBER = "5551984026354";
   const waUrl = (msg) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   const whatsappUrl = waUrl("Olá! Quero falar com o time comercial sobre o AuraX.");
+
+  document.getElementById("dictCta").addEventListener("click", () => posthog.capture("dictionary_click"));
 
   ["navCta", "cineCta", "heroCta", "finalCta"].forEach((id) => {
     const el = document.getElementById(id);

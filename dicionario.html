@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dicionário AuraX — Dicionário de Avaliação</title>
+<link rel="canonical" href="https://auraxoficial.com.br/dicionario.html" />
+<meta name="description" content="Como o AuraX avalia a oratória: cada indicador, como é calculado, o que conta como positivo ou negativo e como o contexto é interpretado." />
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjggOCA0OCA0OCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEwZmYiLz48c3RvcCBvZmZzZXQ9Ii41NSIgc3RvcC1jb2xvcj0iIzZiNGZkMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzRmZDFlOCIvPjwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImgiIHgxPSIxIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM0ZmQxZTgiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzYjZmZTAiLz48L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cGF0aCBkPSJNMTcgMTUgTDQ3IDQ5IiBzdHJva2U9InVybCgjZykiIHN0cm9rZS13aWR0aD0iMTAuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIi8+CiAgPHBhdGggZD0iTTQ3IDE1IEwxNyA0OSIgc3Ryb2tlPSJ1cmwoI2gpIiBzdHJva2Utd2lkdGg9IjEwLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iLjg1Ii8+Cjwvc3ZnPgo=" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f4ede0; --surface: #fbf7ef; --surface-2: #f0e8d9; --line: #e2d8c5;
+    --ink: #14213d; --ink-dim: #4b566e; --ink-faint: #868b9b;
+    --accent: #ff6b5b; --accent-ink: #c8402f; --accent-soft: #ffe3de;
+    --good: #1c8a54; --good-soft: #e3f4ea; --warn: #a86a00; --warn-soft: #fbf0da; --bad: #c63d3d; --bad-soft: #fbe6e6;
+    --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; --mono: "DM Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0d1630; --surface: #14213d; --surface-2: #192848; --line: #263556; --ink: #f4ede0; --ink-dim: #c8c3b8; --ink-faint: #8c92a6;
+      --accent-ink: #ff8d7e; --accent-soft: #3a2630; --hero: #1b2c52; --good: #5fd08f; --good-soft: #17301f; --warn: #f0b755; --warn-soft: #3a2c12; --bad: #ff8585; --bad-soft: #3b1b1b; }
+  }
+  @media (prefers-color-scheme: dark) { .hero { background: #1b2c52; border: 1px solid #2c4170; } }
+  .toc .actions { display: flex; flex-direction: column; gap: 8px; margin: -6px 0 22px; }
+  .toc .btn { display: block; text-align: center; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; }
+  .toc .btn:hover { background: var(--surface-2); }
+  .toc .btn:first-child { border-color: var(--accent); color: var(--accent-ink); }
+  @media (max-width: 960px) { .toc .actions { flex-direction: row; flex-wrap: wrap; margin: 6px 0 12px; } }
+  @media print { .toc .actions { display: none; } }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.6; font-size: 16px; }
+  a { color: var(--accent-ink); }
+  .layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); max-width: 1240px; margin: 0 auto; gap: 48px; padding: 0 28px; }
+  nav.toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 32px 0 32px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; margin-bottom: 6px; }
+  .brand img { width: 30px; height: 30px; }
+  .toc small { display: block; color: var(--ink-faint); font-size: 12px; margin-bottom: 22px; }
+  .toc a { display: block; padding: 7px 12px; border-radius: 9px; color: var(--ink-dim); text-decoration: none; font-size: 14px; font-weight: 500; }
+  .toc a:hover { background: var(--surface-2); color: var(--ink); }
+  .toc a.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
+  .toc .sub a { padding-left: 26px; font-size: 13px; font-weight: 400; }
+  main { padding: 40px 0 90px; min-width: 0; }
+
+  .hero { padding: 34px 36px; border-radius: 24px; background: #14213d; color: #f4ede0; margin-bottom: 44px; position: relative; overflow: hidden; }
+  .hero::after { content: ""; position: absolute; right: -60px; top: -60px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(255,107,91,.55), transparent 70%); }
+  .hero .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #ff9a8d; }
+  .hero h1 { margin: 10px 0 12px; font-size: clamp(2rem, 4.6vw, 3.1rem); line-height: 1.02; letter-spacing: -0.03em; font-weight: 700; text-transform: uppercase; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p { margin: 0; max-width: 640px; color: #d4cfc4; position: relative; z-index: 1; }
+  .hero .meta { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; position: relative; z-index: 1; }
+  .pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; background: rgba(244,237,224,.12); color: #f4ede0; }
+
+  section { margin-bottom: 56px; }
+  h2 { font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.1; letter-spacing: -0.025em; margin: 0 0 6px; display: flex; align-items: baseline; gap: 12px; }
+  h2 .n { font-family: var(--mono); font-size: .8rem; font-weight: 500; color: var(--accent-ink); background: var(--accent-soft); padding: 2px 9px; border-radius: 8px; letter-spacing: 0; }
+  .lead { color: var(--ink-dim); margin: 0 0 22px; max-width: 720px; }
+  h3 { margin: 30px 0 8px; font-size: 1.15rem; letter-spacing: -0.01em; }
+  h4 { margin: 18px 0 6px; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0; padding-left: 22px; } li { margin: 4px 0; }
+  code, .mono { font-family: var(--mono); font-size: .86em; background: var(--surface-2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 6px; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; margin: 14px 0; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .principle { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+  .principle b { display: block; margin-bottom: 4px; }
+  .principle p { margin: 0; color: var(--ink-dim); font-size: 14.5px; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 14px 18px; border-radius: 0 14px 14px 0; margin: 16px 0; font-size: 15px; }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .formula { font-family: var(--mono); font-size: 14px; background: var(--surface-2); border: 1px dashed var(--line); border-radius: 12px; padding: 12px 16px; margin: 10px 0; overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--surface-2); font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-dim); }
+  tr:last-child td { border-bottom: 0; }
+  .tw { overflow-x: auto; }
+
+  .tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; margin: 1px 3px 1px 0; }
+  .t-good { background: var(--good-soft); color: var(--good); } .t-warn { background: var(--warn-soft); color: var(--warn); }
+  .t-bad { background: var(--bad-soft); color: var(--bad); } .t-n { background: var(--surface-2); color: var(--ink-dim); border: 1px solid var(--line); }
+  .terms .tag { font-weight: 500; font-size: 12.5px; }
+
+  .ind { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 6px 0 4px; margin: 18px 0; overflow: hidden; }
+  .ind > header { padding: 16px 24px 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .ind > header h3 { margin: 0; font-size: 1.3rem; }
+  .ind .rows { display: grid; grid-template-columns: 150px minmax(0, 1fr); }
+  .ind .rows > div { padding: 11px 24px; border-top: 1px solid var(--line); font-size: 14.5px; }
+  .ind .rows > div:nth-child(odd) { color: var(--ink-faint); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding-top: 14px; background: var(--surface-2); }
+  .ind .rows p, .ind .rows ul { margin: 0; }
+
+  .foot { color: var(--ink-faint); font-size: 13px; border-top: 1px solid var(--line); padding-top: 18px; margin-top: 40px; }
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: minmax(0, 1fr); padding: 0 16px; gap: 0; }
+    nav.toc { position: static; height: auto; padding: 18px 0 0; }
+    .toc .links { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; } .toc .links a { white-space: nowrap; } .toc .sub { display: none; }
+    .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); }
+    .ind .rows { grid-template-columns: minmax(0, 1fr); } .ind .rows > div:nth-child(odd) { padding: 8px 20px 4px; }
+    .hero { padding: 26px 22px; }
+  }
+  @media print {
+    body { background: #fff; color: #000; } nav.toc { display: none; } .layout { display: block; padding: 0; max-width: none; }
+    .hero { background: #14213d !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } section { break-inside: avoid-page; } .ind, .card, table { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc" aria-label="Sumário">
+    <div class="brand"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjggOCA0OCA0OCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEwZmYiLz48c3RvcCBvZmZzZXQ9Ii41NSIgc3RvcC1jb2xvcj0iIzZiNGZkMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzRmZDFlOCIvPjwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImgiIHgxPSIxIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM0ZmQxZTgiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzYjZmZTAiLz48L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cGF0aCBkPSJNMTcgMTUgTDQ3IDQ5IiBzdHJva2U9InVybCgjZykiIHN0cm9rZS13aWR0aD0iMTAuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIi8+CiAgPHBhdGggZD0iTTQ3IDE1IEwxNyA0OSIgc3Ryb2tlPSJ1cmwoI2gpIiBzdHJva2Utd2lkdGg9IjEwLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iLjg1Ii8+Cjwvc3ZnPgo=" alt="" />AuraX</div>
+    <small>Dicionário de Avaliação · v0.1</small>
+    <div class="actions">
+      <a class="btn" href="./">← Voltar ao site</a>
+      <a class="btn" href="dicionario.html" download="AuraX-Dicionario-de-Avaliacao.html">Baixar HTML</a>
+      <button class="btn" type="button" onclick="window.print()">Salvar em PDF</button>
+    </div>
+    <div class="links">
+      <a href="#principios">1 · Princípios</a>
+      <a href="#dados">2 · Dados e definições</a>
+      <a href="#nota">3 · Nota de oratória</a>
+      <a href="#indicadores">4 · Indicadores da nota</a>
+      <div class="sub"><a href="#ritmo">Ritmo de fala</a><a href="#pausas">Pausas</a><a href="#linguagem">Vícios e gírias</a><a href="#clareza">Clareza/dicção</a><a href="#projecao">Projeção de voz</a></div>
+      <a href="#informativos">5 · Indicadores informativos</a>
+      <a href="#dicas">6 · Dicas, foco e alertas</a>
+      <a href="#termos">7 · Dicionário de termos</a>
+      <a href="#contexto">8 · Interpretação do contexto</a>
+      <a href="#limites">9 · Limitações</a>
+      <a href="#proximos">10 · Próximos indicadores</a>
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Documento técnico</div>
+      <h1>Dicionário de <em>Avaliação</em></h1>
+      <p>Define cada indicador do AuraX: o que é detectado, como é calculado, o que conta como positivo ou negativo e como o contexto é interpretado.</p>
+      <div class="meta"><span class="pill">Versão 0.1</span><span class="pill">06/11/2026</span><span class="pill">Estado atual do produto</span></div>
+    </header>
+
+    <section id="principios">
+      <h2><span class="n">01</span>Princípios e natureza da avaliação</h2>
+      <p class="lead">O AuraX é uma ferramenta de autoavaliação de oratória para profissionais de vendas. Quatro princípios guiam todos os indicadores.</p>
+      <div class="grid2">
+        <div class="principle"><b>Autoavaliação, não vigilância</b><p>Analisa a fala de quem liga a gravação, para essa pessoa evoluir. A nota não é um julgamento e não deve ser critério único para decisões de RH.</p></div>
+        <div class="principle"><b>Frequência, contexto e impacto</b><p>Detecta tudo, mas só desconta o que pesa de verdade. Nenhuma gíria ou vício é "erro" por si só: conta quanto aparece, em que contexto e o quanto atrapalha uma negociação.</p></div>
+        <div class="principle"><b>Honestidade sobre as aproximações</b><p>Os indicadores são estimativas por regras e por modelos prontos do navegador. Nenhum é avaliação fonoaudiológica, psicológica ou médica.</p></div>
+        <div class="principle"><b>Análise individual</b><p>Toda fala transcrita é considerada de quem grava. Por isso o fone de ouvido é recomendado: sem ele, a voz de outras pessoas pode entrar na análise.</p></div>
+      </div>
+
+      <h3>O que é regra e o que é modelo</h3>
+      <div class="tw"><table>
+        <tr><th>Parte</th><th>Como funciona hoje</th></tr>
+        <tr><td><b>Transcrição e confiança</b></td><td>Reconhecimento de fala do <b>navegador</b> (Chrome/Edge). O AuraX não grava nem armazena áudio.</td></tr>
+        <tr><td><b>Rosto</b> (expressão e posição da cabeça)</td><td>Modelo pronto no navegador (face-api.js). Alimenta só a "expressão estável" e a leitura de objeções. Vídeo e imagens não saem do navegador.</td></tr>
+        <tr><td><b>Volume, silêncio e pausas</b></td><td>Cálculo direto sobre o sinal do microfone, sem modelo.</td></tr>
+        <tr><td><b>Vícios, gírias, palavras-chave e objeções</b></td><td><b>Regras e dicionários</b>: expressões regulares com peso, tolerância e condições de contexto. Não há modelo de linguagem lendo a conversa.</td></tr>
+        <tr><td><b>Nota, dicas e foco</b></td><td><b>Regras</b> com limiares fixos, descritos neste documento.</td></tr>
+      </table></div>
+      <div class="callout">O AuraX <b>não</b> possui modelo próprio nem aprende sozinho. "Interpretar o contexto" significa, hoje, aplicar <b>condições escritas à mão</b> sobre o texto da fala (seção 8).</div>
+    </section>
+
+    <section id="dados">
+      <h2><span class="n">02</span>Dados e definições básicas</h2>
+      <div class="tw"><table>
+        <tr><th style="width:240px">Termo</th><th>Definição</th></tr>
+        <tr><td><b>Sessão</b></td><td>Período entre "Iniciar sessão" e "Finalizar sessão". Exige nome do cliente e microfone ativo.</td></tr>
+        <tr><td><b>Palavras faladas</b></td><td>Soma das palavras das falas finais reconhecidas na sessão.</td></tr>
+        <tr><td><b>Amostra de áudio</b></td><td>Leitura do volume do microfone a cada <b>200 ms</b>.</td></tr>
+        <tr><td><b>Silêncio</b></td><td>Amostra com volume (RMS) <b>abaixo de 0,02</b>.</td></tr>
+        <tr><td><b>Fala</b></td><td>Amostra com volume ≥ 0,02, mais <b>2 s de tolerância</b> depois da última voz: pausas curtas entre palavras contam como fala.</td></tr>
+        <tr><td><b>Tempo falando (<span class="mono">pctYou</span>)</b></td><td>Amostras com fala ÷ amostras totais, em %. Calculado com transcrição e pelo menos 20 amostras.</td></tr>
+        <tr><td><b>Ouvindo ou em silêncio</b></td><td>100% − tempo falando.</td></tr>
+        <tr><td><b>Sessão de escuta</b></td><td>Sessão com tempo falando <b>abaixo de 35%</b> (seção 3.3).</td></tr>
+      </table></div>
+    </section>
+
+    <section id="nota">
+      <h2><span class="n">03</span>Nota de oratória (0 a 100)</h2>
+      <p class="lead">Média ponderada dos critérios medidos na sessão. "Vícios e gírias" vale o dobro.</p>
+      <div class="formula">nota = Σ(critério × peso) ÷ Σ(pesos)     ·     peso 2 para "Vícios e gírias", peso 1 para os demais</div>
+      <div class="tw"><table>
+        <tr><th>Critério</th><th>Peso</th><th>Entra na nota quando</th></tr>
+        <tr><td>Ritmo de fala</td><td>1</td><td>palavras por minuto &gt; 0</td></tr>
+        <tr><td>Pausas</td><td>1</td><td>sempre</td></tr>
+        <tr><td><b>Vícios e gírias</b></td><td><b>2</b></td><td>sempre</td></tr>
+        <tr><td>Clareza/dicção</td><td>1</td><td>pelo menos 3 falas com confiança do reconhecimento</td></tr>
+        <tr><td>Projeção de voz</td><td>1</td><td>pelo menos 4 falas com volume medido</td></tr>
+      </table></div>
+      <p>Um critério sem dados suficientes <b>fica de fora</b>; não entra como zero.</p>
+
+      <h3>3.2 Rótulos</h3>
+      <p><span class="tag t-good">90–100 Excelente</span><span class="tag t-good">70–89 Bom</span><span class="tag t-warn">50–69 Médio</span><span class="tag t-bad">0–49 Precisa de atenção</span></p>
+
+      <h3>3.3 Regra da sessão de escuta</h3>
+      <div class="callout warn">Quando a pessoa fala <b>menos de 35%</b> do tempo, <b>Ritmo, Pausas e Projeção</b> aparecem esmaecidos e <b>não entram na nota</b>, porque medem o silêncio, não a fala. A nota usa só Vícios e gírias (peso 2) e Clareza (peso 1).</div>
+    </section>
+
+    <section id="indicadores">
+      <h2><span class="n">04</span>Indicadores que compõem a nota</h2>
+      <p class="lead">Cada indicador segue o mesmo modelo: definição, fonte, cálculo, o que é positivo e negativo, contexto e limitações.</p>
+
+      <article class="ind" id="ritmo">
+        <header><h3>4.1 Ritmo de fala</h3><span class="tag t-n">peso 1</span></header>
+        <div class="rows">
+          <div>Definição</div><div>Quantas palavras por minuto a pessoa fala.</div>
+          <div>Fonte</div><div>Palavras da transcrição ÷ <b>tempo total da sessão</b> (não só o tempo falado).</div>
+          <div>Cálculo</div><div><p>110 a 160 palavras/min = <b>100</b>.</p><p>Abaixo de 110: <span class="mono">wpm ÷ 110 × 100</span>.</p><p>Acima de 160: <span class="mono">(1 − (wpm − 160) ÷ 120) × 100</span>, chegando a 0 em 280.</p></div>
+          <div>Positivo</div><div>Faixa de 110 a 160, com pausas e ênfase.</div>
+          <div>Negativo</div><div>Muito acelerado (acima de 160 perde nota; acima de 180 gera alerta) ou muito baixo.</div>
+          <div>Contexto</div><div>Em sessão de escuta, o indicador é excluído da nota.</div>
+          <div>Limitações</div><div>Como divide pelo tempo total, cai sempre que a pessoa ouve muito. Não distingue velocidade de articulação de volume de fala.</div>
+        </div>
+      </article>
+
+      <article class="ind" id="pausas">
+        <header><h3>4.2 Pausas</h3><span class="tag t-n">peso 1</span></header>
+        <div class="rows">
+          <div>Definição</div><div>Silêncios longos do microfone.</div>
+          <div>Fonte</div><div>Silêncio contínuo (volume abaixo de 0,02) <b>maior que 90 s</b> conta <b>1 pausa longa</b>, uma vez por silêncio.</div>
+          <div>Cálculo</div><div><span class="mono">100 × (1 − máx(0, pausas − 2) ÷ 10)</span>: até 2 pausas não descontam, cada uma a mais tira 10 pontos, 12 pausas = 0.</div>
+          <div>Positivo</div><div>Poucas pausas longas. Silêncio acima de <b>60 s</b> gera a dica positiva "bom espaço de escuta".</div>
+          <div>Negativo</div><div>5 ou mais pausas longas geram a dica "pode passar hesitação".</div>
+          <div>Limitações</div><div>Com fone, o microfone capta só a pessoa; o silêncio pode ser o cliente falando. O indicador mistura hesitação e escuta.</div>
+        </div>
+      </article>
+
+      <article class="ind" id="linguagem">
+        <header><h3>4.3 Vícios e gírias</h3><span class="tag t-warn">peso 2</span></header>
+        <div class="rows">
+          <div>Definição</div><div>Um critério que combina <b>vícios de preenchimento</b> e <b>gírias e fala informal</b>. Dicionário completo na seção 7.</div>
+          <div>Vícios</div><div><p>"né", "tipo", "assim", "sabe", sons de hesitação ("an", "hã", "ahn", "eh", "hum", "hmm", "uhn", "uhm") e o "é" <b>puxado</b> ("éé") ou <b>repetido</b> ("é é").</p><p>Não conta: "então" e o "é" simples. Contexto: "tipo" não conta como substantivo ("esse tipo de cliente"); "assim" só conta como preenchimento; "sabe" só no início ou fim da fala.</p></div>
+          <div>Gírias</div><div>96 entradas por categoria, com peso de 0 a 3. Peso 0 = <b>neutra</b>: aparece nos relatórios, mas não desconta ("combinado", "fechou").</div>
+          <div>Desconto por termo</div><div><p>Densidade = usos ÷ palavras × 100. Se passa da tolerância do peso, desconta:</p>
+            <div class="tw"><table><tr><th>Peso</th><th>Tolerância (usos por 100 palavras)</th><th>Unidades por ponto acima</th></tr>
+            <tr><td>0 neutra</td><td>sem desconto</td><td>0</td></tr><tr><td>1 leve</td><td>1,5</td><td>0,5</td></tr><tr><td>2 média</td><td>0,5</td><td>1</td></tr><tr><td>3 forte</td><td>0,1</td><td>2</td></tr></table></div>
+            <p>Teto por termo: 3 unidades (gírias) e 6 unidades (vícios).</p></div>
+          <div>Soma geral</div><div><p>Muitos termos leves, cada um dentro da tolerância, ainda somam fala informal demais. Densidade ponderada = Σ(usos × peso) ÷ palavras × 100, com <b>gírias valendo o dobro</b> dos vícios.</p><p>Acima de <b>2</b> por 100 palavras, o excesso vira unidades (1 por ponto), teto 6; vale a partir de 150 palavras.</p></div>
+          <div>Cálculo</div><div><div class="formula">unidades = máx( vícios + gírias × 2 , soma geral )<br/>nota = 100 × (1 − unidades ÷ 12)</div><p>Usa o maior dos dois descontos para não contar o mesmo excesso duas vezes.</p></div>
+          <div>Positivo</div><div>Poucos termos, espalhados; fala direta.</div>
+          <div>Negativo</div><div>Repetição do mesmo termo; muitos termos leves somados; gírias fortes ou palavrão.</div>
+          <div>Limitações</div><div>Depende da transcrição do navegador (pode errar palavras e não marca pontuação). O dicionário não cobre gírias regionais.</div>
+        </div>
+      </article>
+
+      <article class="ind" id="clareza">
+        <header><h3>4.4 Clareza/dicção</h3><span class="tag t-n">peso 1</span></header>
+        <div class="rows">
+          <div>Definição</div><div>O quanto o reconhecimento de fala do navegador entendeu a pessoa.</div>
+          <div>Fonte</div><div>Média da <b>confiança do reconhecimento</b> de cada fala final.</div>
+          <div>Cálculo</div><div><span class="mono">média da confiança × 100</span>, com pelo menos 3 falas.</div>
+          <div>Limitações</div><div>Indicador <b>indireto</b>: ruído, microfone, sotaque e conexão também baixam o número, não só a dicção.</div>
+        </div>
+      </article>
+
+      <article class="ind" id="projecao">
+        <header><h3>4.5 Projeção de voz</h3><span class="tag t-n">peso 1</span></header>
+        <div class="rows">
+          <div>Definição</div><div>O quanto o volume da voz varia: fala monótona × expressiva.</div>
+          <div>Fonte</div><div>Volume médio de cada fala; <b>coeficiente de variação</b> <span class="mono">cv = desvio ÷ média</span> entre as falas (pelo menos 4).</div>
+          <div>Cálculo</div><div><p>cv de 0,15 a 0,45 = <b>100</b>.</p><p>Abaixo de 0,15: <span class="mono">cv ÷ 0,15 × 100</span>. Acima de 0,45: <span class="mono">(1 − (cv − 0,45) ÷ 0,4) × 100</span>.</p></div>
+          <div>Negativo</div><div>Voz monótona (cv baixo) ou muito instável.</div>
+          <div>Insight extra</div><div>Se o volume médio da 2ª metade da sessão cai <b>25% ou mais</b> em relação à 1ª (com 6 falas ou mais), avisa sobre possível cansaço vocal. Não entra na nota.</div>
+          <div>Limitações</div><div>Depende do microfone e da distância. Não mede se a voz chega bem ao cliente.</div>
+        </div>
+      </article>
+    </section>
+
+    <section id="informativos">
+      <h2><span class="n">05</span>Indicadores informativos</h2>
+      <p class="lead">Aparecem nos relatórios, mas não entram na nota.</p>
+      <div class="grid2">
+        <div class="card"><h3 style="margin-top:0">Expressão estável</h3><p>Estimativa de quanto a expressão e a cabeça ficaram estáveis (modelo de rosto do navegador, janela de ~60 leituras).</p><div class="formula">0,35 × estabilidade + 0,65 × neutralidade média</div><p style="font-size:14px;color:var(--ink-dim)">Rotulada como beta. Luz, ângulo, óculos e tipo de rosto alteram o resultado.</p></div>
+        <div class="card"><h3 style="margin-top:0">Dinâmica da conversa</h3><p>Quanto do tempo a pessoa falou × ouviu ou ficou em silêncio.</p><p><span class="tag t-bad">≥ 75% falando</span> pede mais espaço ao cliente.<br/><span class="tag t-good">≥ 35% ouvindo</span> vira a dica "boa escuta".</p><p style="font-size:14px;color:var(--ink-dim)">Não separa "cliente falando" de "silêncio".</p></div>
+        <div class="card"><h3 style="margin-top:0">Palavras-chave de negociação</h3><p class="terms"><span class="tag t-n">preço</span><span class="tag t-n">desconto</span><span class="tag t-n">prazo</span><span class="tag t-n">concorrente</span><span class="tag t-n">cancelar</span><span class="tag t-n">orçamento</span><span class="tag t-n">contrato</span><span class="tag t-n">proposta</span><span class="tag t-n">fechar</span><span class="tag t-n">sinal</span><span class="tag t-n">pagamento</span><span class="tag t-n">parcelar</span><span class="tag t-n">urgente</span></p><p style="font-size:14px;color:var(--ink-dim)">Detectadas quando o texto da fala contém o termo. Geram alerta e marcam a linha da transcrição.</p></div>
+        <div class="card"><h3 style="margin-top:0">Objeções</h3><p>24 frases-gatilho ("tá caro", "vou pensar", "já uso outro fornecedor", "não é o momento"…). Ao detectar, observa a reação por <b>20 s</b>.</p><p><span class="tag t-bad">Resposta tensa</span> &gt; 40% de expressão negativa<br/><span class="tag t-good">Resposta segura</span> expressão estável<br/><span class="tag t-n">Resposta neutra</span> demais casos</p><p style="font-size:14px;color:var(--ink-dim)">O gatilho é por frase; a classificação depende do rosto (menos confiável).</p></div>
+      </div>
+    </section>
+
+    <section id="dicas">
+      <h2><span class="n">06</span>Dicas, foco e alertas</h2>
+      <h3>6.1 Foco para a próxima reunião</h3>
+      <p>Escolhe <b>um</b> ponto de maior impacto. Cada critério (não excluído) vira candidato com peso <span class="mono">100 − nota</span>; dicas e categorias de fala informal têm peso fixo. Vence o maior peso.</p>
+      <div class="tw"><table>
+        <tr><th>Fonte do candidato</th><th>Peso</th></tr>
+        <tr><td>Critérios da nota</td><td>100 − nota do critério</td></tr>
+        <tr><td>Palavrão</td><td>75</td></tr>
+        <tr><td>Insegurança · Minimizador · Intimidade · Validação · Vagueza</td><td>52 · 50 · 48 · 46 · 44</td></tr>
+        <tr><td>Muleta · Exclamação · Fala informal</td><td>36</td></tr>
+        <tr><td>Tensão em objeção · Dominou a conversa · Muitas gírias</td><td>55 · 45 · 40</td></tr>
+      </table></div>
+      <p>Se o maior peso for menor que 25, o cartão vira "Para subir de nível". O foco traz o motivo, um trecho da fala da pessoa, a ação sugerida, a meta e a <b>comparação com a média das últimas 5 sessões</b>.</p>
+
+      <h3>6.2 Dicas da sessão</h3>
+      <div class="tw"><table>
+        <tr><th>Dica</th><th>Quando</th><th>Tipo</th></tr>
+        <tr><td>Ritmo acelerado</td><td>mais de 170 palavras/min</td><td><span class="tag t-warn">melhorar</span></td></tr>
+        <tr><td>Muitas pausas longas</td><td>5 ou mais</td><td><span class="tag t-warn">melhorar</span></td></tr>
+        <tr><td>Escuta ativa</td><td>silêncio acima de 60 s</td><td><span class="tag t-good">positiva</span></td></tr>
+        <tr><td>Dominou a conversa</td><td>falou 75% ou mais</td><td><span class="tag t-warn">melhorar</span></td></tr>
+        <tr><td>Boa escuta</td><td>ouvindo 35% ou mais</td><td><span class="tag t-good">positiva</span></td></tr>
+        <tr><td>Gírias e fala informal que pesaram</td><td>termo acima da tolerância</td><td><span class="tag t-warn">melhorar</span></td></tr>
+        <tr><td>Muita informalidade somada</td><td>soma geral com 1 unidade ou mais</td><td><span class="tag t-warn">melhorar</span></td></tr>
+        <tr><td>Muitos vícios / Poucos vícios</td><td>vício acima da tolerância e 6+ vícios / nenhum acima</td><td><span class="tag t-warn">melhorar</span> <span class="tag t-good">positiva</span></td></tr>
+        <tr><td>Objeção segura / tensa</td><td>resultado das objeções</td><td><span class="tag t-good">positiva</span> <span class="tag t-warn">melhorar</span></td></tr>
+      </table></div>
+      <p style="color:var(--ink-dim);font-size:14.5px">Em sessão de escuta, as dicas de ritmo e pausas não são geradas.</p>
+
+      <h3>6.3 Alertas ao vivo</h3>
+      <p>No máximo 3 por vez, cada um por 8 segundos: pausa longa (&gt; 90 s) · silêncio acima de 60 s · ritmo acima de 180 palavras/min (janela de 15 s) · voz baixa (&lt; 0,5× o volume típico) · voz alta (&gt; 2×) · palavra-chave · resultado de objeção.</p>
+    </section>
+
+    <section id="termos">
+      <h2><span class="n">07</span>Dicionário de termos</h2>
+      <p class="lead">96 gírias e falas informais, mais os vícios de preenchimento. Para cada termo o dicionário guarda a chave, o padrão de detecção, o peso, a <b>troca sugerida</b> (ex.: "show" → "ótimo"), a categoria e, em 30 casos, uma condição de contexto.</p>
+      <h3>7.1 Vícios de preenchimento</h3>
+      <p class="terms"><span class="tag t-warn">né · 2</span><span class="tag t-warn">tipo · 2 (contexto)</span><span class="tag t-warn">assim · 1 (contexto)</span><span class="tag t-warn">sabe · 1 (contexto)</span><span class="tag t-warn">sons de hesitação · 2</span><span class="tag t-warn">"é" puxado ou repetido · 2</span><span class="tag t-n">"então" ignorado</span></p>
+
+      <h3>7.2 Gírias e fala informal por categoria e peso</h3>
+      <div class="tw terms"><table>
+        <tr><th style="width:150px">Categoria</th><th>Peso 0 · neutra</th><th>Peso 1 · leve</th><th>Peso 2 · médio</th><th>Peso 3 · forte</th></tr>
+        <tr><td><b>Gíria</b></td><td><span class="tag t-n">combinado</span><span class="tag t-n">fechou</span></td><td>beleza, show, legal, massa, bacana, tranquilo, top, cara, valeu, pegar, dar uma olhada, dar um toque, bater um papo, puxar, dar um jeito, chutar, e aí, blz</td><td>sacou, quebrar um galho, correr atrás, de boa, na correria, bora, junto e misturado, mandar ver, dar match, sussa, da hora, galera, suave, firmeza, demorou, partiu, trampo, grana, pechincha, jeitinho, chutômetro, empurrar com a barriga, papo reto, opa, falou</td><td>mano, bagulho, treco, pô, mixaria</td></tr>
+        <tr><td><b>Insegurança</b></td><td></td><td>talvez, mais ou menos, não sei, de repente, quem sabe, qualquer coisa, será que</td><td>acho que, meio que, sei lá, vou tentar, se não for incomodar</td><td></td></tr>
+        <tr><td><b>Minimizador</b></td><td></td><td>pouquinho, só queria</td><td>rapidinho, minutinho, valorzinho</td><td></td></tr>
+        <tr><td><b>Vagueza</b></td><td></td><td>e por aí vai, essas coisas, coisa, negócio</td><td>e tal</td><td></td></tr>
+        <tr><td><b>Busca de validação</b></td><td></td><td>entendeu?, tá?, tá bom?, certo?, ok?, viu?</td><td>tá ligado</td><td></td></tr>
+        <tr><td><b>Intimidade excessiva</b></td><td></td><td></td><td>parceiro, brother, meu querido, chefe</td><td></td></tr>
+        <tr><td><b>Palavrão</b></td><td></td><td></td><td>cacete</td><td>lista de palavrões</td></tr>
+        <tr><td><b>Muleta</b></td><td></td><td>basicamente, na verdade, enfim, sinceramente, aí</td><td></td><td></td></tr>
+        <tr><td><b>Exclamação</b></td><td></td><td>caramba</td><td>eita</td><td></td></tr>
+        <tr><td><b>Fala informal escrita</b></td><td></td><td>tô, tamo, vamo, cê</td><td></td><td></td></tr>
+      </table></div>
+
+      <h3>7.3 Por que cada categoria atrapalha</h3>
+      <div class="grid2">
+        <div class="principle"><b>Insegurança</b><p>Enfraquece proposta, preço e compromisso; o cliente lê dúvida onde houve flexibilidade.</p></div>
+        <div class="principle"><b>Minimizador</b><p>Diminutivos e "só" encolhem o valor do que se oferece e o tempo que se pede.</p></div>
+        <div class="principle"><b>Vagueza</b><p>Deixa a fala imprecisa justamente onde o cliente espera número, prazo e nome.</p></div>
+        <div class="principle"><b>Busca de validação</b><p>Pedir aprovação a cada frase passa a ideia de que a pessoa duvida do que disse.</p></div>
+        <div class="principle"><b>Intimidade excessiva</b><p>Apelidos com quem é cliente quebram a distância profissional.</p></div>
+        <div class="principle"><b>Palavrão</b><p>Risco direto de imagem, mesmo em tom descontraído.</p></div>
+        <div class="principle"><b>Muleta · exclamação · fala informal</b><p>Enchem a fala, soam improvisadas ou descuidadas.</p></div>
+        <div class="principle"><b>Gíria</b><p>Mistura registros e diminui a autoridade da conversa.</p></div>
+      </div>
+    </section>
+
+    <section id="contexto">
+      <h2><span class="n">08</span>Como o contexto é interpretado</h2>
+      <p class="lead">Não há modelo de linguagem. O contexto é decidido por <b>condições escritas à mão</b>, aplicadas ao texto normalizado da fala (minúsculas, sem acentos e pontuação).</p>
+      <div class="tw"><table>
+        <tr><th style="width:230px">Tipo de condição</th><th>Exemplo</th></tr>
+        <tr><td>Palavra anterior ou seguinte</td><td>"legal" só conta após "muito", "bem", "achei", "ficou"… e não em "departamento legal"; "tipo" não conta antes de "de" ("tipo de cliente")</td></tr>
+        <tr><td>Início ou fim da fala</td><td>"tá?", "certo?", "ok?", "viu?" e "sabe" só contam no fim (ou início) da frase</td></tr>
+        <tr><td>Vocativo</td><td>"parceiro", "brother", "chefe" só contam ao chamar a pessoa (após "olha", "opa", "fala"…)</td></tr>
+        <tr><td>Substantivo × preenchimento</td><td>"negócio" só conta em "esse negócio", não em "negócio fechado"</td></tr>
+        <tr><td>Confirmação natural (peso 0)</td><td>"combinado" e "fechou" aparecem, mas não descontam</td></tr>
+        <tr><td>Sentido literal</td><td>"beleza" não conta em "a beleza"; "show" não conta em "o show"</td></tr>
+      </table></div>
+      <div class="callout warn">O AuraX ainda <b>não</b> entende sentido, ironia, citação ("ele disse 'né'"), tema da conversa ou quem disse o quê.</div>
+    </section>
+
+    <section id="limites">
+      <h2><span class="n">09</span>Limitações conhecidas</h2>
+      <ol>
+        <li>A transcrição vem do navegador: erra palavras, não marca pontuação e depende de sotaque, ruído e microfone.</li>
+        <li>Sem fone de ouvido, a voz de outras pessoas entra na análise como se fosse de quem grava.</li>
+        <li>O ritmo é calculado sobre o tempo total, não sobre o tempo falado.</li>
+        <li>"Pausa longa" é silêncio do microfone acima de 90 s: mistura hesitação e escuta.</li>
+        <li>A leitura de objeções depende de expressão facial, a medida menos confiável.</li>
+        <li>As palavras-chave são buscadas por trecho e podem gerar falso positivo.</li>
+        <li>A clareza é a confiança do reconhecimento do navegador, não uma medida de dicção.</li>
+      </ol>
+    </section>
+
+    <section id="proximos">
+      <h2><span class="n">10</span>Próximos indicadores</h2>
+      <div class="tw"><table>
+        <tr><th>Indicador</th><th>Situação</th></tr>
+        <tr><td><b>Perguntas estratégicas</b><br/><span style="color:var(--ink-dim);font-size:13px">abertas e fechadas, por categoria: situação, problema, implicação, necessidade, fechamento</span></td><td>No roadmap. Detecção por padrões de frase (não pelo "?", que a transcrição não marca). Cada entrada terá: chave, padrão, categoria, tipo (aberta ou fechada), estágio, peso e exemplo.</td></tr>
+        <tr><td><b>Interrupções</b></td><td>Adiado: exige o áudio do cliente. Com fone, o microfone capta só a pessoa.</td></tr>
+        <tr><td><b>Gestos e movimento</b></td><td>Adiado: exige modelo de corpo e foge do posicionamento de autoavaliação.</td></tr>
+      </table></div>
+    </section>
+
+    <div class="foot">AuraX · Dicionário de Avaliação · versão 0.1 · 06/11/2026 · auraxoficial.com.br</div>
+  </main>
+</div>
+<script>
+  (function () {
+    var links = [].slice.call(document.querySelectorAll(".toc .links a"));
+    var map = {};
+    links.forEach(function (a) { map[a.getAttribute("href").slice(1)] = a; });
+    var ids = Object.keys(map);
+    function update() {
+      var cur = ids[0];
+      ids.forEach(function (id) { var el = document.getElementById(id); if (el && el.getBoundingClientRect().top < 140) cur = id; });
+      links.forEach(function (a) { a.classList.remove("on"); });
+      if (map[cur]) map[cur].classList.add("on");
+    }
+    window.addEventListener("scroll", update, { passive: true }); update();
+  })();
+</script>
+</body>
+</html>
