@@ -42,10 +42,10 @@ revoke all on function public.admin_users() from public, anon;
 grant execute on function public.is_platform_admin() to authenticated;
 grant execute on function public.admin_users() to authenticated;
 
--- Quem é administrador: ajuste os e-mails abaixo para o(s) e-mail(s) com que VOCÊ entra no AuraX.
+-- Quem é administrador: a conta auraxcontato@gmail.com (troque o e-mail abaixo se quiser outra).
 insert into public.platform_admins (user_id)
 select id from auth.users
-where lower(email) in ('douglas@registrorural.com.br', 'douglas.rebollo.mh@gmail.com')
+where lower(email) = 'auraxcontato@gmail.com'
 on conflict do nothing;
 
 select u.email as administrador from public.platform_admins a join auth.users u on u.id = a.user_id;
