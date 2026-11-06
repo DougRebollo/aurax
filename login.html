@@ -15,6 +15,23 @@
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
   body { display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .auth-wrap { display: flex; align-items: flex-start; justify-content: center; gap: 22px; width: 100%; }
+  .role-info { width: 340px; max-width: 100%; padding: 28px 26px; flex: none; }
+  .role-info[hidden] { display: none; }
+  .ri-body { animation: riFade .22s ease both; }
+  @keyframes riFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .ri-tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+  .ri-tag.preview { background: var(--surface-2); color: var(--ink-faint); border: 1px solid var(--line); }
+  .role-info h3 { margin: 12px 0 2px; font-size: 22px; letter-spacing: -0.02em; }
+  .ri-price { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .ri-price small { font-size: 13px; font-weight: 500; color: var(--ink-dim); }
+  .ri-for { margin: 10px 0 14px; font-size: 14px; color: var(--ink-dim); line-height: 1.5; }
+  .ri-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+  .ri-list li { position: relative; padding-left: 24px; font-size: 14px; line-height: 1.45; }
+  .ri-list li::before { content: "✓"; position: absolute; left: 0; top: 0; width: 17px; height: 17px; border-radius: 50%; background: var(--good-soft); color: var(--good); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .ri-note { margin: 16px 0 0; padding: 11px 13px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+  .role-option { cursor: pointer; }
+  @media (max-width: 900px) { .role-info { display: none !important; } .auth-wrap { justify-content: center; } }
   .card { width: 100%; max-width: 400px; padding: 32px 28px; }
   .logo::before { content: ""; flex: none; background: url(assets/favicon.svg) center / contain no-repeat; width: 32px; height: 32px; }
   .logo { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
@@ -51,6 +68,8 @@
 </script>
 </head>
 <body class="glass">
+  <div class="auth-wrap">
+  <aside class="card role-info" id="roleInfo" aria-live="polite" hidden></aside>
   <div class="card">
     <div class="logo">AuraX</div>
     <div class="subtitle" id="formSubtitle">Entre com sua conta</div>
@@ -101,6 +120,7 @@
 
     <div class="message" id="messageBox"></div>
   </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="otp-modal.js?v=0d69cf5e"></script>
@@ -144,6 +164,48 @@
       funcionario: "Para você se avaliar sozinho. Plano Individual: R$\u00a0119,90/mês.",
       gestor: "Para acompanhar um time de até 5 pessoas. Plano Profissional: R$\u00a0219/mês.",
     };
+    const ROLE_INFO = {
+      funcionario: {
+        title: "Individual", price: "R$\u00a0119,90", who: "Para você que vende e quer evoluir a própria fala, sozinho.",
+        items: [
+          "Nota de oratória de 0 a 100 a cada call",
+          "Vícios de linguagem e gírias detectados, com a troca sugerida",
+          "Foco para a próxima reunião e dicas práticas",
+          "Histórico e evolução ao longo do tempo (Meus Insights)",
+          "Resumo para o CRM e exportação em PDF e CSV",
+          "Suporte direto pelo WhatsApp",
+        ],
+        note: "Só você vê as suas sessões e a sua evolução.",
+      },
+      gestor: {
+        title: "Profissional (Gestor)", price: "R$\u00a0219", who: "Para quem lidera um time de vendas e quer acompanhar a evolução de todos.",
+        items: [
+          "Tudo do plano Individual, para você",
+          "Painel do gestor com a evolução do time: você + até 5 colaboradores",
+          "Convite dos colaboradores por e-mail, num clique",
+          "Comparativo por semana, mês e ano, com o foco do time",
+          "Exportação do painel em PDF e CSV",
+        ],
+        note: "Cada colaborador continua com a própria autoavaliação; você acompanha as notas e os indicadores do time.",
+      },
+    };
+    const roleInfo = document.getElementById("roleInfo");
+    let inviteActive = false;
+    function renderRoleInfo(role, preview) {
+      const d = ROLE_INFO[role]; if (!d) return;
+      roleInfo.innerHTML = '<div class="ri-body"><span class="ri-tag' + (preview ? " preview" : "") + '">' + (preview ? "Pré-visualização" : "Selecionado") + "</span>" +
+        "<h3>" + d.title + '</h3><div class="ri-price">' + d.price + "<small>/mês</small></div>" +
+        '<p class="ri-for">' + d.who + '</p><ul class="ri-list">' + d.items.map((i) => "<li>" + i + "</li>").join("") + "</ul>" +
+        '<p class="ri-note">' + d.note + "</p></div>";
+    }
+    function syncRoleInfo() {
+      roleInfo.hidden = !(mode === "signup" && !inviteActive);
+      if (!roleInfo.hidden) renderRoleInfo(selectedRole, false);
+    }
+    roleToggle.addEventListener("mouseover", (e) => { const b = e.target.closest(".role-option"); if (b && mode === "signup") renderRoleInfo(b.dataset.role, b.dataset.role !== selectedRole); });
+    roleToggle.addEventListener("focusin", (e) => { const b = e.target.closest(".role-option"); if (b && mode === "signup") renderRoleInfo(b.dataset.role, b.dataset.role !== selectedRole); });
+    roleToggle.addEventListener("mouseleave", () => { if (mode === "signup") renderRoleInfo(selectedRole, false); });
+    roleToggle.addEventListener("focusout", () => { if (mode === "signup") renderRoleInfo(selectedRole, false); });
     const roleHint = document.getElementById("roleHint");
     function updateRoleHint() { roleHint.textContent = ROLE_HINTS[selectedRole] || ""; }
     updateRoleHint();
@@ -154,6 +216,7 @@
       btn.classList.add("selected");
       selectedRole = btn.dataset.role;
       updateRoleHint();
+      syncRoleInfo();
     });
 
     toggleModeBtn.addEventListener("click", () => {
@@ -174,6 +237,7 @@
         toggleText.textContent = "Ainda não tem conta?";
         toggleModeBtn.textContent = "Criar conta";
       }
+      syncRoleInfo();
     });
 
     // Depois de logado, manda cada papel pra tela certa.
@@ -373,7 +437,9 @@
         if (!info) return null; // convite inexistente ou cancelado: segue o login normal
         inviteBannerEl.textContent = `${info.manager_name} convidou você para o time dele no AuraX. Crie sua conta (ou entre) para participar.`;
         inviteBannerEl.hidden = false;
+        inviteActive = true;
         if (mode === "login") toggleModeBtn.click();
+        syncRoleInfo();
         emailInput.value = info.email;
         selectedRole = "funcionario";
         roleToggle.style.display = "none";
