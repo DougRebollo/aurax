@@ -6,7 +6,7 @@
     else if (q === "off" || q === "0") localStorage.setItem("aurax_palette", "off");
     if (localStorage.getItem("aurax_palette") !== "off") {
       document.documentElement.setAttribute("data-palette", "navy");
-      document.write('<link rel="stylesheet" href="palette.css?v=3" />');
+      document.write('<link rel="stylesheet" href="palette.css?v=4" />');
     }
   } catch (e) { /* sem armazenamento: usa a paleta normal */ }
 })();

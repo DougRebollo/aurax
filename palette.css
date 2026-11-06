@@ -1,4 +1,4 @@
-/* AuraX — paleta de teste "Navy / Cream / Coral" (Navy #14213D · Cream #F4EDE0 · Coral #FF6B5B).
+/* AuraX — paleta de teste "Navy / Cream / Coral" (Navy #14213D · Cream #F4EDE0 · Coral #2EC4B6).
  * Só vale quando ativada: abra qualquer página com ?paleta=navy (e ?paleta=off para voltar).
  * A escolha fica salva no navegador (localStorage "aurax_palette"). Ver transition.js. */
 
@@ -6,7 +6,7 @@
 html[data-palette="navy"] {
   --bg: #f4ede0; --surface: #fbf7ef; --surface-2: #f0e8d9; --sidebar: #fbf7ef; --line: #e2d8c5;
   --ink: #14213d; --ink-dim: #4b566e; --ink-faint: #868b9b;
-  --accent: #ff6b5b; --accent-soft: #ffe3de;
+  --accent: #0e8a7e; --accent-soft: #d6efe9;
   --purple: #54649e; --purple-soft: #e6e8f2;
   --shadow: 0 1px 2px rgba(20, 33, 61, 0.06); --overlay: rgba(20, 33, 61, 0.45);
 }
@@ -16,28 +16,28 @@ html[data-palette="navy"] body.glass {
   --glass-shadow: 0 10px 34px rgba(20, 33, 61, 0.12), 0 1px 3px rgba(20, 33, 61, 0.08);
   --surface: rgba(255, 255, 255, 0.46); --surface-2: rgba(255, 255, 255, 0.32); --sidebar: rgba(255, 255, 255, 0.46);
   --line: rgba(20, 33, 61, 0.11); --ink: #14213d; --ink-dim: #4b566e; --ink-faint: #868b9b;
-  --accent: #ff6b5b; --accent-soft: rgba(255, 107, 91, 0.16);
+  --accent: #0e8a7e; --accent-soft: rgba(14, 138, 126, 0.16);
   --purple: #54649e; --purple-soft: rgba(84, 100, 158, 0.14);
   background: #f4ede0;
 }
 html[data-palette="navy"] body.glass::before {
   background:
-    radial-gradient(38% 38% at 12% 16%, rgba(255, 107, 91, 0.38), transparent 70%),
+    radial-gradient(38% 38% at 12% 16%, rgba(46, 196, 182, 0.34), transparent 70%),
     radial-gradient(34% 34% at 88% 12%, rgba(20, 33, 61, 0.22), transparent 70%),
-    radial-gradient(40% 40% at 72% 88%, rgba(255, 150, 130, 0.34), transparent 70%),
+    radial-gradient(40% 40% at 72% 88%, rgba(46, 196, 182, 0.26), transparent 70%),
     radial-gradient(30% 30% at 8% 88%, rgba(20, 33, 61, 0.16), transparent 70%);
 }
-html[data-palette="navy"] body.glass .nav-item[aria-current="page"] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 14px rgba(255, 107, 91, 0.2); }
+html[data-palette="navy"] body.glass .nav-item[aria-current="page"] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 14px rgba(14, 138, 126, 0.22); }
 html[data-palette="navy"] body.glass .btn, html[data-palette="navy"] body.glass .btn-primary {
-  background: linear-gradient(180deg, #ff8d7e 0%, #ff6b5b 55%, #f2523f 100%); color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 8px 20px rgba(255, 107, 91, 0.35);
+  background: linear-gradient(180deg, #2cc0b1 0%, #14a597 55%, #0e8a7e 100%); color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 8px 20px rgba(14, 138, 126, 0.35);
 }
 
 /* ---------- Escuro (navy) ---------- */
 html[data-palette="navy"][data-theme="dark"] {
   --bg: #0d1630; --surface: #14213d; --surface-2: #192848; --sidebar: #101b35; --line: #263556;
   --ink: #f4ede0; --ink-dim: #c8c3b8; --ink-faint: #8c92a6;
-  --accent: #ff6b5b; --accent-soft: #3a2630;
+  --accent: #2ec4b6; --accent-soft: #12383f;
   --purple: #aab6e8; --purple-soft: #232c52;
   --overlay: rgba(4, 8, 20, 0.7);
 }
@@ -47,44 +47,59 @@ html[data-palette="navy"][data-theme="dark"] body.glass {
   --glass-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.4);
   --surface: rgba(244, 237, 224, 0.07); --surface-2: rgba(244, 237, 224, 0.04); --sidebar: rgba(244, 237, 224, 0.06);
   --line: rgba(244, 237, 224, 0.13); --ink: #f4ede0; --ink-dim: #c8c3b8; --ink-faint: #8c92a6;
-  --accent: #ff6b5b; --accent-soft: rgba(255, 107, 91, 0.2);
+  --accent: #2ec4b6; --accent-soft: rgba(46, 196, 182, 0.2);
   --purple: #aab6e8; --purple-soft: rgba(170, 182, 232, 0.18);
   background: #0b1228;
 }
 html[data-palette="navy"][data-theme="dark"] body.glass::before {
   background:
     radial-gradient(38% 38% at 12% 16%, rgba(52, 84, 170, 0.62), transparent 70%),
-    radial-gradient(34% 34% at 88% 12%, rgba(255, 107, 91, 0.42), transparent 70%),
+    radial-gradient(34% 34% at 88% 12%, rgba(46, 196, 182, 0.34), transparent 70%),
     radial-gradient(40% 40% at 72% 88%, rgba(40, 70, 140, 0.5), transparent 70%),
-    radial-gradient(30% 30% at 8% 88%, rgba(255, 107, 91, 0.22), transparent 70%);
+    radial-gradient(30% 30% at 8% 88%, rgba(46, 196, 182, 0.2), transparent 70%);
 }
 @media (prefers-color-scheme: dark) {
   html[data-palette="navy"]:not([data-theme="light"]) {
     --bg: #0d1630; --surface: #14213d; --surface-2: #192848; --sidebar: #101b35; --line: #263556;
     --ink: #f4ede0; --ink-dim: #c8c3b8; --ink-faint: #8c92a6;
-    --accent: #ff6b5b; --accent-soft: #3a2630; --purple: #aab6e8; --purple-soft: #232c52; --overlay: rgba(4, 8, 20, 0.7);
+    --accent: #2ec4b6; --accent-soft: #12383f; --purple: #aab6e8; --purple-soft: #232c52; --overlay: rgba(4, 8, 20, 0.7);
   }
   html[data-palette="navy"]:not([data-theme="light"]) body.glass {
     --glass-a: rgba(244, 237, 224, 0.10); --glass-b: rgba(244, 237, 224, 0.03);
     --glass-border: rgba(244, 237, 224, 0.18); --glass-hi: rgba(244, 237, 224, 0.26);
     --surface: rgba(244, 237, 224, 0.07); --surface-2: rgba(244, 237, 224, 0.04); --sidebar: rgba(244, 237, 224, 0.06);
     --line: rgba(244, 237, 224, 0.13); --ink: #f4ede0; --ink-dim: #c8c3b8; --ink-faint: #8c92a6;
-    --accent: #ff6b5b; --accent-soft: rgba(255, 107, 91, 0.2); --purple: #aab6e8; --purple-soft: rgba(170, 182, 232, 0.18);
+    --accent: #2ec4b6; --accent-soft: rgba(46, 196, 182, 0.2); --purple: #aab6e8; --purple-soft: rgba(170, 182, 232, 0.18);
     background: #0b1228;
   }
   html[data-palette="navy"]:not([data-theme="light"]) body.glass::before {
     background:
       radial-gradient(38% 38% at 12% 16%, rgba(52, 84, 170, 0.62), transparent 70%),
-      radial-gradient(34% 34% at 88% 12%, rgba(255, 107, 91, 0.42), transparent 70%),
+      radial-gradient(34% 34% at 88% 12%, rgba(46, 196, 182, 0.34), transparent 70%),
       radial-gradient(40% 40% at 72% 88%, rgba(40, 70, 140, 0.5), transparent 70%),
-      radial-gradient(30% 30% at 8% 88%, rgba(255, 107, 91, 0.22), transparent 70%);
+      radial-gradient(30% 30% at 8% 88%, rgba(46, 196, 182, 0.2), transparent 70%);
   }
 }
 
 /* ---------- Landing: abertura escura em navy com título em coral ---------- */
-html[data-palette="navy"] .cine { --c-bg: #0b1228; --c-ink: #f4ede0; --c-dim: #a7adc0; --c-line: rgba(244, 237, 224, 0.12); --c-blue: #ff6b5b; --c-cyan: #ffa396; }
+html[data-palette="navy"] .cine { --c-bg: #0b1228; --c-ink: #f4ede0; --c-dim: #a7adc0; --c-line: rgba(244, 237, 224, 0.12); --c-blue: #2ec4b6; --c-cyan: #8be6dc; }
 html[data-palette="navy"] .lp-nav.on-dark { background: rgba(11, 18, 40, 0.82); }
 html[data-palette="navy"] .lp-btn:not(.ghost) { color: #fff; }
 html[data-palette="navy"] .lp-btn.ghost { color: var(--ink); border-color: var(--line); }
 html[data-palette="navy"] .lp-nav.on-dark .lp-btn.ghost, html[data-palette="navy"] .cine-foot .lp-btn.ghost { color: #f4ede0; border-color: rgba(244, 237, 224, 0.35); background: transparent; }
 html[data-palette="navy"] .cine-foot .lp-btn { background: #f4ede0; color: #14213d; border-color: #f4ede0; }
+
+/* ---------- Verde-água: notas em verde de verdade (não confundir com o destaque) e texto navy nos botões do tema escuro ---------- */
+html[data-palette="navy"] { --good: #2f8f3d; --good-soft: #e4f2e2; }
+html[data-palette="navy"] body.glass { --good: #2f8f3d; --good-soft: rgba(47, 143, 61, 0.16); }
+html[data-palette="navy"][data-theme="dark"], html[data-palette="navy"][data-theme="dark"] body.glass { --good: #86d36e; --good-soft: rgba(134, 211, 110, 0.18); --on-accent: #0b2a33; }
+@media (prefers-color-scheme: dark) {
+  html[data-palette="navy"]:not([data-theme="light"]), html[data-palette="navy"]:not([data-theme="light"]) body.glass { --good: #86d36e; --good-soft: rgba(134, 211, 110, 0.18); --on-accent: #0b2a33; }
+}
+html[data-palette="navy"] { --on-accent: #ffffff; }
+html[data-palette="navy"] body.glass .btn, html[data-palette="navy"] body.glass .btn-primary,
+html[data-palette="navy"] .plan-cta, html[data-palette="navy"] button.submit, html[data-palette="navy"] .prep-btn.primary, html[data-palette="navy"] #cpSaveBtn,
+html[data-palette="navy"] .submit, html[data-palette="navy"] .scale button.on { color: var(--on-accent); }
+html[data-palette="navy"] #cpSaveBtn { background: var(--accent) !important; }
+html[data-palette="navy"][data-theme="dark"] .lp-btn:not(.ghost) { color: #0b2a33; }
+@media (prefers-color-scheme: dark) { html[data-palette="navy"]:not([data-theme="light"]) .lp-btn:not(.ghost) { color: #0b2a33; } }

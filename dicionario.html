@@ -13,13 +13,13 @@
   :root {
     --bg: #f4ede0; --surface: #fbf7ef; --surface-2: #f0e8d9; --line: #e2d8c5;
     --ink: #14213d; --ink-dim: #4b566e; --ink-faint: #868b9b;
-    --accent: #ff6b5b; --accent-ink: #c8402f; --accent-soft: #ffe3de;
-    --good: #1c8a54; --good-soft: #e3f4ea; --warn: #a86a00; --warn-soft: #fbf0da; --bad: #c63d3d; --bad-soft: #fbe6e6;
+    --accent: #2ec4b6; --accent-ink: #0b7a70; --accent-soft: #d6efe9;
+    --good: #2f8f3d; --good-soft: #e4f2e2; --warn: #a86a00; --warn-soft: #fbf0da; --bad: #c63d3d; --bad-soft: #fbe6e6;
     --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif; --mono: "DM Mono", ui-monospace, "SF Mono", Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #0d1630; --surface: #14213d; --surface-2: #192848; --line: #263556; --ink: #f4ede0; --ink-dim: #c8c3b8; --ink-faint: #8c92a6;
-      --accent-ink: #ff8d7e; --accent-soft: #3a2630; --hero: #1b2c52; --good: #5fd08f; --good-soft: #17301f; --warn: #f0b755; --warn-soft: #3a2c12; --bad: #ff8585; --bad-soft: #3b1b1b; }
+      --accent-ink: #5fe0d3; --accent-soft: #12383f; --hero: #1b2c52; --good: #86d36e; --good-soft: #1d3220; --warn: #f0b755; --warn-soft: #3a2c12; --bad: #ff8585; --bad-soft: #3b1b1b; }
   }
   @media (prefers-color-scheme: dark) { .hero { background: #1b2c52; border: 1px solid #2c4170; } }
   .toc .actions { display: flex; flex-direction: column; gap: 8px; margin: -6px 0 22px; }
@@ -44,8 +44,8 @@
   main { padding: 40px 0 90px; min-width: 0; }
 
   .hero { padding: 34px 36px; border-radius: 24px; background: #14213d; color: #f4ede0; margin-bottom: 44px; position: relative; overflow: hidden; }
-  .hero::after { content: ""; position: absolute; right: -60px; top: -60px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(255,107,91,.55), transparent 70%); }
-  .hero .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #ff9a8d; }
+  .hero::after { content: ""; position: absolute; right: -60px; top: -60px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(46,196,182,.5), transparent 70%); }
+  .hero .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #7ee3d8; }
   .hero h1 { margin: 10px 0 12px; font-size: clamp(2rem, 4.6vw, 3.1rem); line-height: 1.02; letter-spacing: -0.03em; font-weight: 700; text-transform: uppercase; }
   .hero h1 em { font-style: normal; color: var(--accent); }
   .hero p { margin: 0; max-width: 640px; color: #d4cfc4; position: relative; z-index: 1; }
