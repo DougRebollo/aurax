@@ -102,11 +102,15 @@
   tr.new td { background: var(--accent-soft); }
   a.mail { color: var(--ink); text-decoration: none; border-bottom: 1px dotted var(--ink-faint); }
   .err { color: var(--bad); font-size: 13px; margin-top: 10px; } .foot { margin-top: 24px; font-size: 12.5px; color: var(--ink-faint); line-height: 1.55; }
+  .demo-ribbon { position: sticky; top: 0; z-index: 60; margin: 0 -20px; padding: 9px 16px; text-align: center; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #3a2400; background: linear-gradient(90deg, #ffd27a, #ffb84d); box-shadow: 0 6px 18px -8px rgba(0,0,0,.4); }
+  .demo-ribbon[hidden] { display: none; }
+  body.demo .bar { top: 36px; }
   .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none; transition: .3s; z-index: 50; }
   .toast.on { opacity: 1; transform: translateX(-50%); }
 </style>
 </head>
 <body class="glass">
+<div class="demo-ribbon" id="demoRibbon" hidden>DADOS DE EXEMPLO · tela de demonstração, os números abaixo não são reais</div>
 <div class="wrap">
   <div id="gate" class="card gate" hidden></div>
   <div id="app" hidden>
@@ -127,7 +131,7 @@
     <div class="grid kpis" id="kpis"></div>
 
     <h2 class="sec">Crescimento
-      <span class="seg" id="segGrowth"><button class="gb on" data-d="30" type="button">30 dias</button><button class="gb" data-d="90" type="button">90 dias</button></span>
+      <span class="seg" id="segGrowth"><button class="gb" data-d="14" type="button">14 dias</button><button class="gb on" data-d="30" type="button">30 dias</button><button class="gb" data-d="90" type="button">90 dias</button></span>
     </h2>
     <div class="card pad"><h3>Cadastros por dia</h3><p class="hint" id="growthHint">Barras = cadastros no dia · linha = total acumulado no período</p><div id="chart"></div></div>
 
@@ -189,6 +193,41 @@
 
   function gate(title, text, btn) { $("app").hidden = true; const g = $("gate"); g.hidden = false; g.innerHTML = "<h2>" + title + "</h2><p>" + text + "</p>" + (btn || ""); }
   function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("on"); setTimeout(() => el.classList.remove("on"), 1600); }
+
+  // ===== Modo demonstração (?demo=1): dados FICTÍCIOS e identificados, sem login e sem tocar no banco =====
+  const DEMO = new URLSearchParams(location.search).get("demo") === "1";
+  function demoUsers() {
+    const now = Date.now(), rows = [];
+    // [nome, tipo, empresa, cargo, status, stripe, dias atrás, horas até a 1ª sessão, sessões, sessões 7d, gestor]
+    const L = [
+      ["Ana Souza", "Gestor", "Alfa Logística", "Head Comercial", "ativa", 1, 7.6, 3, 14, 6],
+      ["Bruno Lima", "Individual", "Beta Tecnologia", "Executivo de Contas", "ativa", 1, 7.2, 2, 11, 5],
+      ["Carla Dias", "Individual", "Gama Seguros", "Consultora", "ativa", 1, 6.8, 5, 9, 5],
+      ["Diego Rocha", "Gestor", "Delta Energia", "Diretor Comercial", "ativa", 1, 6.5, 8, 16, 7],
+      ["Elisa Prado", "Individual", "Ômega Saúde", "Vendedora", "ativa", 1, 6.1, 2, 7, 4],
+      ["Fábio Reis", "Individual", "Sigma Indústria", "Vendedor", "ativa", 1, 5.7, 20, 6, 4],
+      ["Gabi Melo", "Gestor", "Lambda Agro", "Gerente de Vendas", "ativa", 1, 5.2, 4, 12, 6],
+      ["Hugo Alves", "Individual", "Beta Tecnologia", "SDR", "ativa", 1, 4.4, 6, 5, 4],
+      ["Iara Costa", "Individual", "Épsilon Educação", "Consultora", "ativa", 1, 3.6, 3, 4, 3],
+      ["João Pires", "Gestor", "Zeta Serviços", "Head de Vendas", "ativa", 1, 2.8, 9, 6, 4],
+      ["Karen Lopes", "Individual", "Alfa Logística", "Executiva de Contas", "ativa", 1, 1.5, 4, 3, 3],
+      ["Léo Faria", "Colaborador", "Alfa Logística", "SDR", "ativa", 0, 6.9, 12, 8, 5, "ana@exemplo.com"],
+      ["Marta Vaz", "Colaborador", "Alfa Logística", "SDR", "ativa", 0, 6.7, 14, 6, 4, "ana@exemplo.com"],
+      ["Nuno Cruz", "Colaborador", "Delta Energia", "Vendedor", "ativa", 0, 6.2, 10, 5, 4, "diego@exemplo.com"],
+      ["Olga Reis", "Individual", "Pi Telecom", "Vendedora", "pendente_pagamento", 1, 1.1, null, 0, 0],
+      ["Paulo Dias", "Gestor", "Rô Consultoria", "Diretor", "pendente_pagamento", 0, 0.9, null, 0, 0],
+      ["Quésia Lima", "Individual", "", "", "pendente_pagamento", 0, 0.4, null, 0, 0],
+      ["Rafa Souza", "Individual", "Tau Software", "Executivo de Contas", "pendente_pagamento", 1, 0.2, null, 0, 0],
+    ];
+    L.forEach((r, i) => {
+      const created = now - r[6] * DAY, first = r[7] == null ? null : created + r[7] * HOUR;
+      const mail = r[0].split(" ")[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") + "@exemplo.com";
+      rows.push({ id: String(i), email: mail, name: r[0], role: r[1] === "Gestor" ? "gestor" : "funcionario", tipo: r[1], cargo: r[3], empresa: r[2], manager_email: r[10] || null,
+        account_status: r[4], has_stripe: !!r[5], email_confirmed: true, created_at: new Date(created).toISOString(), last_sign_in_at: new Date(now - 3 * HOUR).toISOString(),
+        sessions_count: r[8], last_session_at: r[8] ? new Date(now - (i % 5 + 1) * 5 * HOUR).toISOString() : null, first_session_at: first ? new Date(first).toISOString() : null, sessions_7d: r[9] });
+    });
+    return rows;
+  }
 
   async function load() {
     const { data, error } = await client.rpc("admin_users");
@@ -338,6 +377,17 @@
   function schedule() { clearInterval(timer); if ($("auto").checked) timer = setInterval(load, 60000); }
 
   (async function init() {
+    if (DEMO) {
+      document.body.classList.add("demo"); $("demoRibbon").hidden = false;
+      document.title = "Admin (demonstração) — AuraX";
+      $("auto").checked = false; $("auto").parentElement.hidden = true;
+      growthDays = 14; funnelDays = 30; document.querySelectorAll("#segGrowth button").forEach((x) => x.classList.toggle("on", x.dataset.d === "14"));
+      $("gate").hidden = true; $("app").hidden = false; users = demoUsers();
+      $("updated").textContent = "Demonstração";
+      localStorage.setItem("aurax_admin_demo", "1");
+      $("refresh").hidden = true; $("csv").hidden = true; $("seen").closest(".banner").hidden = true;
+      render(); $("newBanner").hidden = true; return;
+    }
     const { data: { session } } = await client.auth.getSession();
     if (!session) return gate("Área do administrador", "Entre com a sua conta de administrador para ver os cadastros.", '<a class="gb primary" href="login.html">Entrar</a>');
     if (!localStorage.getItem(SEEN_KEY)) localStorage.setItem(SEEN_KEY, String(Date.now()));
