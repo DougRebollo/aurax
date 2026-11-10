@@ -235,9 +235,9 @@
           <div>Desconto por termo</div><div><p>Densidade = usos ÷ palavras × 100. Se passa da tolerância do peso, desconta:</p>
             <div class="tw"><table><tr><th>Peso</th><th>Tolerância (usos por 100 palavras)</th><th>Unidades por ponto acima</th></tr>
             <tr><td>0 neutra</td><td>sem desconto</td><td>0</td></tr><tr><td>1 leve</td><td>1,5</td><td>0,5</td></tr><tr><td>2 média</td><td>0,5</td><td>1</td></tr><tr><td>3 forte</td><td>0,1</td><td>2</td></tr></table></div>
-            <p>Teto por termo: 3 unidades (gírias) e 6 unidades (vícios).</p></div>
-          <div>Soma geral</div><div><p>Muitos termos leves, cada um dentro da tolerância, ainda somam fala informal demais. Densidade ponderada = Σ(usos × peso) ÷ palavras × 100, com <b>gírias valendo o dobro</b> dos vícios.</p><p>Acima de <b>2</b> por 100 palavras, o excesso vira unidades (1 por ponto), teto 6; vale a partir de 150 palavras.</p></div>
-          <div>Cálculo</div><div><div class="formula">unidades = máx( vícios + gírias × 2 , soma geral )<br/>nota = 100 × (1 − unidades ÷ 12)</div><p>Usa o maior dos dois descontos para não contar o mesmo excesso duas vezes.</p></div>
+            <p>Teto por termo: 3 unidades (gírias) e 3 unidades (vícios).</p></div>
+          <div>Soma geral</div><div><p>Muitos termos leves, cada um dentro da tolerância, ainda somam fala informal demais. Densidade ponderada = Σ(usos × peso) ÷ palavras × 100, com <b>gírias valendo 2,5 vezes</b> o peso dos vícios.</p><p>Acima de <b>2</b> por 100 palavras, o excesso vira unidades (1 por ponto), teto 6; vale a partir de 150 palavras.</p></div>
+          <div>Cálculo</div><div><div class="formula">unidades = máx( vícios + gírias × 2,5 , soma geral )<br/>nota = 100 × (1 − unidades ÷ 12)</div><p>Usa o maior dos dois descontos para não contar o mesmo excesso duas vezes.</p></div>
           <div>Positivo</div><div>Poucos termos, espalhados; fala direta.</div>
           <div>Negativo</div><div>Repetição do mesmo termo; muitos termos leves somados; gírias fortes ou palavrão.</div>
           <div>Limitações</div><div>Depende da transcrição do navegador (pode errar palavras e não marca pontuação). O dicionário não cobre gírias regionais.</div>
@@ -315,7 +315,7 @@
       <h2><span class="n">07</span>Dicionário de termos</h2>
       <p class="lead">96 gírias e falas informais, mais os vícios de preenchimento. Para cada termo o dicionário guarda a chave, o padrão de detecção, o peso, a <b>troca sugerida</b> (ex.: "show" → "ótimo"), a categoria e, em 30 casos, uma condição de contexto.</p>
       <h3>7.1 Vícios de preenchimento</h3>
-      <p class="terms"><span class="tag t-warn">né · 2</span><span class="tag t-warn">tipo · 2 (contexto)</span><span class="tag t-warn">assim · 1 (contexto)</span><span class="tag t-warn">sabe · 1 (contexto)</span><span class="tag t-warn">sons de hesitação · 2</span><span class="tag t-warn">"é" puxado ou repetido · 2</span><span class="tag t-n">"então" ignorado</span></p>
+      <p class="terms"><span class="tag t-warn">né · 1</span><span class="tag t-warn">tipo · 2 (contexto)</span><span class="tag t-warn">assim · 1 (contexto)</span><span class="tag t-warn">sabe · 1 (contexto)</span><span class="tag t-warn">sons de hesitação · 2</span><span class="tag t-warn">"é" puxado ou repetido · 2</span><span class="tag t-n">"então" ignorado</span></p>
 
       <h3>7.2 Gírias e fala informal por categoria e peso</h3>
       <div class="tw terms"><table>

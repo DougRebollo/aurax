@@ -32,7 +32,7 @@
   // Soma geral: vários termos leves, cada um abaixo da própria tolerância, ainda somam fala informal demais.
   // Densidade ponderada = (usos x peso) por 100 palavras; acima de AGG_TOL, cada ponto vale AGG_FACTOR unidade.
   const AGG_TOL = 2, AGG_FACTOR = 1, AGG_CAP = 6, AGG_MIN_WORDS = 150;
-  const SLANG_BOOST = 2;     // gíria pesa mais que vício de preenchimento (no desconto por termo e na soma geral)
+  const SLANG_BOOST = 2.5;   // gíria pesa bem mais que vício de preenchimento (no desconto por termo e na soma geral)
   const SCORE_SCALE = 12;                                       // 12 unidades = nota 0 (mesma escala dos vícios)
 
   const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -238,9 +238,9 @@
 
   // ===== Vícios de preenchimento ("né", "tipo", "ahn"...) — mesma lógica de peso, tolerância e contexto =====
   // Antes todo vício contava igual, desde o primeiro. Agora: uma pausa de vez em quando é natural; pesa a repetição.
-  const FILLER_CAP = 6;   // teto por vício (unidades): o vício dominante pode pesar bastante na nota
+  const FILLER_CAP = 3;   // teto por vício (unidades): "né" e cia. são comuns na fala; não podem dominar a nota
   const FILLERS = [
-    { k: "né", p: "ne", w: 2, swap: "corte a palavra ou faça uma pausa" },
+    { k: "né", p: "ne", w: 1, swap: "corte a palavra ou faça uma pausa" },
     { k: "tipo", p: "tipo", w: 2, swap: "por exemplo",
       // "esse tipo de cliente", "um tipo de contrato" são o substantivo: não contam
       ctx: (n, m) => !["de", "do", "da", "dos", "das", "desse", "deste", "daquele", "ao"].includes(nextWord(n, m))
@@ -315,15 +315,16 @@
   function languageScore(fillerCounts, slangCounts, words) {
     const fillerUnits = analyzeFillers(fillerCounts, words).reduce((a, r) => a + r.penalty, 0);
     const slangUnits = analyze(slangCounts, words).reduce((a, r) => a + r.penalty, 0);
-    let weighted = 0, informal = 0;
-    analyzeFillers(fillerCounts, words).forEach((r) => { if (r.weight > 0) { weighted += r.count * r.weight; informal += r.count; } });
-    analyze(slangCounts, words).forEach((r) => { if (r.weight > 0) { weighted += r.count * r.weight * SLANG_BOOST; informal += r.count; } });
+    let weighted = 0, informal = 0, fillerW = 0, slangW = 0;
+    analyzeFillers(fillerCounts, words).forEach((r) => { if (r.weight > 0) { fillerW += r.count * r.weight; informal += r.count; } });
+    analyze(slangCounts, words).forEach((r) => { if (r.weight > 0) { slangW += r.count * r.weight * SLANG_BOOST; informal += r.count; } });
+    weighted = fillerW + slangW;
     const density = words > 0 ? (weighted / words) * 100 : 0;
     const aggUnits = words >= AGG_MIN_WORDS ? Math.min(AGG_CAP, Math.max(0, density - AGG_TOL) * AGG_FACTOR) : 0;
     // O desconto geral não soma com o por termo (evita contar duas vezes): vale o maior dos dois.
     const units = Math.max(fillerUnits + slangUnits * SLANG_BOOST, aggUnits);
     const score = Math.max(0, Math.min(1, 1 - units / SCORE_SCALE)) * 100;
-    return { score, fillerUnits, slangUnits, aggUnits, density, informal };
+    return { score, fillerUnits, slangUnits, aggUnits, density, informal, fillerW, slangW, dominant: slangW >= fillerW ? "giria" : "vicio" };
   }
 
   window.AuraLang = { FILLERS, fillerSwaps, detectFillers, analyzeFillers, ENTRIES, WEIGHT_LABEL, CATEGORY_LABEL, CATEGORY_WHY, swaps, detectSlang, weightOf, categoryOf, catLabel, analyze, byCategory, languageScore, TOLERANCE, AGG_TOL };

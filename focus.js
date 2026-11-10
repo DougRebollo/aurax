@@ -100,7 +100,13 @@
     const cands = [];
     (h.oratoria_subscores || []).forEach((s) => {
       if (s.excluded) return; // sessão de escuta: ritmo/pausas/projeção não são o foco
-      const key = s.key === "ritmo" ? (h.wpm > 160 ? "ritmo_rapido" : "ritmo_lento") : s.key;
+      let key = s.key === "ritmo" ? (h.wpm > 160 ? "ritmo_rapido" : "ritmo_lento") : s.key;
+      if (s.key === "vicios" && window.AuraLang && AuraLang.languageScore) {
+        // a nota de linguagem junta vícios e gírias: o foco mostra o lado que mais pesou
+        const fc = clean(h.filler_counts);
+        const r = AuraLang.languageScore(fc, h.slang_counts || {}, totalWords(h));
+        if (r.dominant === "giria" && Object.keys(h.slang_counts || {}).length) key = "muitas_girias";
+      }
       cands.push({ key, sub: s.key, weight: 100 - s.score });
     });
     const tips = tipKeys(h);
