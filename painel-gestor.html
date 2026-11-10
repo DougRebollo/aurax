@@ -234,7 +234,7 @@
     </div>
 
     <div class="card add-row">
-      <input type="email" id="addEmailInput" placeholder="e-mail da pessoa (se ela ainda não tem conta, geramos um convite)" />
+      <input type="email" id="addEmailInput" placeholder="e-mail da pessoa (enviamos o convite por e-mail)" />
       <button type="button" class="btn" id="addBtn">Adicionar ao time</button>
     </div>
     <div class="add-feedback" id="addFeedback"></div>
@@ -410,13 +410,25 @@
       }
     }
 
+    // Envia o convite por e-mail (Edge Function send-team-invite). Devolve { ok, error }.
+    async function sendInviteEmail(inviteId) {
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const res = await fetch(SUPABASE_URL + "/functions/v1/send-team-invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+          body: JSON.stringify({ inviteId }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) return { ok: false, error: body.error || "Não foi possível enviar o e-mail agora." };
+        return { ok: true };
+      } catch (e) { return { ok: false, error: "Não foi possível enviar o e-mail agora." }; }
+    }
+
     async function loadInvites() {
-      const { data, error } = await supabaseClient
-        .from("team_invites")
-        .select("id, email, token, created_at")
-        .eq("manager_id", currentUserId)
-        .eq("status", "pendente")
-        .order("created_at");
+      const q = (cols) => supabaseClient.from("team_invites").select(cols).eq("manager_id", currentUserId).eq("status", "pendente").order("created_at");
+      let { data, error } = await q("id, email, token, created_at, last_emailed_at");
+      if (error) ({ data, error } = await q("id, email, token, created_at"));   // coluna nova ainda não criada no banco
       if (error) { invitesAvailable = false; pendingInvites = []; }
       else { invitesAvailable = true; pendingInvites = data || []; }
       renderPendingInvites();
@@ -430,13 +442,20 @@
         <div class="invite-row" data-id="${i.id}">
           <div>
             <div class="invite-email">${esc(i.email)}</div>
-            <div class="invite-meta">Aguardando cadastro · convite de ${formatDateBR(i.created_at).split(" ")[0]} · envie o link pelo WhatsApp ou e-mail</div>
+            <div class="invite-meta">Aguardando cadastro · convite de ${formatDateBR(i.created_at).split(" ")[0]}${i.last_emailed_at ? " · e-mail enviado em " + formatDateBR(i.last_emailed_at) : " · e-mail ainda não enviado"}</div>
           </div>
           <div class="invite-actions">
-            <button type="button" class="btn ghost" data-copy="${esc(i.token)}">Copiar convite</button>
+            <button type="button" class="btn ghost" data-resend="${i.id}">${i.last_emailed_at ? "Reenviar e-mail" : "Enviar e-mail"}</button>
+            <button type="button" class="btn ghost" data-copy="${esc(i.token)}">Copiar link (WhatsApp)</button>
             <button type="button" class="btn ghost" data-cancel="${i.id}">Cancelar</button>
           </div>
         </div>`).join("");
+      box.querySelectorAll("[data-resend]").forEach((b) => b.addEventListener("click", async () => {
+        const t = b.textContent; b.disabled = true; b.textContent = "Enviando…";
+        const r = await sendInviteEmail(b.dataset.resend);
+        if (r.ok) { posthog.capture("team_invite_emailed"); await loadInvites(); showFeedback("E-mail do convite enviado.", "success"); }
+        else { b.disabled = false; b.textContent = t; showFeedback(r.error, "error"); }
+      }));
       box.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
         const ok = await copyText(inviteMessage(b.dataset.copy));
         const t = b.textContent; b.textContent = ok ? "Copiado ✓" : "Não consegui copiar";
@@ -742,10 +761,14 @@
             .single();
           if (invError) throw invError;
           posthog.capture("team_invite_created");
-          const copied = await copyText(inviteMessage(inv.token));
-          showFeedback(copied
-            ? `Convite criado para ${email}. Ainda não enviamos e-mail sozinhos (isso chega em breve): a mensagem com o link já foi copiada, é só colar no WhatsApp ou no seu e-mail e mandar para a pessoa.`
-            : `Convite criado para ${email}. Ainda não enviamos e-mail sozinhos (isso chega em breve): use "Copiar convite" na lista abaixo e mande a mensagem pelo WhatsApp ou pelo seu e-mail.`, "success");
+          const sent = await sendInviteEmail(inv.id);
+          if (sent.ok) {
+            posthog.capture("team_invite_emailed");
+            showFeedback(`Convite enviado por e-mail para ${email}. Ele cria a conta pelo link da mensagem e já entra no seu time. (Se preferir, também dá para copiar o link e mandar pelo WhatsApp, na lista abaixo.)`, "success");
+          } else {
+            const copied = await copyText(inviteMessage(inv.token));
+            showFeedback(`Convite criado para ${email}, mas o e-mail não saiu agora (${sent.error}).` + (copied ? " Copiamos a mensagem com o link: é só colar no WhatsApp." : ' Use "Copiar link (WhatsApp)" na lista abaixo.'), "error");
+          }
           input.value = "";
           await loadInvites();
           updateTeamLimitUI();

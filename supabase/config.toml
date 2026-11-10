@@ -22,3 +22,7 @@ verify_jwt = true
 [functions.notify-admin]
 # Chamada pelo banco (pg_net), sem token de usuário. A função valida tudo sozinha (ver o comentário no código).
 verify_jwt = false
+
+[functions.send-team-invite]
+# O navegador do gestor chama com o token dele; a função valida o usuário sozinha (ver o código).
+verify_jwt = false
