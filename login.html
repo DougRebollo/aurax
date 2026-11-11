@@ -433,6 +433,9 @@
       const inviteParam = new URLSearchParams(location.search).get("convite");
       if (inviteParam) localStorage.setItem("aurax_invite", inviteParam);
     } catch (e) { /* sem armazenamento */ }
+    // O convite só força o cadastro quando a pessoa chegou pelo LINK do convite (?convite=). Se o convite só
+    // ficou guardado no navegador de uma visita antiga, o "Entrar" normal continua sendo login (com um aviso).
+    const FROM_INVITE_LINK = !!new URLSearchParams(location.search).get("convite");
     async function setupInvite() {
       let tok = null;
       try { tok = localStorage.getItem("aurax_invite"); } catch (e) { /* sem armazenamento */ }
@@ -440,7 +443,16 @@
       try {
         const { data } = await supabaseClient.rpc("get_invite_info", { p_token: tok });
         const info = Array.isArray(data) ? data[0] : data;
-        if (!info) return null; // convite inexistente ou cancelado: segue o login normal
+        if (!info) { try { localStorage.removeItem("aurax_invite"); } catch (e) { /* ok */ } return null; } // convite inexistente, cancelado ou já usado: limpa e segue o login normal
+        if (!FROM_INVITE_LINK) {
+          inviteBannerEl.innerHTML = "";
+          inviteBannerEl.append(document.createTextNode(info.manager_name + " convidou " + info.email + " para o time dele. "));
+          const b = document.createElement("button"); b.type = "button"; b.textContent = "Criar conta com este convite";
+          b.style.cssText = "margin-top:8px;display:block;background:none;border:0;padding:0;color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline;font:inherit";
+          b.addEventListener("click", () => { location.href = "login.html?convite=" + encodeURIComponent(tok); });
+          inviteBannerEl.append(b); inviteBannerEl.hidden = false;
+          return null;
+        }
         inviteBannerEl.textContent = `${info.manager_name} convidou você para o time dele no AuraX. Crie sua conta (ou entre) para participar.`;
         inviteBannerEl.hidden = false;
         inviteActive = true;
