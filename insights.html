@@ -13,41 +13,148 @@
 <link rel="stylesheet" href="glass.css?v=138390e5" />
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
-  :root { --grid: var(--line); --text-dim: var(--ink-faint); }
+  :root { --grid: var(--line); --text-dim: var(--ink-faint); --dot-ring: #fbf7ef; --track: color-mix(in srgb, var(--ink-faint) 22%, transparent); }
+  html[data-theme="dark"] { --dot-ring: #17233f; }
+  @media (prefers-color-scheme: dark) { html:not([data-theme="light"]) { --dot-ring: #17233f; } }
 
-  .chart-card { padding: 20px 22px; }
-  .chart-empty { padding: 20px 0; text-align: center; color: var(--ink-faint); font-size: 13px; }
-  .chart-legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-dim); margin-bottom: 10px; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 6px; }
-  .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  /* ===== Grade do painel ===== */
+  #insightsBody { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+  #insightsBody[hidden] { display: none; }
+  .dc { grid-column: span 12; min-width: 0; padding: 20px 22px; display: flex; flex-direction: column; }
+  .dc[hidden] { display: none; }
+  .s4 { grid-column: span 4; } .s5 { grid-column: span 5; } .s6 { grid-column: span 6; } .s7 { grid-column: span 7; } .s8 { grid-column: span 8; }
+  @media (max-width: 1180px) { .s4, .s5, .s6, .s7, .s8 { grid-column: span 12; } }
+  .dc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .dc-title { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--ink); letter-spacing: -0.005em; }
+  .dc-sub { font-size: 12px; color: var(--ink-faint); }
+  .dc-note { font-size: 12px; color: var(--ink-faint); line-height: 1.5; margin: 12px 0 0; }
+  .chart-empty { padding: 26px 0; text-align: center; color: var(--ink-faint); font-size: 13px; margin: auto 0; }
+  .beta-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px; }
 
-  #insightsBody { display: flex; flex-direction: column; gap: 20px; }
+  /* ===== Nota média (destaque) ===== */
+  .hero { flex-direction: row; align-items: center; gap: 22px; padding: 24px; }
+  .ring { position: relative; flex-shrink: 0; width: 148px; height: 148px; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .trk { fill: none; stroke: var(--track); stroke-width: 11; }
+  .ring .arc { fill: none; stroke-width: 11; stroke-linecap: round; transition: stroke-dashoffset 0.9s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .ring-mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-value { font-family: var(--mono); font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: -0.03em; color: var(--ink); }
+  .ring-of { font-size: 12px; color: var(--ink-faint); margin-top: 4px; }
+  .hero-text { min-width: 0; flex: 1; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+  .rank-chip { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 17px; font-weight: 700; color: var(--ink); }
+  .rank-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-faint); }
+  .hero .stat-delta { font-size: 12.5px; margin-top: 6px; }
+  .hero-mini { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .hero-mini div { min-width: 0; }
+  .hero-mini b { display: block; font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--ink); line-height: 1.1; }
+  .hero-mini span { display: block; font-size: 11.5px; line-height: 1.35; color: var(--ink-faint); margin-top: 3px; }
+  .hero-mini[hidden] { display: none; }
+  @media (max-width: 520px) { .hero { flex-direction: column; align-items: flex-start; } }
 
+  /* ===== Indicadores ===== */
+  .kpis { grid-column: span 7; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; }
+  @media (max-width: 1180px) { .kpis { grid-column: span 12; } }
+  @media (max-width: 520px) { .kpis { grid-template-columns: 1fr; } }
+  .kpi { position: relative; padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; min-width: 0; min-height: 132px; }
+  .kpi-ic { position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+  .kpi-ic svg { width: 19px; height: 19px; }
+  .kpi-body { display: contents; }
+  .kpi-label { font-size: 12.5px; font-weight: 600; color: var(--ink-dim); padding-right: 46px; }
+  .kpi-foot { min-width: 0; }
+  .kpi-value { font-family: var(--font); font-variant-numeric: tabular-nums; font-size: 32px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); line-height: 1.1; white-space: nowrap; }
+  .kpi-value small { font-family: var(--font); font-size: 12.5px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0; margin-left: 3px; }
+  .kpi-sub { font-size: 11.5px; font-weight: 600; color: var(--ink-faint); margin-top: 3px; }
+  .kpi-sub.up { color: var(--good); } .kpi-sub.down { color: var(--bad); }
 
-  .language-swap-list { display: flex; flex-direction: column; gap: 8px; }
-  .language-swap-card {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
-    padding: 10px 14px; border-radius: 10px; background: var(--warn-soft); border-left: 3px solid var(--warn);
-  }
-  .language-swap-card.slang-swap { background: var(--purple-soft); border-left-color: var(--purple); }
-  .language-swap-word { font-size: 14px; font-weight: 700; }
-  .language-swap-count { font-size: 12px; color: var(--ink-faint); margin-left: 6px; }
-  .language-swap-arrow { color: var(--ink-faint); margin: 0 8px; }
-  .language-swap-suggestion { font-size: 13px; font-weight: 600; color: var(--good); }
+  /* ===== Foco da vez ===== */
+  .focus { flex-direction: row; gap: 18px; align-items: flex-start; }
+  body.glass .focus { background: linear-gradient(120deg, var(--accent-soft), transparent 55%), linear-gradient(135deg, var(--glass-a) 0%, var(--glass-b) 55%), var(--surface); }
+  .focus-ic { flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+  .focus-ic svg { width: 22px; height: 22px; }
+  .focus-main { min-width: 0; flex: 1; }
+  .focus-main h2 { margin: 4px 0 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+  .focus-freq { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12.5px; color: var(--ink-dim); flex-wrap: wrap; }
+  .focus-meter { width: 120px; height: 6px; border-radius: 999px; background: var(--track); overflow: hidden; }
+  .focus-meter i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+  .focus-do { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; line-height: 1.5; color: var(--ink); }
+  .focus-do b { display: block; font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent); margin-bottom: 3px; }
+  @media (max-width: 520px) { .focus { flex-direction: column; } }
 
-  .tip-freq-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    padding: 10px 14px; border-radius: 10px; background: var(--surface-2); margin-bottom: 8px;
-  }
-  .tip-freq-row.positive { border-left: 3px solid var(--good); }
-  .tip-freq-row.improve { border-left: 3px solid var(--warn); }
-  .tip-freq-label { font-size: 13px; }
-  .tip-freq-count { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
+  /* ===== Gráficos ===== */
+  .chart-box { position: relative; flex: 1; min-height: 0; }
+  .chart-box svg { display: block; width: 100%; overflow: visible; touch-action: pan-y; }
+  .ch-tip { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 3; min-width: 120px; padding: 8px 10px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 12px; line-height: 1.45; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22); opacity: 0; transition: opacity 0.12s; white-space: nowrap; }
+  .ch-tip.on { opacity: 1; }
+  .ch-tip .tt-date { font-weight: 700; }
+  .ch-tip .tt-extra { opacity: 0.72; }
+  .ch-tip .tt-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .ch-tip .tt-row b { margin-left: auto; padding-left: 12px; font-family: var(--mono); }
+  .ch-tip .tt-sw, .lg-sw { width: 9px; height: 9px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+  .chart-legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink-dim); flex-wrap: wrap; }
+  .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
 
-  .talk-split-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--line); margin-top: 6px; }
-  .talk-split-you { background: var(--accent); }
-  .talk-split-other { background: var(--warn); }
-  .talk-split-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-dim); margin-top: 6px; }
+  /* ===== Critérios / barras horizontais ===== */
+  #criteriaWrap { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .crit-row { margin-bottom: 13px; }
+  .crit-row:last-child { margin-bottom: 0; }
+  .crit-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--ink); }
+  .crit-top b { font-family: var(--mono); font-size: 14px; }
+  .crit-flag { font-size: 10.5px; font-weight: 700; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
+  .bar { height: 8px; border-radius: 999px; background: var(--track); margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 999px; background: var(--accent); min-width: 4px; }
+
+  /* ===== Equilíbrio de conversa ===== */
+  .talk-nums { display: flex; justify-content: space-between; gap: 12px; }
+  .talk-nums div:last-child { text-align: right; }
+  .talk-nums b { display: block; font-family: var(--mono); font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--ink); }
+  .talk-nums span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-dim); margin-top: 6px; }
+  .talk-bar { display: flex; gap: 2px; height: 14px; margin-top: 14px; }
+  .talk-bar i { display: block; height: 100%; border-radius: 4px; min-width: 4px; }
+  .talk-bar .you, .lg-sw.you { background: var(--accent); }
+  .talk-bar .other, .lg-sw.other { background: color-mix(in srgb, var(--ink-faint) 55%, transparent); }
+  .talk-facts { list-style: none; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink-dim); }
+  .talk-facts b { color: var(--ink); font-family: var(--mono); }
+
+  /* ===== Pontos fortes / a melhorar ===== */
+  .tip-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .tip-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .tip-row:first-child { padding-top: 0; }
+  .tip-top { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink); }
+  .tip-ic { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+  .pos .tip-ic { background: var(--good-soft); color: var(--good); }
+  .imp .tip-ic { background: var(--warn-soft); color: var(--warn); }
+  .tip-count { margin-left: auto; padding-left: 10px; font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
+  .tip-row .bar { height: 5px; margin: 7px 0 0 29px; }
+  .pos .bar i { background: var(--good); }
+  .imp .bar i { background: var(--warn); }
+
+  /* ===== Palavras recorrentes ===== */
+  .word-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .word-row:first-child { padding-top: 0; }
+  .word-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .word-rank { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
+  .word-name { font-size: 14px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+  .word-name small { font-size: 11.5px; font-weight: 500; color: var(--ink-faint); margin-left: 6px; }
+  .word-n { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink); }
+  .word-row .bar { grid-column: 2 / 4; height: 6px; margin-top: 4px; }
+  .word-swap { grid-column: 2 / 4; font-size: 12.5px; color: var(--ink-dim); margin-top: 5px; line-height: 1.4; }
+  .word-swap b { color: var(--ink); font-weight: 600; }
+  .fillers .bar i, .lg-sw.fillers { background: var(--warn); }
+  .slang .bar i, .lg-sw.slang { background: var(--purple); }
+
+  /* ===== Expressão facial (beta) ===== */
+  .face { flex-direction: row; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .face-text { flex: 1 1 300px; min-width: 0; }
+  .face-text .face-note { margin: 6px 0 0; }
+  .face-num { flex: 0 0 auto; text-align: right; }
+  .face-num b { display: block; font-family: var(--mono); font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+  .face-num span { font-size: 11.5px; color: var(--ink-faint); }
+  .face-spark { flex: 0 1 220px; min-width: 140px; }
+  .face-spark svg { display: block; width: 100%; height: 44px; overflow: visible; }
+
+  .year-table { min-width: 560px; }
+  @media (prefers-reduced-motion: reduce) { .ring .arc { transition: none; } }
 </style>
 <script>
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -95,67 +202,112 @@
     </div>
 
     <div id="insightsBody" hidden>
-      <div class="stat-grid stat-grid-4">
-        <div class="card stat-card"><div class="stat-value" id="statTotalSessions">0</div><div class="stat-label">Sessões</div><div class="stat-delta" id="statSessionsDelta"></div></div>
-        <div class="card stat-card stat-card-ring">
-          <div class="orat-ring" id="oratRing" style="--score:0; --score-color:var(--ink-faint)">
-            <div class="orat-ring-inner">
-              <div class="orat-ring-value" id="statAvgOratoria">—</div>
-              <div class="orat-ring-label">/100</div>
-            </div>
-          </div>
-          <div class="stat-ring-text">
-            <div class="stat-label">Oratória média</div>
-            <div class="stat-rank" id="statAvgOratoriaRank"></div>
-            <div class="stat-delta" id="statDelta"></div>
+
+      <section class="card dc s5 hero" aria-label="Nota média de oratória">
+        <div class="ring">
+          <svg viewBox="0 0 148 148" aria-hidden="true">
+            <circle class="trk" cx="74" cy="74" r="64" />
+            <circle class="arc" id="oratArc" cx="74" cy="74" r="64" stroke-dasharray="402.12" stroke-dashoffset="402.12" />
+          </svg>
+          <div class="ring-mid">
+            <div class="ring-value" id="statAvgOratoria">—</div>
+            <div class="ring-of">de 100</div>
           </div>
         </div>
-        <div class="card stat-card"><div class="stat-value" id="statAvgTalk">—</div><div class="stat-label">Fala média sua</div></div>
-        <div class="card stat-card"><div class="stat-value is-range" id="statDateRange">—</div><div class="stat-label">Período</div></div>
-      </div>
-
-      <div class="card focus-card" id="focusCard" hidden>
-        <div class="focus-eyebrow">Analisando seus insights</div>
-        <h2 id="focusTitle"></h2>
-        <p id="focusFrequency"></p>
-        <div class="focus-suggestion" id="focusSuggestion"></div>
-      </div>
-
-      <div class="section-title">Evolução da nota de oratória</div>
-      <div class="card chart-card">
-        <div id="oratoriaChartWrap"></div>
-      </div>
-
-      <div id="yearSection" hidden>
-        <div class="section-title" id="yearTitle">Resumo do ano</div>
-        <div class="card chart-card" id="yearWrap"></div>
-      </div>
-
-      <div class="section-title">Padrão de expressão facial ao longo do tempo</div>
-      <div class="card chart-card">
-        <p class="face-note">Estimativas a partir da expressão do seu rosto na câmera. Luz, ângulo, óculos e o jeito de cada rosto mudam o resultado, então use como um sinal auxiliar para você, não como um fato sobre como você se sente.</p>
-        <div class="chart-legend">
-          <span class="legend-item"><span class="swatch" style="background:var(--good)"></span>Expressão estável</span>
+        <div class="hero-text">
+          <div class="eyebrow">Nota média de oratória</div>
+          <div class="rank-chip"><span class="rank-dot" id="rankDot"></span><span id="statAvgOratoriaRank">Sem nota ainda</span></div>
+          <div class="stat-delta" id="statDelta"></div>
+          <div class="hero-mini" id="heroMini"></div>
         </div>
-        <div id="emotionChartWrap"></div>
+      </section>
+
+      <div class="kpis">
+        <div class="card kpi">
+          <div class="kpi-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+          <div class="kpi-label">Sessões</div><div class="kpi-foot"><div class="kpi-value" id="statTotalSessions">0</div><div class="kpi-sub" id="statSessionsDelta"></div></div>
+        </div>
+        <div class="card kpi">
+          <div class="kpi-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+          <div class="kpi-label">Tempo em reunião</div><div class="kpi-foot"><div class="kpi-value" id="statTime">—</div><div class="kpi-sub" id="statTimeSub"></div></div>
+        </div>
+        <div class="card kpi">
+          <div class="kpi-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div>
+          <div class="kpi-label">Sua fala (média)</div><div class="kpi-foot"><div class="kpi-value" id="statAvgTalk">—</div><div class="kpi-sub" id="statTalkSub"></div></div>
+        </div>
+        <div class="card kpi">
+          <div class="kpi-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9 11h6M9 14h3"/></svg></div>
+          <div class="kpi-label">Vícios e gírias</div><div class="kpi-foot"><div class="kpi-value" id="statLang">—</div><div class="kpi-sub" id="statLangSub"></div></div>
+        </div>
       </div>
 
-      <div class="section-title">Vícios de linguagem ao longo do tempo</div>
-      <div class="card chart-card">
-        <div id="fillerTrendWrap"></div>
-      </div>
+      <section class="card dc focus" id="focusCard" hidden>
+        <div class="focus-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
+        <div class="focus-main">
+          <div class="eyebrow">Seu foco da vez</div>
+          <h2 id="focusTitle"></h2>
+          <div class="focus-freq"><span class="focus-meter"><i id="focusMeter"></i></span><span id="focusFrequency"></span></div>
+          <div class="focus-do"><b>O que fazer</b><span id="focusSuggestion"></span></div>
+        </div>
+      </section>
 
-      <div class="section-title">Equilíbrio de conversa</div>
-      <div class="card chart-card" id="talkBalanceWrap"></div>
+      <section class="card dc s8">
+        <div class="dc-head"><h3 class="dc-title">Evolução da nota de oratória</h3><span class="dc-sub" id="oratoriaSub"></span></div>
+        <div class="chart-box" id="oratoriaChartWrap"></div>
+      </section>
 
-      <div class="section-title">Principais Pontos</div>
-      <div class="card chart-card" id="tipsFreqWrap"></div>
+      <section class="card dc s4">
+        <div class="dc-head"><h3 class="dc-title">Nota por critério</h3><span class="dc-sub">média do período</span></div>
+        <div id="criteriaWrap"></div>
+      </section>
 
-      <div class="section-title">Vícios de linguagem recorrentes</div>
-      <div class="card chart-card" id="fillerFreqWrap"></div>
+      <section class="card dc" id="yearSection" hidden>
+        <div class="dc-head"><h3 class="dc-title" id="yearTitle">Resumo do ano</h3></div>
+        <div id="yearWrap"></div>
+      </section>
 
-      <div class="section-title">Gírias recorrentes</div>
-      <div class="card chart-card" id="slangFreqWrap"></div>
+      <section class="card dc s8">
+        <div class="dc-head">
+          <h3 class="dc-title">Vícios e gírias ao longo do tempo</h3>
+          <div class="chart-legend"><span><i class="lg-sw fillers"></i>Vícios de linguagem</span><span><i class="lg-sw slang"></i>Gírias</span></div>
+        </div>
+        <div class="chart-box" id="fillerTrendWrap"></div>
+        <p class="dc-note">Ocorrências a cada 100 palavras faladas (estimativa a partir do ritmo e da duração da sessão). Quanto menor, melhor.</p>
+      </section>
+
+      <section class="card dc s4">
+        <div class="dc-head"><h3 class="dc-title">Equilíbrio de conversa</h3><span class="dc-sub" id="talkSub"></span></div>
+        <div id="talkBalanceWrap"></div>
+      </section>
+
+      <section class="card dc s6">
+        <div class="dc-head"><h3 class="dc-title">Pontos fortes</h3><span class="dc-sub">o que mais se repete a seu favor</span></div>
+        <div id="tipsPosWrap"></div>
+      </section>
+
+      <section class="card dc s6">
+        <div class="dc-head"><h3 class="dc-title">Pontos a melhorar</h3><span class="dc-sub">o que mais se repete contra você</span></div>
+        <div id="tipsImpWrap"></div>
+      </section>
+
+      <section class="card dc s6 fillers">
+        <div class="dc-head"><h3 class="dc-title">Vícios de linguagem recorrentes</h3><span class="dc-sub" id="fillerSub"></span></div>
+        <div id="fillerFreqWrap"></div>
+      </section>
+
+      <section class="card dc s6 slang">
+        <div class="dc-head"><h3 class="dc-title">Gírias recorrentes</h3><span class="dc-sub" id="slangSub"></span></div>
+        <div id="slangFreqWrap"></div>
+      </section>
+
+      <section class="card dc face">
+        <div class="face-text">
+          <h3 class="dc-title">Expressão estável <span class="beta-tag">beta</span></h3>
+          <p class="face-note">Estimativa a partir da expressão do seu rosto na câmera. Luz, ângulo, óculos e o jeito de cada rosto mudam o resultado, então use como um sinal auxiliar para você, não como um fato sobre como você se sente.</p>
+        </div>
+        <div class="face-spark" id="emotionChartWrap"></div>
+        <div class="face-num"><b id="statFace">—</b><span>do tempo, em média</span></div>
+      </section>
     </div>
       </main>
     </div>
@@ -249,66 +401,135 @@
       return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
     }
 
-    function renderLineChart(containerEl, series, opts) {
-      const { maxY = 1, height = 200, labelFn = formatDateShort, allLabels = false } = opts || {};
-      const points = series[0].points;
-      if (points.length < 2) {
-        containerEl.innerHTML = '<div class="chart-empty">Poucos dados ainda — precisa de pelo menos 2 sessões com essa métrica.</div>';
-        return;
+    const fmtNum = (v, d) => Number(v).toFixed(d).replace(".", ",");
+    const sumVals = (o) => Object.values(o || {}).reduce((x, y) => x + (Number(y) || 0), 0);
+    const niceStep = (range) => [0.5, 1, 2, 5, 10, 20, 25, 50, 100].find((st) => range / st <= 5) || range;
+    const r1 = (v) => Math.round(v * 10) / 10;
+
+    // Curva suave que não passa do ponto (interpolação cúbica monotônica).
+    function smoothPath(pts) {
+      const n = pts.length;
+      if (n < 3) return pts.map((q, i) => (i ? "L" : "M") + r1(q[0]) + "," + r1(q[1])).join("");
+      const dx = [], m = [], t = [];
+      for (let i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0]; m[i] = (pts[i + 1][1] - pts[i][1]) / dx[i]; }
+      t[0] = m[0]; t[n - 1] = m[n - 2];
+      for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+      for (let i = 0; i < n - 1; i++) {
+        if (m[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+        const aa = t[i] / m[i], bb = t[i + 1] / m[i], h = Math.hypot(aa, bb);
+        if (h > 3) { t[i] = (3 * aa / h) * m[i]; t[i + 1] = (3 * bb / h) * m[i]; }
       }
-      const W = 900;
-      const H = height;
-      const margin = { top: 26, right: 16, bottom: 28, left: 38 };
-      const plotW = W - margin.left - margin.right;
-      const plotH = H - margin.top - margin.bottom;
-      const n = points.length;
-      const x = (i) => margin.left + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2);
-      const y = (v) => margin.top + (1 - v / maxY) * plotH;
-      const formatValue = (v) => (maxY === 1 ? `${Math.round(v * 100)}%` : `${Math.round(v)}`);
-
-      let svg = "";
-      [0, 0.5, 1].forEach((v) => {
-        const yy = margin.top + (1 - v) * plotH;
-        const label = maxY === 1 ? `${Math.round(v * 100)}%` : Math.round(v * maxY);
-        svg += `<line x1="${margin.left}" y1="${yy}" x2="${W - margin.right}" y2="${yy}" stroke="var(--grid)" stroke-width="1" />`;
-        svg += `<text x="${margin.left - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="var(--text-dim)">${label}</text>`;
-      });
-
-      series.forEach((s) => {
-        const linePoints = s.points.map((p, i) => `${x(i)},${y(p.value)}`).join(" ");
-        svg += `<polyline points="${linePoints}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
-        s.points.forEach((p, i) => {
-          const cx = x(i);
-          const cy = y(p.value);
-          // Sobe o rótulo quando o ponto está perto do topo, pra não cortar no viewBox.
-          const labelY = cy - 8 < 10 ? cy + 15 : cy - 8;
-          svg += `<circle cx="${cx}" cy="${cy}" r="3" fill="${s.color}" stroke="var(--surface)" stroke-width="1.5" />`;
-          svg += `<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${s.color}" stroke="var(--surface)" stroke-width="3" paint-order="stroke" stroke-linejoin="round">${formatValue(p.value)}</text>`;
-        });
-      });
-
-      // Eixo X: mostra algumas datas (início, meio, fim) pra não poluir.
-      const labelIdxs = allLabels || n <= 5 ? points.map((_, i) => i) : [0, Math.floor((n - 1) / 2), n - 1];
-      labelIdxs.forEach((i) => {
-        svg += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--text-dim)">${labelFn(points[i].date)}</text>`;
-      });
-
-      containerEl.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto;">${svg}</svg>`;
+      let d = "M" + r1(pts[0][0]) + "," + r1(pts[0][1]);
+      for (let i = 0; i < n - 1; i++) {
+        const h = dx[i] / 3;
+        d += `C${r1(pts[i][0] + h)},${r1(pts[i][1] + t[i] * h)} ${r1(pts[i + 1][0] - h)},${r1(pts[i + 1][1] - t[i + 1] * h)} ${r1(pts[i + 1][0])},${r1(pts[i + 1][1])}`;
+      }
+      return d;
     }
 
-    function renderLanguageSwapCards(counts, library, variantClass) {
-      const entries = Object.entries(counts).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
-      if (!entries.length) return '<div class="chart-empty">Nada identificado ainda.</div>';
-      return `<div class="language-swap-list">${entries
-        .map(([word, info]) => {
-          const suggestion = library[word] || "reduzir ou fazer uma pausa no lugar";
-          return `
-            <div class="language-swap-card ${variantClass}">
-              <span><span class="language-swap-word">"${word}"</span><span class="language-swap-count">× ${info.total} · em ${info.sessions} sessões</span></span>
-              <span><span class="language-swap-arrow">→</span><span class="language-swap-suggestion">${suggestion}</span></span>
-            </div>`;
-        })
-        .join("")}</div>`;
+    // Gráfico de linha: rótulo só no último ponto, grade discreta e detalhe ao passar o mouse.
+    // cfg: { rows:[{date, extra, values:[..]}], series:[{name,color}], yMin, yMax, fmt, xLabel, tipLabel, area, avg, height, empty }
+    let chartSeq = 0;
+    function drawChart(el, cfg) {
+      const rows = cfg.rows, n = rows.length;
+      if (n < 2) {
+        el.innerHTML = `<div class="chart-empty">${cfg.empty || "Poucos dados ainda: precisa de pelo menos 2 sessões com essa métrica."}</div>`;
+        return;
+      }
+      const W = Math.max(260, Math.round(el.clientWidth || 640)), H = cfg.height || 250;
+      const mg = { top: 14, right: 42, bottom: 26, left: 34 };
+      const pw = W - mg.left - mg.right, ph = H - mg.top - mg.bottom;
+      const x = (i) => mg.left + (i / (n - 1)) * pw;
+      const y = (v) => mg.top + (1 - (v - cfg.yMin) / (cfg.yMax - cfg.yMin)) * ph;
+      const fmt = cfg.fmt || ((v) => String(Math.round(v)));
+      const gid = "cg" + (++chartSeq);
+      let g = "";
+
+      const step = niceStep(cfg.yMax - cfg.yMin);
+      for (let v = cfg.yMin; v <= cfg.yMax + 1e-9; v += step) {
+        const yy = r1(y(v));
+        g += `<line x1="${mg.left}" y1="${yy}" x2="${W - mg.right}" y2="${yy}" stroke="var(--line)" stroke-width="1" />`;
+        g += `<text x="${mg.left - 8}" y="${yy + 4}" text-anchor="end" font-size="11" fill="var(--ink-faint)">${String(r1(v)).replace(".", ",")}</text>`;
+      }
+      const nLab = Math.max(2, Math.min(n, Math.floor(pw / 72)));
+      const idxs = [...new Set(Array.from({ length: nLab }, (_, k) => Math.round((k * (n - 1)) / (nLab - 1))))];
+      idxs.forEach((i) => {
+        const anchor = i === 0 ? "start" : i === n - 1 ? "end" : "middle";
+        g += `<text x="${r1(x(i))}" y="${H - 6}" text-anchor="${anchor}" font-size="11" fill="var(--ink-faint)">${cfg.xLabel(rows[i].date)}</text>`;
+      });
+
+      if (cfg.avg != null) {
+        const ya = r1(y(cfg.avg));
+        g += `<line x1="${mg.left}" y1="${ya}" x2="${W - mg.right}" y2="${ya}" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="4 4" />`;
+        g += `<text x="${mg.left + 6}" y="${ya - 6}" font-size="10.5" font-weight="600" fill="var(--ink-faint)" stroke="var(--dot-ring)" stroke-width="3" paint-order="stroke">média ${fmt(cfg.avg)}</text>`;
+      }
+
+      const ends = [];
+      cfg.series.forEach((sr, k) => {
+        const pts = rows.map((r, i) => [x(i), y(r.values[k])]);
+        const d = smoothPath(pts);
+        if (cfg.area && k === 0) {
+          g += `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sr.color}" stop-opacity="0.26"/><stop offset="1" stop-color="${sr.color}" stop-opacity="0"/></linearGradient></defs>`;
+          g += `<path d="${d}L${r1(x(n - 1))},${r1(y(cfg.yMin))}L${r1(x(0))},${r1(y(cfg.yMin))}Z" fill="url(#${gid})" />`;
+        }
+        g += `<path d="${d}" fill="none" stroke="${sr.color}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" />`;
+        if (n <= 24) pts.forEach((q) => { g += `<circle cx="${r1(q[0])}" cy="${r1(q[1])}" r="3.5" fill="${sr.color}" stroke="var(--dot-ring)" stroke-width="2" />`; });
+        else g += `<circle cx="${r1(pts[n - 1][0])}" cy="${r1(pts[n - 1][1])}" r="4" fill="${sr.color}" stroke="var(--dot-ring)" stroke-width="2" />`;
+        ends.push({ y: pts[n - 1][1], text: fmt(rows[n - 1].values[k]) });
+      });
+      // Rótulo direto só no último ponto de cada série (afasta se dois ficarem colados).
+      if (ends.length === 2 && Math.abs(ends[0].y - ends[1].y) < 14) {
+        const mid = (ends[0].y + ends[1].y) / 2, up = ends[0].y <= ends[1].y ? 0 : 1;
+        ends[up].y = mid - 7; ends[1 - up].y = mid + 7;
+      }
+      ends.forEach((e) => { g += `<text x="${r1(x(n - 1) + 9)}" y="${r1(e.y + 4)}" font-size="12" font-weight="700" fill="var(--ink)">${e.text}</text>`; });
+
+      g += `<line class="ch-x" x1="0" x2="0" y1="${mg.top}" y2="${mg.top + ph}" stroke="var(--ink-dim)" stroke-width="1" visibility="hidden" />`;
+      cfg.series.forEach((sr) => { g += `<circle class="ch-d" r="5" fill="${sr.color}" stroke="var(--dot-ring)" stroke-width="2" visibility="hidden" />`; });
+
+      el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${escapeHtml(cfg.aria || "")}">${g}</svg><div class="ch-tip"></div>`;
+      const svg = el.querySelector("svg"), tip = el.querySelector(".ch-tip"), cross = svg.querySelector(".ch-x"), dots = svg.querySelectorAll(".ch-d");
+      const hide = () => { tip.classList.remove("on"); cross.setAttribute("visibility", "hidden"); dots.forEach((c) => c.setAttribute("visibility", "hidden")); };
+      svg.addEventListener("pointermove", (ev) => {
+        const box = svg.getBoundingClientRect(), k = box.width / W;
+        const i = Math.max(0, Math.min(n - 1, Math.round((((ev.clientX - box.left) / k - mg.left) / pw) * (n - 1))));
+        const row = rows[i], cx = x(i);
+        cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.setAttribute("visibility", "visible");
+        dots.forEach((c, j) => { c.setAttribute("cx", cx); c.setAttribute("cy", y(row.values[j])); c.setAttribute("visibility", "visible"); });
+        tip.innerHTML = `<div class="tt-date">${escapeHtml(cfg.tipLabel(row.date))}</div>` +
+          (row.extra ? `<div class="tt-extra">${escapeHtml(row.extra)}</div>` : "") +
+          cfg.series.map((sr, j) => `<div class="tt-row"><i class="tt-sw" style="background:${sr.color}"></i>${escapeHtml(sr.name)}<b>${fmt(row.values[j])}</b></div>`).join("");
+        const tw = tip.offsetWidth, left = cx * k + 14 + tw > box.width ? cx * k - 14 - tw : cx * k + 14;
+        tip.style.transform = `translate(${Math.max(0, Math.round(left))}px, ${mg.top}px)`;
+        tip.classList.add("on");
+      });
+      svg.addEventListener("pointerleave", hide);
+      svg.addEventListener("pointercancel", hide);
+    }
+
+    // Mini-linha sem eixos (só o desenho da tendência).
+    function drawSpark(el, values, color) {
+      if (values.length < 2) { el.innerHTML = ""; return; }
+      const W = 220, H = 44, n = values.length;
+      const pts = values.map((v, i) => [(i / (n - 1)) * W, 4 + (1 - Math.max(0, Math.min(1, v))) * (H - 8)]);
+      el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${smoothPath(pts)}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke" /></svg>`;
+    }
+
+    // Lista ranqueada de palavras (vícios ou gírias) com a troca sugerida.
+    function renderWordRows(counts, library) {
+      const entries = Object.entries(counts).sort((a, b) => b[1].total - a[1].total).slice(0, 6);
+      if (!entries.length) return '<div class="chart-empty">Nada identificado neste período.</div>';
+      const max = entries[0][1].total;
+      return entries.map(([word, info], i) => {
+        const suggestion = library[word] || "reduzir ou fazer uma pausa no lugar";
+        return `<div class="word-row">
+            <span class="word-rank">${i + 1}</span>
+            <span class="word-name">“${escapeHtml(word)}”<small>em ${info.sessions} ${info.sessions === 1 ? "sessão" : "sessões"}</small></span>
+            <span class="word-n">${info.total}×</span>
+            <div class="bar"><i style="width:${Math.max(3, Math.round((info.total / max) * 100))}%"></i></div>
+            <div class="word-swap">Troque por: <b>${escapeHtml(suggestion)}</b></div>
+          </div>`;
+      }).join("");
     }
 
     function accumulateCounts(target, counts) {
@@ -319,6 +540,19 @@
       });
     }
 
+    // Palavras faladas (estimadas: ritmo x duração), vícios e gírias somados de uma lista de sessões.
+    function languageTotals(list) {
+      const t = { words: 0, fillers: 0, slang: 0 };
+      list.forEach((s) => {
+        const w = (s.wpm || 0) * ((s.duration || 0) / 60);
+        if (!w) return;
+        t.words += w;
+        t.fillers += sumVals(AuraShell.cleanFillers(s.filler_counts));
+        t.slang += sumVals(s.slang_counts);
+      });
+      return t;
+    }
+
     // Agrega pontos por mês (média) — usado na visão de ano e quando o período é longo.
     function monthlyAvg(points) {
       const acc = {};
@@ -326,18 +560,25 @@
         const d = new Date(p.date), key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
         (acc[key] = acc[key] || { date: new Date(d.getFullYear(), d.getMonth(), 15).toISOString(), vals: [] }).vals.push(p.value);
       });
-      return Object.keys(acc).sort().map((k) => ({ date: acc[k].date, value: average(acc[k].vals) }));
+      return Object.keys(acc).sort().map((k) => ({ date: acc[k].date, value: average(acc[k].vals), n: acc[k].vals.length }));
     }
     const monthShort = (iso) => new Date(iso).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
     const monthYearShort = (iso) => monthShort(iso) + "/" + String(new Date(iso).getFullYear()).slice(2);
+    const monthLong = (iso) => new Date(iso).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const dayLong = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).replace(".", "");
+
+    let lastRender = null;
 
     function renderInsights(sessions, ctx) {
       ctx = ctx || { mode: "all", gran: "session", label: "", prev: [] };
+      lastRender = { sessions, ctx, width: window.innerWidth };
       const gran = ctx.gran === "month";
-      const chartPts = (pts) => (gran ? monthlyAvg(pts) : pts);
-      const lineOpts = (o) => Object.assign({}, o, gran ? { labelFn: ctx.mode === "year" ? monthShort : monthYearShort, allLabels: ctx.mode === "year" } : {});
+      const xLabel = gran ? (ctx.mode === "year" ? monthShort : monthYearShort) : formatDateShort;
+      const tipLabel = gran ? monthLong : dayLong;
+      const nSess = (k) => k + (k === 1 ? " sessão" : " sessões");
       const emptyStateEl = document.getElementById("emptyState");
       const bodyEl = document.getElementById("insightsBody");
+      const $ = (id) => document.getElementById(id);
 
       if (!sessions.length) {
         emptyStateEl.hidden = false;
@@ -348,112 +589,180 @@
       bodyEl.hidden = false;
 
       const chronological = [...sessions].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const total = chronological.length;
+      const comparing = ctx.mode !== "all" && ctx.prev && ctx.prev.length;   // sem sessões no período anterior, não há o que comparar
 
-      document.getElementById("statTotalSessions").textContent = chronological.length;
-      document.getElementById("statDateRange").textContent = ctx.mode !== "all" && ctx.label
-        ? ctx.label
-        : chronological.length >= 2
-          ? `${formatDateShort(chronological[0].date)} — ${formatDateShort(chronological[chronological.length - 1].date)}`
-          : formatDateShort(chronological[0].date);
-
-      // Comparação com o período anterior (semana, mês ou ano anterior).
-      const deltaEl = document.getElementById("statSessionsDelta");
-      deltaEl.className = "stat-delta"; deltaEl.textContent = "";
-      if (ctx.mode !== "all" && ctx.prev && ctx.prev.length) {   // sem sessões no período anterior, não há o que comparar
-        const d = chronological.length - ctx.prev.length;
+      // --- Indicadores ---
+      $("statTotalSessions").textContent = total;
+      const deltaEl = $("statSessionsDelta");
+      deltaEl.className = "kpi-sub";
+      if (comparing) {
+        const d = total - ctx.prev.length;
         deltaEl.textContent = (d > 0 ? "▲ +" : d < 0 ? "▼ " : "= ") + (d === 0 ? "igual ao " : d + " vs. ") + "período anterior";
-        deltaEl.className = "stat-delta " + (d > 0 ? "up" : d < 0 ? "down" : "");
+        deltaEl.className = "kpi-sub " + (d > 0 ? "up" : d < 0 ? "down" : "");
+      } else {
+        deltaEl.textContent = ctx.mode !== "all" && ctx.label
+          ? ctx.label
+          : total >= 2
+            ? `${formatDateShort(chronological[0].date)} a ${formatDateShort(chronological[total - 1].date)}`
+            : formatDateShort(chronological[0].date);
       }
 
-      // --- Nota de oratória ao longo do tempo ---
-      const oratoriaPoints = chronological
-        .filter((s) => s.oratoria_score != null)
-        .map((s) => ({ date: s.date, value: s.oratoria_score }));
-      const rankEl = document.getElementById("statAvgOratoriaRank");
+      const totalMin = Math.round(chronological.reduce((acc, s) => acc + (s.duration || 0), 0) / 60);
+      $("statTime").innerHTML = totalMin >= 60
+        ? `${Math.floor(totalMin / 60)}<small>h</small> ${totalMin % 60}<small>min</small>`
+        : `${totalMin}<small>min</small>`;
+      $("statTimeSub").textContent = `média de ${Math.round(totalMin / total)} min por sessão`;
+
+      const lang = languageTotals(chronological);
+      const langSub = $("statLangSub");
+      langSub.className = "kpi-sub";
+      if (lang.words) {
+        const rate = ((lang.fillers + lang.slang) / lang.words) * 100;
+        $("statLang").innerHTML = `${fmtNum(rate, 1)}<small>a cada 100 palavras</small>`;
+        const prevLang = comparing ? languageTotals(ctx.prev) : null;
+        if (prevLang && prevLang.words) {
+          const diff = rate - ((prevLang.fillers + prevLang.slang) / prevLang.words) * 100;
+          if (Math.abs(diff) < 0.05) langSub.textContent = "= igual ao período anterior";
+          else {
+            langSub.textContent = (diff < 0 ? "▼ " : "▲ ") + fmtNum(Math.abs(diff), 1) + (diff < 0 ? " a menos" : " a mais") + " que no período anterior";
+            langSub.className = "kpi-sub " + (diff < 0 ? "up" : "down");   // menos vícios = melhor
+          }
+        } else {
+          langSub.textContent = `${lang.fillers} vícios · ${lang.slang} gírias no período`;
+        }
+      } else {
+        $("statLang").textContent = "—";
+        langSub.textContent = "sem dados de fala suficientes";
+      }
+
+      // --- Nota média de oratória ---
+      const scored = chronological.filter((s) => s.oratoria_score != null);
+      const oratoriaPoints = scored.map((s) => ({ date: s.date, value: s.oratoria_score, extra: s.client_name || "" }));
+      const arc = $("oratArc"), CIRC = 402.12;
+      const scDelta = $("statDelta");
+      scDelta.className = "stat-delta"; scDelta.textContent = "";
       if (oratoriaPoints.length) {
         const avgScore = Math.round(average(oratoriaPoints.map((p) => p.value)));
         const rank = oratoriaScoreRank(avgScore);
-        document.getElementById("statAvgOratoria").textContent = avgScore;
-        document.getElementById("statAvgOratoria").style.color = rank.color;
-        const ring = document.getElementById("oratRing");
-        ring.style.setProperty("--score", avgScore);
-        ring.style.setProperty("--score-color", rank.color);
-        rankEl.textContent = rank.label;
-        rankEl.style.color = rank.color;
-        const scDelta = document.getElementById("statDelta");
-        scDelta.className = "stat-delta"; scDelta.textContent = "";
+        $("statAvgOratoria").textContent = avgScore;
+        arc.style.stroke = rank.color;
+        arc.style.strokeDashoffset = CIRC * (1 - Math.max(0, Math.min(100, avgScore)) / 100);
+        $("statAvgOratoriaRank").textContent = rank.label;
+        $("rankDot").style.background = rank.color;
         const prevScores = (ctx.prev || []).filter((x) => x.oratoria_score != null).map((x) => x.oratoria_score);
         if (ctx.mode !== "all" && prevScores.length) {
           const dd = avgScore - Math.round(average(prevScores));
-          scDelta.textContent = (dd > 0 ? "▲ +" : dd < 0 ? "▼ " : "= ") + dd + " vs. anterior";
+          scDelta.textContent = (dd > 0 ? "▲ +" : dd < 0 ? "▼ " : "= ") + (dd === 0 ? "igual ao período anterior" : dd + " pontos vs. período anterior");
           scDelta.className = "stat-delta " + (dd > 0 ? "up" : dd < 0 ? "down" : "");
+        } else {
+          scDelta.textContent = `média de ${nSess(oratoriaPoints.length)} com nota`;
         }
+        const best = oratoriaPoints.reduce((a, b) => (b.value > a.value ? b : a));
+        const last = oratoriaPoints[oratoriaPoints.length - 1];
+        let mini = `<div><b>${Math.round(best.value)}</b><span>melhor sessão<br>${formatDateShort(best.date)}</span></div>
+          <div><b>${Math.round(last.value)}</b><span>última sessão<br>${formatDateShort(last.date)}</span></div>`;
+        if (oratoriaPoints.length >= 8) mini += `<div><b>${Math.round(average(oratoriaPoints.slice(-5).map((p) => p.value)))}</b><span>média das<br>5 últimas</span></div>`;
+        $("heroMini").innerHTML = mini;
+        $("heroMini").hidden = false;
       } else {
-        document.getElementById("statAvgOratoria").textContent = "—";
-        rankEl.textContent = "";
+        $("statAvgOratoria").textContent = "—";
+        arc.style.strokeDashoffset = CIRC;
+        $("statAvgOratoriaRank").textContent = "Sem nota ainda";
+        $("rankDot").style.background = "var(--ink-faint)";
+        $("heroMini").hidden = true;
       }
-      renderLineChart(
-        document.getElementById("oratoriaChartWrap"),
-        [{ points: chartPts(oratoriaPoints), color: "var(--good)" }],
-        lineOpts({ maxY: 100 })
-      );
+
+      // --- Evolução da nota ---
+      const oratRows = (gran ? monthlyAvg(oratoriaPoints) : oratoriaPoints).map((p) => ({ date: p.date, extra: gran ? nSess(p.n) : p.extra, values: [p.value] }));
+      $("oratoriaSub").textContent = gran ? "média de cada mês" : "cada ponto é uma sessão";
       if (!oratoriaPoints.length) {
-        document.getElementById("oratoriaChartWrap").innerHTML =
-          '<div class="chart-empty">Suas próximas sessões vão começar a alimentar esse gráfico — a nota de oratória só passou a ser salva a partir de agora.</div>';
+        $("oratoriaChartWrap").innerHTML = '<div class="chart-empty">Suas próximas sessões vão começar a alimentar esse gráfico.</div>';
+      } else {
+        const lo = Math.min(...oratRows.map((r) => r.values[0]));
+        let yMin = Math.max(0, Math.floor((lo - 5) / 10) * 10);
+        if (100 - yMin < 20) yMin = 80;
+        drawChart($("oratoriaChartWrap"), {
+          rows: oratRows, series: [{ name: "Nota de oratória", color: "var(--accent)" }],
+          yMin, yMax: 100, xLabel, tipLabel, area: true, avg: average(oratoriaPoints.map((p) => p.value)),
+          aria: "Evolução da nota de oratória no período",
+        });
       }
 
-      // --- Padrão emocional ---
-      const focusedPoints = chronological.map((s) => ({ date: s.date, value: s.focused || 0 }));
-      renderLineChart(
-        document.getElementById("emotionChartWrap"),
-        [
-          { points: chartPts(focusedPoints), color: "var(--good)" },
-        ],
-        lineOpts({ maxY: 1 })
-      );
+      // --- Nota por critério (média das subnotas; critérios desconsiderados numa sessão não entram) ---
+      const crit = {}, critOrder = [];
+      scored.forEach((s) => (Array.isArray(s.oratoria_subscores) ? s.oratoria_subscores : []).forEach((c) => {
+        if (!c || !c.key || c.excluded || !isFinite(Number(c.score)) || c.score == null) return;
+        if (!crit[c.key]) { crit[c.key] = { label: c.label || c.key, vals: [] }; critOrder.push(c.key); }
+        crit[c.key].vals.push(Number(c.score));
+      }));
+      const critList = critOrder.map((k) => ({ label: crit[k].label, avg: Math.round(average(crit[k].vals)) }));
+      if (critList.length) {
+        const minAvg = Math.min(...critList.map((c) => c.avg));
+        const flagWeak = critList.length > 1 && critList.filter((c) => c.avg === minAvg).length === 1;
+        $("criteriaWrap").innerHTML = critList.map((c) => `
+          <div class="crit-row">
+            <div class="crit-top"><span>${escapeHtml(c.label)}${flagWeak && c.avg === minAvg ? '<span class="crit-flag">menor nota</span>' : ""}</span><b>${c.avg}</b></div>
+            <div class="bar"><i style="width:${Math.max(2, Math.min(100, c.avg))}%"></i></div>
+          </div>`).join("");
+      } else {
+        $("criteriaWrap").innerHTML = '<div class="chart-empty">As notas por critério aparecem aqui depois das suas próximas sessões.</div>';
+      }
 
-      // --- Vícios de linguagem ao longo do tempo ---
-      // Não temos a contagem de palavras salva direto, mas dá pra aproximar
-      // multiplicando o ritmo (palavras/min) pela duração da sessão — a mesma
-      // conta usada na nota de oratória pra achar a taxa de vícios.
-      const fillerTrendPoints = chronological
-        .map((s) => {
-          const words = (s.wpm || 0) * ((s.duration || 0) / 60);
-          if (!words) return null;
-          const totalFiller = Object.values(AuraShell.cleanFillers(s.filler_counts)).reduce((a, b) => a + b, 0);
-          return { date: s.date, value: (totalFiller / words) * 100 };
-        })
-        .filter(Boolean);
-      const fillerMaxY = fillerTrendPoints.length
-        ? Math.max(10, Math.ceil(Math.max(...fillerTrendPoints.map((p) => p.value)) / 5) * 5)
-        : 10;
-      renderLineChart(
-        document.getElementById("fillerTrendWrap"),
-        [{ points: chartPts(fillerTrendPoints), color: "var(--purple)" }],
-        lineOpts({ maxY: fillerMaxY })
-      );
+      // --- Vícios e gírias a cada 100 palavras ---
+      // A contagem de palavras não fica salva; estimamos pelo ritmo (palavras/min) x duração,
+      // a mesma conta usada na nota de oratória.
+      const langPts = chronological.map((s) => {
+        const words = (s.wpm || 0) * ((s.duration || 0) / 60);
+        if (!words) return null;
+        return { date: s.date, extra: s.client_name || "", f: (sumVals(AuraShell.cleanFillers(s.filler_counts)) / words) * 100, g: (sumVals(s.slang_counts) / words) * 100 };
+      }).filter(Boolean);
+      let langRows;
+      if (gran) {
+        const mf = monthlyAvg(langPts.map((p) => ({ date: p.date, value: p.f }))), mgi = monthlyAvg(langPts.map((p) => ({ date: p.date, value: p.g })));
+        langRows = mf.map((p, i) => ({ date: p.date, extra: nSess(p.n), values: [p.value, mgi[i].value] }));
+      } else {
+        langRows = langPts.map((p) => ({ date: p.date, extra: p.extra, values: [p.f, p.g] }));
+      }
+      const langMax = langRows.length ? Math.max(2, ...langRows.map((r) => Math.max(r.values[0], r.values[1]))) : 2;
+      const langStep = niceStep(langMax);
+      drawChart($("fillerTrendWrap"), {
+        rows: langRows, series: [{ name: "Vícios", color: "var(--warn)" }, { name: "Gírias", color: "var(--purple)" }],
+        yMin: 0, yMax: Math.ceil(langMax / langStep) * langStep, fmt: (v) => fmtNum(v, 1), xLabel, tipLabel, height: 230,
+        aria: "Vícios de linguagem e gírias a cada 100 palavras, ao longo do período",
+      });
 
       // --- Equilíbrio de conversa ---
       const withDynamics = chronological.filter((s) => s.dynamics && typeof s.dynamics.pctYou === "number");
-      const talkWrap = document.getElementById("talkBalanceWrap");
+      const talkWrap = $("talkBalanceWrap");
       if (withDynamics.length) {
         const avgYou = Math.round(average(withDynamics.map((s) => s.dynamics.pctYou)));
         const avgOther = 100 - avgYou;
-        document.getElementById("statAvgTalk").textContent = `${avgYou}%`;
+        const majority = withDynamics.filter((s) => s.dynamics.pctYou > 50).length;
+        const listening = withDynamics.filter((s) => s.dynamics.pctYou < 35).length;
+        $("statAvgTalk").innerHTML = `${avgYou}<small>%</small>`;
+        $("statTalkSub").textContent = "do tempo da reunião";
+        $("talkSub").textContent = withDynamics.length === total ? "média do período" : `${withDynamics.length} de ${nSess(total)}`;
         talkWrap.innerHTML = `
-          <div class="talk-split-bar">
-            <div class="talk-split-you" style="width:${avgYou}%"></div>
-            <div class="talk-split-other" style="width:${avgOther}%"></div>
+          <div class="talk-nums">
+            <div><b>${avgYou}%</b><span><i class="lg-sw you"></i>Você falando</span></div>
+            <div><b>${avgOther}%</b><span><i class="lg-sw other"></i>Ouvindo ou em silêncio</span></div>
           </div>
-          <div class="talk-split-labels"><span>Você falou ${avgYou}% do tempo (média)</span><span>Ouvindo ou em silêncio ${avgOther}% (média)</span></div>
-          <div class="chart-empty" style="padding-top:14px">Baseado em ${withDynamics.length} de ${chronological.length} sessões com dados de fala suficientes.</div>
-        `;
+          <div class="talk-bar" role="img" aria-label="Você falou ${avgYou}% do tempo, em média">
+            <i class="you" style="flex:${Math.max(1, avgYou)}"></i><i class="other" style="flex:${Math.max(1, avgOther)}"></i>
+          </div>
+          <ul class="talk-facts">
+            <li>Você falou mais da metade do tempo em <b>${majority}</b> de ${nSess(withDynamics.length)}.</li>
+            <li>Em <b>${listening}</b> ${listening === 1 ? "sessão" : "sessões"} você mais ouviu do que falou (menos de 35% do tempo).</li>
+          </ul>`;
       } else {
-        document.getElementById("statAvgTalk").textContent = "—";
+        $("statAvgTalk").textContent = "—";
+        $("statTalkSub").textContent = "sem dados suficientes";
+        $("talkSub").textContent = "";
         talkWrap.innerHTML = '<div class="chart-empty">Sem dados de dinâmica de conversa suficientes ainda.</div>';
       }
 
-      // --- Principais pontos de melhoria (agregado por chave estável) ---
+      // --- Pontos fortes e a melhorar (agregado por chave estável) ---
       const IGNORED_TIP_KEYS = ["poucas_perguntas_abertas", "boas_perguntas_abertas", "cansaco", "boa_energia"]; // recurso removido: sessões antigas ainda trazem essas dicas
       const tipCounts = {};
       chronological.forEach((s) => {
@@ -464,39 +773,27 @@
         });
       });
       const rankedTips = Object.entries(tipCounts).sort((a, b) => b[1].count - a[1].count);
-      const tipsWrap = document.getElementById("tipsFreqWrap");
-      if (rankedTips.length) {
-        tipsWrap.innerHTML = rankedTips
-          .slice(0, 10)
-          .map(([key, info]) => {
-            const label = TIP_KEY_LABELS[key] || key;
-            const cls = info.type === "positivo" ? "positive" : "improve";
-            const icon = info.type === "positivo" ? "✓" : "→";
-            return `
-              <div class="tip-freq-row ${cls}">
-                <span class="tip-freq-label">${icon} ${label}</span>
-                <span class="tip-freq-count">${info.count} de ${chronological.length} sessões</span>
-              </div>`;
-          })
-          .join("");
-      } else {
-        tipsWrap.innerHTML = '<div class="chart-empty">Sem dicas registradas ainda.</div>';
-      }
+      const tipRows = (list, cls, icon, emptyMsg) => list.length
+        ? list.slice(0, 5).map(([key, info]) => `
+            <div class="tip-row ${cls}">
+              <div class="tip-top"><span class="tip-ic" aria-hidden="true">${icon}</span><span>${escapeHtml(TIP_KEY_LABELS[key] || key)}</span><span class="tip-count">${info.count} de ${total}</span></div>
+              <div class="bar"><i style="width:${Math.max(3, Math.round((info.count / total) * 100))}%"></i></div>
+            </div>`).join("")
+        : `<div class="chart-empty">${emptyMsg}</div>`;
+      $("tipsPosWrap").innerHTML = tipRows(rankedTips.filter(([, i]) => i.type === "positivo"), "pos", "✓", "Nenhum ponto forte registrado neste período ainda.");
+      $("tipsImpWrap").innerHTML = tipRows(rankedTips.filter(([, i]) => i.type !== "positivo"), "imp", "!", "Nenhum ponto de melhoria registrado neste período.");
 
-      // --- Foco da vez: analisa os pontos de melhoria e destaca o mais
-      // recorrente (não os positivos), com uma sugestão prática do que fazer.
-      const focusCardEl = document.getElementById("focusCard");
+      // --- Foco da vez: o ponto de melhoria mais recorrente, com uma sugestão prática.
+      const focusCardEl = $("focusCard");
       const topImprovement = rankedTips.find(([, info]) => info.type === "melhorar");
       if (topImprovement) {
         const [key, info] = topImprovement;
-        const label = TIP_KEY_LABELS[key] || key;
-        const pct = Math.round((info.count / chronological.length) * 100);
+        const pct = Math.round((info.count / total) * 100);
         focusCardEl.hidden = false;
-        document.getElementById("focusTitle").textContent = `Seu principal ponto de melhoria: ${label}`;
-        document.getElementById("focusFrequency").textContent =
-          `Apareceu em ${info.count} de ${chronological.length} sessões (${pct}%).`;
-        document.getElementById("focusSuggestion").textContent =
-          ACTION_SUGGESTIONS[key] || "Vale prestar atenção nisso nas próximas sessões.";
+        $("focusTitle").textContent = TIP_KEY_LABELS[key] || key;
+        $("focusMeter").style.width = pct + "%";
+        $("focusFrequency").textContent = `Apareceu em ${info.count} de ${nSess(total)} (${pct}%)`;
+        $("focusSuggestion").textContent = ACTION_SUGGESTIONS[key] || "Vale prestar atenção nisso nas próximas sessões.";
       } else {
         focusCardEl.hidden = true;
       }
@@ -508,11 +805,28 @@
         accumulateCounts(fillerTotals, AuraShell.cleanFillers(s.filler_counts));
         accumulateCounts(slangTotals, s.slang_counts);
       });
-      document.getElementById("fillerFreqWrap").innerHTML = renderLanguageSwapCards(fillerTotals, FILLER_LIBRARY, "filler-swap");
-      document.getElementById("slangFreqWrap").innerHTML = renderLanguageSwapCards(slangTotals, SLANG_LIBRARY, "slang-swap");
+      const sumTotals = (o) => Object.values(o).reduce((acc, v) => acc + v.total, 0);
+      $("fillerSub").textContent = Object.keys(fillerTotals).length ? `${sumTotals(fillerTotals)} no período` : "";
+      $("slangSub").textContent = Object.keys(slangTotals).length ? `${sumTotals(slangTotals)} no período` : "";
+      $("fillerFreqWrap").innerHTML = renderWordRows(fillerTotals, FILLER_LIBRARY);
+      $("slangFreqWrap").innerHTML = renderWordRows(slangTotals, SLANG_LIBRARY);
+
+      // --- Expressão estável (beta): só a média e o desenho da tendência ---
+      const focusedPoints = chronological.filter((s) => typeof s.focused === "number").map((s) => ({ date: s.date, value: s.focused }));
+      $("statFace").textContent = focusedPoints.length ? Math.round(average(focusedPoints.map((p) => p.value)) * 100) + "%" : "—";
+      drawSpark($("emotionChartWrap"), (gran ? monthlyAvg(focusedPoints) : focusedPoints).map((p) => p.value), "var(--ink-dim)");
 
       renderYear(chronological, ctx);
     }
+
+    // Os gráficos são desenhados na largura real do cartão: redesenha quando a janela muda de tamanho.
+    let resizeTimer = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (lastRender && lastRender.width !== window.innerWidth && !document.getElementById("insightsBody").hidden) renderInsights(lastRender.sessions, lastRender.ctx);
+      }, 160);
+    });
 
     // Análise do ano: mês a mês (sessões, nota média, vícios por 100 palavras e o ponto mais recorrente).
     function renderYear(sessions, ctx) {
