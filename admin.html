@@ -58,7 +58,13 @@
   .brand::before { content: ""; width: 30px; height: 30px; background: url(assets/favicon.svg) center / contain no-repeat; }
   .brand small { font-weight: 500; font-size: 13px; color: var(--ink-faint); margin-left: 4px; }
   .acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-dim); }
-  .gate { max-width: 460px; margin: 90px auto; padding: 32px; text-align: center; }
+  body.glass #gate.gate { display: block; height: auto; min-height: 0; flex: none; }
+  .gate { max-width: 420px; margin: 90px auto; padding: 32px; text-align: center; }
+  .gate form { display: grid; gap: 12px; margin-top: 4px; text-align: left; }
+  .gate input { width: 100%; padding: 12px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; font-size: 14.5px; outline: none; }
+  .gate input:focus { border-color: var(--accent); }
+  .gate .gb { width: 100%; justify-content: center; padding: 12px 19px; }
+  .gate .sub { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-faint); }
   .gate h2 { margin: 0 0 8px; } .gate p { color: var(--ink-dim); margin: 0 0 20px; }
   h2.sec { margin: 30px 0 12px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .banner { padding: 14px 20px; border-radius: 18px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 6px 0 4px; font-weight: 600; }
@@ -121,7 +127,7 @@
         <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="auto" checked /> auto (1 min)</label>
         <button class="gb" id="refresh" type="button">↻ Atualizar</button>
         <button class="gb" id="csv" type="button">⇩ Exportar CSV</button>
-        <a class="gb primary" href="app.html">Voltar ao app</a>
+        <button class="gb" id="logout" type="button">Sair do admin</button>
       </div>
     </div>
 
@@ -174,7 +180,8 @@
 <script>
   const SUPABASE_URL = "https://tpjdogzhwandxwpwafzz.supabase.co";
   const SUPABASE_KEY = "sb_publishable_LfW7G2Ai3G2_1Uj_MBRCfg_QIztRQNd";
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // Sessão PRÓPRIA do admin: guardada com outra chave, então não depende (nem atrapalha) quem está logado no app.
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storageKey: "aurax-admin-auth", persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
   const $ = (id) => document.getElementById(id);
   const PRICE = { Individual: 119.9, Gestor: 219 };
   const SEEN_KEY = "aurax_admin_seen";
@@ -190,6 +197,20 @@
   const STATUS = { ativa: ["Ativa", "p-ativa"], pendente_pagamento: ["Pendente", "p-pend"], bloqueada: ["Bloqueada", "p-block"] };
   const isHolder = (u) => u.tipo !== "Colaborador";
   const isPaying = (u) => u.account_status === "ativa" && u.has_stripe && isHolder(u);
+
+  function showLogin(msg) {
+    gate("Admin da plataforma", "Entre com a conta de administrador. Esta entrada é separada do app: você pode estar logado no app com outra conta.",
+      '<form id="adminLogin"><input type="email" id="aEmail" placeholder="E-mail" autocomplete="username" required /><input type="password" id="aPass" placeholder="Senha" autocomplete="current-password" required />' +
+      '<button class="gb primary" type="submit" id="aBtn">Entrar</button></form><div class="err" id="aErr">' + (msg ? esc(msg) : "") + '</div><p class="sub">Esqueceu a senha? Use "Esqueci minha senha" na tela de login do app.</p>');
+    $("adminLogin").addEventListener("submit", async (e) => {
+      e.preventDefault(); const btn = $("aBtn"); btn.disabled = true; btn.textContent = "Entrando…"; $("aErr").textContent = "";
+      const { error } = await client.auth.signInWithPassword({ email: $("aEmail").value.trim(), password: $("aPass").value });
+      if (error) { btn.disabled = false; btn.textContent = "Entrar"; $("aErr").textContent = /invalid|credentials/i.test(error.message) ? "E-mail ou senha incorretos." : "Não foi possível entrar: " + error.message; return; }
+      await load(); schedule();
+    });
+  }
+  async function otherAccount() { await client.auth.signOut(); users = []; showLogin(); }
+  window.otherAccount = otherAccount;
 
   function gate(title, text, btn) { $("app").hidden = true; const g = $("gate"); g.hidden = false; g.innerHTML = "<h2>" + title + "</h2><p>" + text + "</p>" + (btn || ""); }
   function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("on"); setTimeout(() => el.classList.remove("on"), 1600); }
@@ -233,7 +254,7 @@
     const { data, error } = await client.rpc("admin_users");
     if (error) {
       const m = error.message + (error.code || "");
-      if (/forbidden|42501/i.test(m)) return gate("Acesso restrito", "Esta área é só para administradores da plataforma.", '<a class="gb" href="app.html">Voltar ao app</a>');
+      if (/forbidden|42501/i.test(m)) return gate("Acesso restrito", "Esta conta não é de administrador da plataforma.", '<button class="gb primary" type="button" onclick="otherAccount()">Entrar com outra conta</button>');
       if (/does not exist|PGRST202|42883/i.test(m)) return gate("Falta um passo no banco", "Rode o arquivo supabase-schema-15-admin.sql no Supabase (SQL Editor) e recarregue.", "");
       $("err").hidden = false; $("err").textContent = "Não foi possível carregar: " + error.message; return;
     }
@@ -370,7 +391,7 @@
   function seg(id, set) { $(id).addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; $(id).querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); set(Number(b.dataset.d)); }); }
   seg("segGrowth", (d) => { growthDays = d; renderGrowth(); }); seg("segFunnel", (d) => { funnelDays = d; renderFunnel(); });
   ["q", "ftipo", "fstatus"].forEach((id) => $(id).addEventListener("input", renderRows));
-  $("refresh").addEventListener("click", load); $("csv").addEventListener("click", toCsv);
+  $("refresh").addEventListener("click", load); $("logout").addEventListener("click", otherAccount); $("csv").addEventListener("click", toCsv);
   $("copyMails").addEventListener("click", async () => { try { await navigator.clipboard.writeText(followMails.join(", ")); toast(followMails.length + " e-mail(s) copiado(s)"); } catch (e) { toast("Não foi possível copiar"); } });
   $("seen").addEventListener("click", () => { localStorage.setItem(SEEN_KEY, String(Date.now())); render(); });
   $("auto").addEventListener("change", schedule);
@@ -385,11 +406,11 @@
       $("gate").hidden = true; $("app").hidden = false; users = demoUsers();
       $("updated").textContent = "Demonstração";
       localStorage.setItem("aurax_admin_demo", "1");
-      $("refresh").hidden = true; $("csv").hidden = true; $("seen").closest(".banner").hidden = true;
+      $("refresh").hidden = true; $("csv").hidden = true; $("logout").hidden = true; $("seen").closest(".banner").hidden = true;
       render(); $("newBanner").hidden = true; return;
     }
     const { data: { session } } = await client.auth.getSession();
-    if (!session) return gate("Área do administrador", "Entre com a sua conta de administrador para ver os cadastros.", '<a class="gb primary" href="login.html">Entrar</a>');
+    if (!session) return showLogin();
     if (!localStorage.getItem(SEEN_KEY)) localStorage.setItem(SEEN_KEY, String(Date.now()));
     await load(); schedule();
   })();
