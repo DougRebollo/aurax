@@ -14,8 +14,8 @@
 <link rel="stylesheet" href="otp-modal.css?v=dc544771" />
 <script>try{var t=localStorage.getItem("aurax_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
-  body { display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .auth-wrap { display: flex; align-items: flex-start; justify-content: center; gap: 22px; width: 100%; }
+  body { display: flex; align-items: flex-start; justify-content: center; padding: 20px; min-height: 100vh; }
+  .auth-wrap { display: flex; align-items: flex-start; justify-content: center; gap: 22px; width: 100%; margin-block: auto; }  /* centraliza quando cabe; rola do topo quando o cadastro fica alto */
   .role-info { width: 300px; max-width: 100%; padding: 22px 22px; flex: none; backface-visibility: hidden; transform-origin: right center; }
   .role-info[hidden] { display: none; }
   .role-info.flip { animation: riFlip .65s cubic-bezier(.2, .8, .2, 1) both; }
@@ -33,9 +33,75 @@
   .ri-list li { position: relative; padding-left: 24px; font-size: 13.5px; line-height: 1.45; }
   .ri-list li::before { content: "✓"; position: absolute; left: 0; top: 0; width: 17px; height: 17px; border-radius: 50%; background: var(--good-soft); color: var(--good); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
   .ri-note { margin: 16px 0 0; padding: 11px 13px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
-  .role-option { cursor: pointer; }
   @media (max-width: 900px) { .role-info { display: none !important; } .auth-wrap { justify-content: center; } }
-  .card { width: 100%; max-width: 400px; padding: 32px 28px; }
+  .card { width: 100%; max-width: 430px; padding: 32px 28px; }
+  /* entrada suave dos cartões */
+  .auth-wrap > .card { animation: cardIn .55s cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  /* etapas do cadastro */
+  .steps { list-style: none; display: flex; justify-content: center; gap: 6px; margin: -8px 0 18px; padding: 0; font-size: 11.5px; color: var(--ink-faint); }
+  .steps[hidden] { display: none; }
+  .steps li { display: flex; align-items: center; gap: 6px; }
+  .steps li[hidden] { display: none; }
+  .steps li + li::before { content: ""; width: 18px; height: 1px; background: var(--line); margin-right: 2px; }
+  .steps i { font-style: normal; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; background: var(--surface-2); border: 1px solid var(--line); }
+  .steps li.on { color: var(--ink); font-weight: 600; } .steps li.on i { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); }
+
+  /* escolha do tipo de conta em cartões */
+  .role-label { margin-top: 0; }
+  .role-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .role-option {
+    position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left;
+    padding: 14px 14px 13px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink-dim); cursor: pointer;
+    transition: transform .28s cubic-bezier(.2, .9, .3, 1.3), border-color .25s, box-shadow .25s, background .25s;
+  }
+  .role-option::after { /* brilho que passa ao apontar */
+    content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .45) 50%, transparent 65%); transform: translateX(-120%); pointer-events: none;
+  }
+  .role-option:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 12px 26px -14px color-mix(in srgb, var(--accent) 70%, transparent); }
+  .role-option:hover::after { transform: translateX(120%); transition: transform .7s ease; }
+  .role-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .ro-icon { width: 26px; height: 26px; margin-bottom: 4px; color: var(--ink-faint); transition: color .25s, transform .35s cubic-bezier(.2, .9, .3, 1.4); }
+  .ro-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .ro-desc { font-size: 12px; line-height: 1.35; color: var(--ink-dim); font-weight: 400; }
+  .ro-check { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700;
+    background: var(--accent); color: var(--on-accent, #fff); transform: scale(0); opacity: 0; transition: transform .35s cubic-bezier(.2, 1.6, .4, 1), opacity .2s; }
+  .role-option.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent), 0 14px 28px -16px color-mix(in srgb, var(--accent) 80%, transparent); }
+  .role-option.selected .ro-check { transform: scale(1); opacity: 1; }
+  .role-option.selected .ro-icon { color: var(--accent); transform: scale(1.08); }
+  .role-option.pop { animation: roPop .4s cubic-bezier(.2, .9, .3, 1.4); }
+  @keyframes roPop { 0% { transform: scale(.96); } 60% { transform: scale(1.03); } 100% { transform: none; } }
+
+  /* campos do cadastro surgindo em sequência */
+  .reveal > * { animation: fieldIn .45s cubic-bezier(.2, .8, .2, 1) both; }
+  .reveal > *:nth-child(1) { animation-delay: .02s; } .reveal > *:nth-child(2) { animation-delay: .07s; } .reveal > *:nth-child(3) { animation-delay: .12s; }
+  .reveal > *:nth-child(4) { animation-delay: .17s; } .reveal > *:nth-child(5) { animation-delay: .22s; }
+  @keyframes fieldIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* senha com olhinho */
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 44px !important; }
+  .pw-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; color: var(--ink-faint); display: grid; place-items: center; cursor: pointer; transition: color .2s, background .2s; }
+  .pw-eye:hover { color: var(--ink); background: var(--surface-2); }
+  .pw-eye svg { width: 19px; height: 19px; }
+  .pw-eye .slash { stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset .3s ease; }
+  .pw-eye[aria-pressed="true"] { color: var(--accent); } .pw-eye[aria-pressed="true"] .slash { stroke-dashoffset: 0; }
+
+  /* cargo e empresa lado a lado */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .two-col > div { min-width: 0; }
+  @media (max-width: 420px) { .two-col { grid-template-columns: 1fr; gap: 0; } }
+  input.need { border-color: var(--bad) !important; animation: needShake .35s; }
+  @keyframes needShake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+  /* botão principal com brilho */
+  button.submit { position: relative; overflow: hidden; transition: transform .2s, box-shadow .25s, filter .2s; box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--accent) 80%, transparent); }
+  button.submit::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .35) 50%, transparent 65%); transform: translateX(-120%); }
+  button.submit:hover:not(:disabled) { transform: translateY(-1px); } button.submit:hover:not(:disabled)::after { transform: translateX(120%); transition: transform .8s ease; }
+  button.submit:active:not(:disabled) { transform: scale(.985); }
+  .toggle-row button { margin-left: 6px; border-radius: 6px; } .toggle-row button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { .auth-wrap > .card, .reveal > *, .role-option.pop { animation: none; } .role-option, button.submit { transition: none; } }
   .logo::before { content: ""; flex: none; background: url(assets/favicon.svg) center / contain no-repeat; width: 32px; height: 32px; }
   .logo { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
   .subtitle { text-align: center; font-size: 13px; color: var(--ink-dim); margin-bottom: 22px; }
@@ -52,10 +118,7 @@
   .message.error { display: block; background: var(--bad-soft); color: var(--bad); }
   .message.success { display: block; background: var(--good-soft); color: var(--good); }
   #nameField { display: none; }
-  .role-toggle { display: flex; gap: 8px; }
-  .role-option { flex: 1; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-dim); font-weight: 600; }
   .role-hint { font-size: 12.5px; color: var(--ink-dim); margin: 8px 0 0; line-height: 1.45; }
-  .role-option.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
   .forgot-row { text-align: right; margin-top: 8px; }
   .legal-note { margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-faint); text-align: center; }
   .legal-note a { color: var(--accent); }
@@ -76,32 +139,53 @@
   <div class="card">
     <div class="logo">AuraX</div>
     <div class="subtitle" id="formSubtitle">Entre com sua conta</div>
+    <ol class="steps" id="steps" hidden><li class="on"><i>1</i>Conta</li><li><i>2</i>Código no e-mail</li><li id="stepPlan"><i>3</i>Plano</li></ol>
     <div class="invite-banner" id="inviteBanner" hidden></div>
 
     <form id="authForm">
       <div id="nameField">
-        <label for="nameInput">Nome</label>
-        <input type="text" id="nameInput" placeholder="Seu nome" />
-
-        <label>Como você vai usar o AuraX?</label>
-        <div class="role-toggle" id="roleToggle">
-          <button type="button" class="role-option selected" data-role="funcionario">Individual</button>
-          <button type="button" class="role-option" data-role="gestor">Gestor</button>
+        <label class="role-label">Como você vai usar o AuraX?</label>
+        <div class="role-toggle" id="roleToggle" role="radiogroup" aria-label="Tipo de conta">
+          <button type="button" class="role-option selected" data-role="funcionario" role="radio" aria-checked="true">
+            <span class="ro-check" aria-hidden="true">✓</span>
+            <svg class="ro-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.6 3.6-6 8-6s8 2.4 8 6"/></svg>
+            <span class="ro-title">Individual</span>
+            <span class="ro-desc">Só eu, para evoluir a minha fala</span>
+          </button>
+          <button type="button" class="role-option" data-role="gestor" role="radio" aria-checked="false">
+            <span class="ro-check" aria-hidden="true">✓</span>
+            <svg class="ro-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.2 2.9-5.3 6.5-5.3s6.5 2.1 6.5 5.3"/><circle cx="17.5" cy="9" r="2.6"/><path d="M17 14.9c2.7.2 4.6 1.9 4.6 4.3"/></svg>
+            <span class="ro-title">Gestor</span>
+            <span class="ro-desc">Eu e meu time de vendas</span>
+          </button>
         </div>
-        <p class="role-hint" id="roleHint"></p>
+        <p class="role-hint" id="roleHint" hidden></p>
 
-        <label for="cargoInput">Cargo <span style="color:#666">(opcional)</span></label>
-        <input type="text" id="cargoInput" placeholder="Ex: Gerente Comercial" />
+        <label for="nameInput">Nome</label>
+        <input type="text" id="nameInput" placeholder="Seu nome" autocomplete="name" />
 
-        <label for="empresaInput">Empresa <span style="color:#666">(opcional)</span></label>
-        <input type="text" id="empresaInput" placeholder="Ex: Registro Rural" />
+        <div class="two-col">
+          <div>
+            <label for="cargoInput">Cargo</label>
+            <input type="text" id="cargoInput" placeholder="Ex: Gerente Comercial" autocomplete="organization-title" />
+          </div>
+          <div>
+            <label for="empresaInput">Empresa</label>
+            <input type="text" id="empresaInput" placeholder="Ex: Registro Rural" autocomplete="organization" />
+          </div>
+        </div>
       </div>
 
       <label for="emailInput">E-mail</label>
-      <input type="email" id="emailInput" placeholder="voce@empresa.com" required />
+      <input type="email" id="emailInput" placeholder="voce@empresa.com" required autocomplete="email" />
 
       <label for="passwordInput">Senha</label>
-      <input type="password" id="passwordInput" placeholder="••••••••" required minlength="6" />
+      <div class="pw-wrap">
+        <input type="password" id="passwordInput" placeholder="Sua senha" required minlength="6" />
+        <button type="button" class="pw-eye" id="pwEye" aria-label="Mostrar senha" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><line class="slash" x1="4" y1="4" x2="20" y2="20"/></svg>
+        </button>
+      </div>
       <div class="forgot-row" id="forgotRow"><button type="button" id="forgotBtn">Esqueci minha senha</button></div>
 
       <button type="submit" class="submit" id="submitBtn">Entrar</button>
@@ -218,17 +302,32 @@
     roleToggle.addEventListener("click", (e) => {
       const btn = e.target.closest(".role-option");
       if (!btn) return;
-      roleToggle.querySelectorAll(".role-option").forEach((b) => b.classList.remove("selected"));
-      btn.classList.add("selected");
+      roleToggle.querySelectorAll(".role-option").forEach((b) => { b.classList.remove("selected", "pop"); b.setAttribute("aria-checked", "false"); });
+      btn.classList.add("selected"); btn.setAttribute("aria-checked", "true");
+      void btn.offsetWidth; btn.classList.add("pop");
       selectedRole = btn.dataset.role;
       updateRoleHint();
       syncRoleInfo();
     });
 
+    [nameInput, cargoInput, empresaInput].forEach((el) => el.addEventListener("input", () => el.classList.remove("need")));
+
+    // Mostrar/esconder a senha
+    const pwEye = document.getElementById("pwEye");
+    pwEye.addEventListener("click", () => {
+      const show = passwordInput.type === "password";
+      passwordInput.type = show ? "text" : "password";
+      pwEye.setAttribute("aria-pressed", String(show)); pwEye.setAttribute("aria-label", show ? "Esconder senha" : "Mostrar senha");
+    });
     toggleModeBtn.addEventListener("click", () => {
       mode = mode === "login" ? "signup" : "login";
       clearMessage();
+      const steps = document.getElementById("steps");
       if (mode === "signup") {
+        steps.hidden = false;
+        document.getElementById("stepPlan").hidden = inviteActive;   // colaborador convidado não escolhe plano
+        passwordInput.placeholder = "Mínimo de 6 caracteres"; passwordInput.autocomplete = "new-password";
+        nameField.classList.remove("reveal"); void nameField.offsetWidth; nameField.classList.add("reveal");
         nameField.style.display = "block";
         submitBtn.textContent = "Criar conta";
         legalNote.style.display = "block";
@@ -236,6 +335,8 @@
         toggleText.textContent = "Já tem conta?";
         toggleModeBtn.textContent = "Entrar";
       } else {
+        steps.hidden = true;
+        passwordInput.placeholder = "Sua senha"; passwordInput.autocomplete = "current-password";
         nameField.style.display = "none";
         submitBtn.textContent = "Entrar";
         legalNote.style.display = "none";
@@ -298,6 +399,14 @@
           const name = nameInput.value.trim();
           const cargo = cargoInput.value.trim();
           const empresa = empresaInput.value.trim();
+          const missing = [[nameInput, name], [cargoInput, cargo], [empresaInput, empresa]].filter((f) => !f[1]);
+          if (missing.length) {
+            missing.forEach((f) => { f[0].classList.remove("need"); void f[0].offsetWidth; f[0].classList.add("need"); });
+            missing[0][0].focus();
+            showMessage("Preencha nome, cargo e empresa para criar a conta.", "error");
+            submitBtn.disabled = false;
+            return;
+          }
           const { data, error } = await supabaseClient.auth.signUp({
             email,
             password,
