@@ -521,6 +521,7 @@
       const info = await setupInvite();
       // Vindo dos botões de plano da landing: já abre o cadastro com o tipo de conta escolhido.
       const cad = new URLSearchParams(location.search).get("cadastro");
+      if (!info && cad === "novo" && mode === "login") toggleModeBtn.click();
       if (!info && (cad === "individual" || cad === "gestor")) {
         if (mode === "login") toggleModeBtn.click();
         const opt = roleToggle.querySelector('[data-role="' + (cad === "gestor" ? "gestor" : "funcionario") + '"]');

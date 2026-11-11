@@ -3,7 +3,24 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AuraX — Inteligência comportamental para líderes comerciais</title>
+<title>AuraX — Sua oratória, medida em cada call</title>
+<meta name="description" content="O AuraX analisa a sua própria fala nas calls de venda: vícios de linguagem, gírias, ritmo e pausas. No fim de cada reunião, uma nota de 0 a 100 e o que melhorar na próxima." />
+<link rel="canonical" href="https://auraxoficial.com.br/" />
+<meta name="theme-color" content="#0b1228" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="pt_BR" />
+<meta property="og:site_name" content="AuraX" />
+<meta property="og:url" content="https://auraxoficial.com.br/" />
+<meta property="og:title" content="AuraX — Sua oratória, medida em cada call" />
+<meta property="og:description" content="Vícios de linguagem, gírias, ritmo e pausas da sua própria fala, com uma nota de 0 a 100 e o que melhorar na próxima reunião. Sem bot na sua call." />
+<meta property="og:image" content="https://auraxoficial.com.br/assets/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="AuraX: sua oratória, medida em cada call" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="AuraX — Sua oratória, medida em cada call" />
+<meta name="twitter:description" content="Vícios de linguagem, gírias, ritmo e pausas da sua própria fala, com uma nota de 0 a 100 e o que melhorar na próxima reunião." />
+<meta name="twitter:image" content="https://auraxoficial.com.br/assets/og-image.png" />
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32" />
 <link rel="shortcut icon" href="favicon.ico" />
@@ -154,6 +171,7 @@
   .lp-final-box { background: var(--ink); color: var(--bg); border-radius: 20px; padding: 56px; display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; }
   .lp-final-box h2 { margin: 0 0 6px; font-size: clamp(1.6rem, 3vw, 2.2rem); letter-spacing: -0.02em; max-width: 560px; }
   .lp-final-box p { margin: 0; opacity: 0.7; }
+  .lp-final-box p a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
   .lp-final-box .lp-btn { background: var(--bg); color: var(--ink); border-color: var(--bg); }
   footer.lp-foot { border-top: 1px solid var(--line); padding-block: 28px; color: var(--ink-faint); font-size: 13px; }
   footer.lp-foot .lp-wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -263,7 +281,7 @@
     </div>
     <div class="lp-nav-actions">
       <a class="lp-btn ghost" href="login.html">Entrar</a>
-      <a class="lp-btn" id="navCta" href="#" target="_blank" rel="noopener">Falar com o comercial</a>
+      <a class="lp-btn" id="navCta" href="login.html?cadastro=novo">Criar conta</a>
     </div>
   </div>
 </nav>
@@ -283,8 +301,8 @@
     </div>
     <h1 class="cine-title rise" style="animation-delay:.35s">Sua oratória, medida em <em>cada call.</em></h1>
     <div class="cine-foot rise" style="animation-delay:.55s">
-      <a class="lp-btn big" id="cineCta" href="#" target="_blank" rel="noopener">Falar com o time comercial</a>
-      <a class="lp-btn big ghost" href="#funcionalidades">Ver funcionalidades</a>
+      <a class="lp-btn big" id="cineCta" href="login.html?cadastro=novo">Criar minha conta</a>
+      <a class="lp-btn big ghost" id="cineWa" href="#" target="_blank" rel="noopener">Tirar dúvidas no WhatsApp</a>
       <span class="cine-mono">[ Role para explorar ]</span>
     </div>
   </div>
@@ -295,12 +313,12 @@
 <div class="lp-band">
 <header class="lp-wrap lp-hero">
   <div>
-    <p class="lp-eyebrow">Para heads comerciais, gestores e líderes de equipe</p>
+    <p class="lp-eyebrow">Para vendedores, gestores e heads comerciais</p>
     <h2>Sua oratória, medida <span>em cada call.</span></h2>
     <p class="lp-sub">O AuraX é uma <strong>IA de desenvolvimento pessoal em negociação</strong>. Ele acompanha a sua própria call, aponta vícios de linguagem e gírias na hora e fecha cada reunião com uma nota e o que melhorar na próxima.</p>
     <div class="lp-cta-row">
-      <a class="lp-btn big" id="heroCta" href="#" target="_blank" rel="noopener">Falar com o time comercial</a>
-      <a class="lp-btn ghost big" href="#funcionalidades">Ver funcionalidades</a>
+      <a class="lp-btn big" id="heroCta" href="login.html?cadastro=novo">Criar minha conta</a>
+      <a class="lp-btn ghost big" href="#preco">Ver planos</a>
     </div>
     <p class="lp-hero-note">Roda no navegador. Sem bot entrando na sua call.</p>
     <div class="lp-stats" aria-label="Em números">
@@ -442,11 +460,11 @@
   <div class="lp-wrap">
     <div class="lp-head"><h2>E mais o que acompanha a sua fala</h2></div>
     <div class="lp-grid">
-      <div class="lp-card"><span class="tag">face</span><h4>Leitura facial em tempo real</h4><p>Estimativa de quanto a sua expressão se manteve estável durante a call. É um sinal auxiliar só para você, não um diagnóstico de como você se sente.</p></div>
+      <div class="lp-card"><span class="tag">face</span><h4>Expressão estável (beta)</h4><p>Estimativa de quanto a sua expressão se manteve estável durante a call. É um sinal auxiliar só para você, não entra na nota e não é um diagnóstico de como você se sente.</p></div>
       <div class="lp-card"><span class="tag">voz</span><h4>Transcrição ao vivo</h4><p>Veja o que você disse em tempo real, com vícios e palavras-chave destacados, e consulte a transcrição depois na sessão.</p></div>
       <div class="lp-card"><span class="tag">objeção</span><h4>Detecção de objeções</h4><p>Reconhece frases como "tá caro" e "vou pensar" captadas pelo microfone e analisa como você respondeu.</p></div>
       <div class="lp-card"><span class="tag">negócio</span><h4>Palavras de negociação</h4><p>Marca preço, desconto, prazo, concorrente e fechamento quando aparecem na conversa.</p></div>
-      <div class="lp-card"><span class="tag">conversa</span><h4>Dinâmica da conversa</h4><p>Quanto você falou e quanto ouviu, trocas de turno e silêncio.</p></div>
+      <div class="lp-card"><span class="tag">conversa</span><h4>Dinâmica da conversa</h4><p>Quanto do tempo você falou e quanto ficou ouvindo ou em silêncio. Em calls em que você mais escuta, a nota se ajusta para não punir o silêncio.</p></div>
       <div class="lp-card"><span class="tag">alerta</span><h4>Alertas ao vivo</h4><p>Avisos discretos de ritmo acelerado e pausas longas durante a própria call.</p></div>
     </div>
   </div>
@@ -486,8 +504,8 @@
   <div class="lp-wrap">
     <div class="lp-head"><h2>Como funciona</h2><p>Direto do navegador, sem instalar nada.</p></div>
     <div class="lp-steps">
-      <div class="lp-step"><div class="k">passo 1</div><h4>Abra o AuraX durante a call</h4><p>Autorize câmera e microfone. É só abrir no navegador, sem instalar nada.</p></div>
-      <div class="lp-step"><div class="k">passo 2</div><h4>Inicie a sessão</h4><p>Um clique começa a registrar expressão, transcrição e vícios de linguagem.</p></div>
+      <div class="lp-step"><div class="k">passo 1</div><h4>Abra o AuraX durante a call</h4><p>No computador, pelo Chrome ou Edge: autorize câmera e microfone. Não precisa instalar nada.</p></div>
+      <div class="lp-step"><div class="k">passo 2</div><h4>Inicie a sessão</h4><p>Informe o nome do cliente, ative o microfone e inicie: a transcrição, os vícios e a nota começam na hora.</p></div>
       <div class="lp-step"><div class="k">passo 3</div><h4>Finalize e veja o resumo</h4><p>Nota de oratória, dicas objetivas e o histórico atualizado para a próxima reunião.</p></div>
     </div>
   </div>
@@ -540,9 +558,9 @@
     <div class="lp-final-box">
       <div>
         <h2>Pronto para ver o que a sua próxima call revela?</h2>
-        <p>Fale com o nosso time comercial pelo WhatsApp.</p>
+        <p>Crie sua conta em um minuto. Ficou com dúvida? <a id="finalWa" href="#" target="_blank" rel="noopener">Fale com a gente no WhatsApp</a>.</p>
       </div>
-      <a class="lp-btn big" id="finalCta" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
+      <a class="lp-btn big" id="finalCta" href="login.html?cadastro=novo">Criar minha conta</a>
     </div>
   </div>
 </section>
@@ -556,11 +574,15 @@
 <script>
   const WHATSAPP_NUMBER = "5551984026354";
   const waUrl = (msg) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-  const whatsappUrl = waUrl("Olá! Quero falar com o time comercial sobre o AuraX.");
+  const whatsappUrl = waUrl("Olá! Tenho uma dúvida sobre o AuraX.");
 
   document.getElementById("dictCta").addEventListener("click", () => posthog.capture("dictionary_click"));
 
+  // Botões principais levam ao cadastro; o WhatsApp fica como canal de dúvidas.
   ["navCta", "cineCta", "heroCta", "finalCta"].forEach((id) => {
+    document.getElementById(id).addEventListener("click", () => posthog.capture("signup_cta_click", { cta_id: id }));
+  });
+  ["cineWa", "finalWa"].forEach((id) => {
     const el = document.getElementById(id);
     el.href = whatsappUrl;
     el.addEventListener("click", () => posthog.capture("whatsapp_cta_click", { cta_id: id }));
