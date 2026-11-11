@@ -56,14 +56,14 @@ serve(async (req) => {
     const managerName = mgr?.name || "Um gestor";
     const link = `${SITE_URL}/login.html?convite=${encodeURIComponent(inv.token)}`;
 
-    const html = `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:520px;margin:0 auto;color:#14213d;line-height:1.55">
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:24px;background:#f4ede0"><div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:520px;margin:0 auto;color:#14213d;line-height:1.55">
       <p style="font-size:18px;margin:0 0 6px"><b>${esc(managerName)}</b> convidou você para o time dele no AuraX</p>
       <p style="margin:0 0 18px;color:#4b566e">O AuraX é uma ferramenta de autoavaliação de oratória para quem vende: ela analisa a sua própria fala nas calls (ritmo, vícios de linguagem, gírias) e entrega uma nota e o que melhorar na próxima reunião. Você acompanha a sua evolução e ${esc(managerName)} acompanha a do time.</p>
       <p style="margin:22px 0"><a href="${link}" style="background:#0e8a7e;color:#fff;text-decoration:none;padding:12px 22px;border-radius:12px;font-weight:700;display:inline-block">Criar minha conta e entrar no time</a></p>
       <p style="margin:0 0 4px;font-size:13px;color:#6b7280">Se o botão não abrir, copie este endereço no navegador:</p>
       <p style="margin:0 0 20px;font-size:13px;word-break:break-all"><a href="${link}" style="color:#0e8a7e">${link}</a></p>
       <p style="margin:0;font-size:12.5px;color:#6b7280">Você recebeu este e-mail porque ${esc(managerName)} informou o seu endereço. Se não conhece essa pessoa, é só ignorar: nada acontece sem você criar a conta.</p>
-    </div>`;
+    </div></body></html>`;
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
