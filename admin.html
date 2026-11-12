@@ -153,6 +153,16 @@
   .cbox svg { display: block; width: 100%; overflow: visible; }
   .ch-tip { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 3; min-width: 130px; padding: 8px 11px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 12px; line-height: 1.5; box-shadow: 0 8px 22px rgba(0, 0, 0, .25); opacity: 0; transition: opacity .12s; white-space: nowrap; }
   .ch-tip.on { opacity: 1; } .ch-tip b { font-variant-numeric: tabular-nums; } .ch-tip .t1 { font-weight: 700; } .ch-tip .t2 { opacity: .75; }
+  /* ===== Meta de pagantes ===== */
+  .goal { padding: 22px 26px; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px 36px; align-items: center; margin-bottom: 14px; }
+  @media (max-width: 980px) { .goal { grid-template-columns: minmax(0, 1fr); } }
+  .goal .num { font-size: 40px; font-weight: 700; letter-spacing: -.03em; line-height: 1.05; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .goal .num small { font-size: 16px; font-weight: 600; color: var(--ink-dim); letter-spacing: 0; margin-left: 6px; }
+  .gtrack { position: relative; height: 16px; border-radius: 999px; background: var(--track); margin-top: 14px; overflow: hidden; }
+  .gtrack i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #fff)); min-width: 6px; transition: width .7s cubic-bezier(.2,.8,.2,1); }
+  .gmarks { display: flex; justify-content: space-between; margin-top: 7px; font-size: 11.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+  .goal .stat { font-size: 13.5px; }
+  .goal.done .num { color: var(--good); }
   .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none; transition: .3s; z-index: 50; }
   .toast.on { opacity: 1; transform: translateX(-50%); }
 </style>
@@ -174,6 +184,9 @@
     </div>
 
     <div class="banner" id="newBanner" hidden><span id="newText"></span><button class="gb primary" id="seen" type="button">Marcar como visto</button></div>
+
+    <h2 class="sec">Meta</h2>
+    <div class="card goal" id="goal"></div>
 
     <h2 class="sec">Receita
       <span class="seg" id="segRev"><button class="gb on" data-d="30" type="button">30 dias</button><button class="gb" data-d="90" type="button">90 dias</button><button class="gb" data-d="0" type="button">Tudo</button></span>
@@ -258,7 +271,10 @@
   const median = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
   const STATUS = { ativa: ["Ativa", "p-ativa"], pendente_pagamento: ["Pendente", "p-pend"], bloqueada: ["Bloqueada", "p-block"] };
   const isHolder = (u) => u.tipo !== "Colaborador";
-  const isPaying = (u) => u.account_status === "ativa" && u.has_stripe && isHolder(u);
+  // "Ativa" = acesso liberado; "pagante" = ativa e pagando de verdade (cortesia/cupom 100%/período grátis não conta).
+  const isActive = (u) => u.account_status === "ativa" && u.has_stripe && isHolder(u);
+  const isPaying = (u) => isActive(u) && !u.billing_free;
+  const GOAL = 10, GOAL_DATE = new Date(2027, 1, 28, 23, 59), GOAL_LABEL = "28/02/2027";
 
   function showLogin(msg) {
     gate("Admin da plataforma", "Entre com a conta de administrador. Esta entrada é separada do app: você pode estar logado no app com outra conta.",
@@ -301,13 +317,14 @@
       ["Paulo Dias", "Gestor", "Rô Consultoria", "Diretor", "pendente_pagamento", 0, 0.9, null, 0, 0],
       ["Quésia Lima", "Individual", "", "", "pendente_pagamento", 0, 0.4, null, 0, 0],
       ["Rafa Souza", "Individual", "Tau Software", "Executivo de Contas", "pendente_pagamento", 1, 0.2, null, 0, 0],
+      ["Tiago Neves", "Individual", "Upsilon Retail", "Executivo de Contas", "ativa", 1, 2.2, 6, 3, 3, null, 1],
     ];
     L.forEach((r, i) => {
       const created = now - r[6] * DAY, first = r[7] == null ? null : created + r[7] * HOUR;
       const mail = r[0].split(" ")[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") + "@exemplo.com";
       rows.push({ id: String(i), email: mail, name: r[0], role: r[1] === "Gestor" ? "gestor" : "funcionario", tipo: r[1], cargo: r[3], empresa: r[2], manager_email: r[10] || null,
         account_status: r[4], has_stripe: !!r[5], email_confirmed: true, created_at: new Date(created).toISOString(), last_sign_in_at: i === 16 ? null : new Date(now - [2, 5, 9, 26, 30, 50, 70, 100, 150, 220, 340, 0.5, 4, 27, 400, 8, 1][i % 17] * HOUR).toISOString(),
-        sessions_count: r[8], last_session_at: r[8] ? new Date(now - (i % 5 + 1) * 5 * HOUR).toISOString() : null, first_session_at: first ? new Date(first).toISOString() : null, sessions_7d: r[9] });
+        sessions_count: r[8], last_session_at: r[8] ? new Date(now - (i % 5 + 1) * 5 * HOUR).toISOString() : null, first_session_at: first ? new Date(first).toISOString() : null, sessions_7d: r[9], billing_free: !!r[11] });
     });
     return rows;
   }
@@ -342,7 +359,7 @@
     $("newBanner").hidden = !(seen && novos.length);
     if (seen && novos.length) $("newText").textContent = novos.length === 1 ? "1 cadastro novo desde a sua última visita: " + (novos[0].name || novos[0].email) : novos.length + " cadastros novos desde a sua última visita";
 
-    renderRevenue(); renderAccess(); renderGrowth(); renderFunnel(); renderMix(); renderFollow(); renderRows();
+    renderGoal(); renderRevenue(); renderAccess(); renderGrowth(); renderFunnel(); renderMix(); renderFollow(); renderRows();
   }
 
   const r1 = (v) => Math.round(v * 10) / 10;
@@ -412,6 +429,23 @@
       () => { x.setAttribute("visibility", "hidden"); bars.forEach((b) => b.setAttribute("opacity", ".8")); });
   }
 
+  function renderGoal() {
+    const now = Date.now(), paying = users.filter(isPaying).length, free = users.filter((u) => isActive(u) && u.billing_free).length;
+    const left = Math.max(0, GOAL - paying), days = Math.max(0, Math.ceil((GOAL_DATE - now) / DAY)), done = paying >= GOAL;
+    const hasFree = users.length && "billing_free" in users[0];
+    const pace = done ? "Meta batida. 🎉" : days <= 0 ? "O prazo terminou." : "Falta" + (left > 1 ? "m " : " ") + "<b>" + left + "</b> pagante" + (left > 1 ? "s" : "") + " em <b>" + days + "</b> dias: um novo a cada <b>" + Math.max(1, Math.round(days / left)) + "</b> dias.";
+    const pct = Math.min(100, (paying / GOAL) * 100);
+    $("goal").className = "card goal" + (done ? " done" : "");
+    $("goal").innerHTML =
+      '<div><div class="eyebrow">Meta de pagantes até ' + GOAL_LABEL + '</div><div class="num">' + paying + "<small>de " + GOAL + " pagantes</small></div>" +
+      '<div class="gtrack" role="progressbar" aria-valuemin="0" aria-valuemax="' + GOAL + '" aria-valuenow="' + paying + '"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="gmarks"><span>0</span><span>' + Math.round(GOAL / 2) + "</span><span>" + GOAL + "</span></div></div>" +
+      '<div><div class="stat"><span>Ritmo necessário</span><b style="text-align:right;max-width:70%;font-weight:600">' + pace + "</b></div>" +
+      '<div class="stat"><span>Em teste ou cortesia <span class="muted">(não contam)</span></span><b>' + (hasFree ? free : "—") + "</b></div>" +
+      '<div class="stat"><span>Pendentes de pagamento</span><b>' + users.filter((u) => isHolder(u) && u.account_status === "pendente_pagamento").length + "</b></div>" +
+      (hasFree ? "" : '<div class="empty" style="padding-top:10px">Rode o SQL 19 para separar cortesias dos pagantes.</div>') + "</div>";
+  }
+
   function renderRevenue() {
     const now = Date.now(), paying = users.filter(isPaying), mrr = paying.reduce((a, u) => a + (PRICE[u.tipo] || 0), 0);
     const ind = paying.filter((u) => u.tipo === "Individual"), ges = paying.filter((u) => u.tipo === "Gestor");
@@ -425,6 +459,7 @@
     $("revFacts").innerHTML =
       '<div class="stat"><span>A converter <span class="muted">(' + pend.length + " pendente" + (pend.length === 1 ? "" : "s") + ')</span></span><b class="tag-warn">+ ' + brl(val(pend)) + "/mês</b></div>" +
       '<div class="stat"><span>Em risco <span class="muted">(' + bloq.length + " bloqueada" + (bloq.length === 1 ? "" : "s") + ')</span></span><b class="' + (bloq.length ? "tag-bad" : "muted") + '">' + brl(val(bloq)) + "/mês</b></div>" +
+      '<div class="stat"><span>Cortesia ou teste <span class="muted">(cupom, não pagam)</span></span><b>' + users.filter((u) => isActive(u) && u.billing_free).length + "</b></div>" +
       '<div class="stat"><span>Colaboradores <span class="muted">(não pagam)</span></span><b>' + users.filter((u) => u.tipo === "Colaborador").length + "</b></div>";
 
     // Evolução: MRR de cada dia = soma dos planos de quem paga hoje e já tinha se cadastrado até aquele dia.
@@ -482,7 +517,7 @@
     const cohort = users.filter((u) => isHolder(u) && (!funnelDays || now - new Date(u.created_at) < funnelDays * DAY));
     const steps = [
       ["Cadastros", cohort.length], ["E-mail confirmado", cohort.filter((u) => u.email_confirmed).length],
-      ["Iniciou o checkout", cohort.filter((u) => u.has_stripe).length], ["Assinou (ativa)", cohort.filter(isPaying).length],
+      ["Iniciou o checkout", cohort.filter((u) => u.has_stripe).length], ["Assinou (ativa)", cohort.filter(isActive).length],
       ["Gravou sessão", cohort.filter((u) => u.sessions_count > 0).length],
     ];
     const top = Math.max(1, steps[0][1]);
@@ -490,7 +525,7 @@
       "<small>" + (i === 0 ? "base" : pct(s[1], steps[i - 1][1]) + " do passo anterior") + "</small></div></div>").join("") || "";
     if (!cohort.length) $("funnel").innerHTML = '<div class="empty">Nenhum cadastro neste período.</div>';
 
-    const sub = cohort.filter(isPaying), hasFirst = users.length && "first_session_at" in users[0];
+    const sub = cohort.filter(isActive), hasFirst = users.length && "first_session_at" in users[0];
     const times = sub.filter((u) => u.first_session_at).map((u) => new Date(u.first_session_at) - new Date(u.created_at)).filter((t) => t >= 0);
     const med = median(times);
     const fast = sub.filter((u) => u.first_session_at && new Date(u.first_session_at) - new Date(u.created_at) < DAY).length;
@@ -529,7 +564,7 @@
     users.filter(isHolder).forEach((u) => {
       const age = now - new Date(u.created_at);
       if (u.account_status === "pendente_pagamento" && age > DAY) items.push([u, "Cadastrou e não assinou", "p-pend", age]);
-      else if (isPaying(u) && !u.sessions_count && age > 2 * DAY) items.push([u, "Assinou e não gravou", "p-block", age]);
+      else if (isActive(u) && !u.sessions_count && age > 2 * DAY) items.push([u, "Assinou e não gravou", "p-block", age]);
       else if (u.account_status === "bloqueada") items.push([u, "Assinatura bloqueada", "p-block", age]);
     });
     items.sort((a, b) => b[3] - a[3]);

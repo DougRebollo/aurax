@@ -33,10 +33,15 @@ const supabaseAdmin = createClient(
 );
 
 async function setStatusByCustomer(customerId: string, status: string, extra: Record<string, unknown> = {}) {
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("profiles")
     .update({ account_status: status, ...extra })
     .eq("stripe_customer_id", customerId);
+  // Se um campo extra ainda não existe no banco (ex.: SQL 19 não rodado), ativa a conta mesmo assim.
+  if (error && Object.keys(extra).length) {
+    console.error("Atualização com campos extras falhou, repetindo só com o status:", error.message);
+    await supabaseAdmin.from("profiles").update({ account_status: status }).eq("stripe_customer_id", customerId);
+  }
 }
 
 serve(async (req) => {
@@ -82,7 +87,8 @@ serve(async (req) => {
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
         if (typeof invoice.customer === "string") {
-          await setStatusByCustomer(invoice.customer, "ativa");
+          // Fatura de R$ 0 (cupom 100% ou período grátis) = cortesia: ativa o acesso, mas não conta como receita.
+          await setStatusByCustomer(invoice.customer, "ativa", { billing_free: (invoice.amount_paid ?? 0) === 0 });
         }
         break;
       }
