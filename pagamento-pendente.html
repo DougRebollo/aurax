@@ -40,6 +40,15 @@
   .message.error { display: block; background: var(--bad-soft); color: var(--bad); }
   .message.info { display: block; background: var(--accent-soft); color: var(--accent); }
 </style>
+<script>
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var o="posthog";return"posthog"!==a&&(o+="."+a),t||(o+=" (stub)"),o},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  posthog.init('phc_rVKmjHxrx7KwuYXUq5KNt9yYpdkBJ5Rb2b8fH6pKH82g', {
+    api_host: 'https://us.i.posthog.com',
+    person_profiles: 'identified_only',
+    disable_session_recording: true,   // nunca grava a tela: tem transcrição, nome de cliente e câmera
+    autocapture: false,   // só os eventos que nomeamos (o texto de cliques pode ter nome de cliente)
+  });
+</script>
 </head>
 <body class="glass">
   <div class="card">
@@ -90,26 +99,35 @@
       el.className = `message ${type}`;
     }
 
+    // Plano de quem está pagando (para o funil de conversão no PostHog).
+    const planOf = (profile) => (profile.role === "gestor" ? "gestor" : "individual");
+    // Registra o evento e dá um instante para ele sair antes da página trocar.
+    const track = (event, props) => { try { posthog.capture(event, props || {}, { send_instantly: true }); } catch (e) {} return new Promise((r) => setTimeout(r, 250)); };
+    const returnedFromCheckout = () => new URLSearchParams(location.search).get("checkout") === "success";
+
     async function redirectIfAlreadyActive(profile) {
       const isGestor = !profile.manager_id;
       const { data } = await supabaseClient.rpc("effective_account_status", { uid: profile.id });
       if (data === "ativa") {
+        if (returnedFromCheckout()) await track("subscription_activated", { plan: planOf(profile) });
         window.location.href = isGestor ? "painel-gestor.html" : "app.html";
         return true;
       }
       return false;
     }
 
-    async function pollUntilActive(profileId, isGestor) {
+    async function pollUntilActive(profileId, isGestor, plan) {
       showMessage("gestorMessage", "Confirmando seu pagamento... isso pode levar alguns segundos.", "info");
       for (let i = 0; i < 20; i++) {
         await new Promise((r) => setTimeout(r, 3000));
         const { data } = await supabaseClient.rpc("effective_account_status", { uid: profileId });
         if (data === "ativa") {
+          await track("subscription_activated", { plan });
           window.location.href = isGestor ? "painel-gestor.html" : "app.html";
           return;
         }
       }
+      track("subscription_activation_timeout", { plan });
       showMessage(
         "gestorMessage",
         "Ainda não recebemos a confirmação do pagamento. Se você já pagou, aguarde mais um instante e atualize a página.",
@@ -117,6 +135,7 @@
       );
     }
 
+    let currentPlan = "individual";
     async function startCheckout() {
       const checkoutBtn = document.getElementById("checkoutBtn");
       checkoutBtn.disabled = true;
@@ -131,6 +150,7 @@
         });
         const body = await res.json();
         if (!res.ok || !body.url) throw new Error(body.error || "Não foi possível iniciar o checkout.");
+        await track("checkout_started", { plan: currentPlan });
         window.location.href = body.url;
       } catch (err) {
         // "Failed to fetch" = a função de pagamento não respondeu (rede ou ainda não publicada).
@@ -181,6 +201,8 @@
       closeX.hidden = false;
       closeX.addEventListener("click", () => { const dest = profile.role === "gestor" ? "painel-gestor.html" : "app.html"; if (window.AuraGo) AuraGo(dest); else window.location.href = dest; });
 
+      try { posthog.identify(session.user.id, { email: session.user.email }); } catch (e) {}
+      currentPlan = planOf(profile);
       const alreadyActive = await redirectIfAlreadyActive(profile);
       if (alreadyActive) return;
 
@@ -197,8 +219,13 @@
           window.location.href = "login.html";
         });
         const params = new URLSearchParams(location.search);
-        if (params.get("checkout") === "success") {
-          pollUntilActive(profile.id, true);
+        const back = params.get("checkout");
+        if (back === "success") {
+          pollUntilActive(profile.id, true, currentPlan);
+        } else if (back === "cancel") {
+          track("checkout_canceled", { plan: currentPlan });
+        } else {
+          track("checkout_page_viewed", { plan: currentPlan });
         }
       } else {
         document.getElementById("funcionarioView").hidden = false;
