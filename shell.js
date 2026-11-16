@@ -35,9 +35,13 @@
     return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
 
+  const SKEUO = document.documentElement.getAttribute("data-visual") === "skeuo";
+  function themeInner(dark) {
+    return SKEUO ? icon(dark ? "sun" : "moon") : icon(dark ? "sun" : "moon") + (dark ? "Tema claro" : "Tema escuro");
+  }
   function themeButtonHtml() {
     const dark = currentTheme() === "dark";
-    return '<button type="button" class="nav-item" id="shellTheme">' + icon(dark ? "sun" : "moon") + (dark ? "Tema claro" : "Tema escuro") + "</button>";
+    return '<button type="button" class="nav-item" id="shellTheme">' + themeInner(dark) + "</button>";
   }
 
   function initials(name) {
@@ -151,7 +155,41 @@
     return has ? '<a href="#" id="shellManagePlan">Gerenciar assinatura</a>' : "";
   }
 
-  function sidebarHtml({ active, name, role, hasManager, hasSubscription }) {
+  // Visual skeuomórfico: barra escura no topo (marca, pessoa, plano, botões) + dock de abas embaixo.
+  function skeuoHtml({ active, name, role, hasManager, hasSubscription }) {
+    const isGestor = role === "gestor";
+    const isIndividual = !isGestor && !hasManager;
+    const dark = currentTheme() === "dark";
+    const dock = (id, href, ic, label) => '<a data-nav="' + id + '" href="' + href + '"' + (active === id ? ' aria-current="page"' : "") + ">" + icon(ic) + "<span>" + label + "</span></a>";
+    const plan = isGestor
+      ? "<b>Plano Profissional</b> · 1 gestor + 5 <a href=\"" + WHATSAPP_URL + "\" target=\"_blank\" rel=\"noopener\">Falar com Vendas</a>" + manageHtml(hasSubscription)
+      : isIndividual
+        ? "<b>Plano Individual</b> <a href=\"" + WHATSAPP_URL + "\" target=\"_blank\" rel=\"noopener\">Plano de equipe</a>" + manageHtml(hasSubscription)
+        : "<b>Time</b> · seu gestor cuida do plano";
+    return (
+      '<header class="sk-top">' +
+        '<a class="sk-brand" href="app.html">AuraX</a>' +
+        '<div class="sk-user"><div class="avatar">' + initials(name) + "</div><div><strong>" + esc(name) + "</strong><span>" + (isGestor ? "Gestor" : isIndividual ? "Individual" : "Funcionário") + "</span></div></div>" +
+        '<div class="sk-plan"><span class="orb"></span>' + plan + "</div>" +
+        '<div class="sk-knobs">' +
+          '<button type="button" class="sk-knob" id="shellSupport" title="Suporte" aria-label="Suporte">' + icon("support") + "</button>" +
+          '<button type="button" class="sk-knob" id="shellTheme" title="' + (dark ? "Tema claro" : "Tema escuro") + '" aria-label="Trocar tema">' + themeInner(dark) + "</button>" +
+          '<button type="button" class="sk-knob" id="shellLogout" title="Sair" aria-label="Sair">' + icon("out") + "</button>" +
+        "</div>" +
+      "</header>" +
+      '<nav class="sk-dock" aria-label="Principal">' +
+        dock("gravar", "app.html", "record", "Gravar sessão") +
+        dock("sessoes", "sessoes.html", "list", "Minhas sessões") +
+        dock("insights", "insights.html", "chart", "Meus Insights") +
+        (isGestor ? dock("painel", "painel-gestor.html", "grid", "Painel do Gestor") : "") +
+        dock("ajuda", "app.html?onboarding=1", "help", "Como funciona") +
+      "</nav>"
+    );
+  }
+
+  function sidebarHtml(opts) {
+    if (SKEUO) return skeuoHtml(opts);
+    const { active, name, role, hasManager, hasSubscription } = opts;
     const isGestor = role === "gestor";
     const isIndividual = !isGestor && !hasManager; // conta sem gestor = plano Individual
     return (
@@ -223,7 +261,8 @@
       const next = currentTheme() === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", next);
       try { localStorage.setItem("aurax_theme", next); } catch (e) { /* sem armazenamento: vale só nesta página */ }
-      themeBtn.innerHTML = icon(next === "dark" ? "sun" : "moon") + (next === "dark" ? "Tema claro" : "Tema escuro");
+      themeBtn.innerHTML = themeInner(next === "dark");
+      if (SKEUO) themeBtn.title = next === "dark" ? "Tema claro" : "Tema escuro";
     });
 
     document.getElementById("shellSupport").addEventListener("click", () => {

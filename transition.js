@@ -10,6 +10,18 @@
     }
   } catch (e) { /* sem armazenamento: usa a paleta normal */ }
 })();
+// Visual "skeuomórfico" (topo escuro + dock + cartões em relevo) nas páginas internas. ?visual=classico volta ao anterior.
+(function () {
+  try {
+    if (!/(^|\/|_)(app|sessoes|insights|painel-gestor)\.html$/.test(location.pathname)) return;
+    var q = new URLSearchParams(location.search).get("visual");
+    if (q === "novo") localStorage.removeItem("aurax_visual");
+    else if (q === "classico") localStorage.setItem("aurax_visual", "classico");
+    if (localStorage.getItem("aurax_visual") === "classico" || document.documentElement.getAttribute("data-palette") !== "navy") return;
+    document.documentElement.setAttribute("data-visual", "skeuo");
+    document.write('<link rel="stylesheet" href="skeuo.css?v=1" />');
+  } catch (e) { /* sem armazenamento: fica o visual anterior */ }
+})();
 /* AuraX — transição entre páginas por FADE (esmaecer).
  * Ao clicar num link interno, a página atual esmaece; a página nova abre invisível e aparece suavemente.
  * Funciona em qualquer navegador e é um movimento sutil (só opacidade), então vale também com "reduzir
