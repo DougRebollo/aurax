@@ -19,7 +19,7 @@
     else if (q === "classico") localStorage.setItem("aurax_visual", "classico");
     if (localStorage.getItem("aurax_visual") === "classico" || document.documentElement.getAttribute("data-palette") !== "navy") return;
     document.documentElement.setAttribute("data-visual", "skeuo");
-    document.write('<link rel="stylesheet" href="skeuo.css?v=1" />');
+    document.write('<link rel="stylesheet" href="skeuo.css?v=2" />');
   } catch (e) { /* sem armazenamento: fica o visual anterior */ }
 })();
 /* AuraX — transição entre páginas por FADE (esmaecer).
