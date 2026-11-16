@@ -16,7 +16,7 @@
     help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8M12 17h.01"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
-    support: '<path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4.5 19.5l1.3-4.2A7.5 7.5 0 1 1 20 11.5z"/><path d="M10.3 9.6a1.9 1.9 0 1 1 2.7 1.7c-.6.3-1 .8-1 1.4M12 15.2h.01"/>',
+    support: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M5.7 5.7l3.8 3.8M14.5 14.5l3.8 3.8M18.3 5.7l-3.8 3.8M9.5 14.5l-3.8 3.8"/>',
     whatsapp: '<path d="M20 11.5a8 8 0 0 1-11.9 7l-4.1 1.2 1.3-4A8 8 0 1 1 20 11.5z"/><path d="M9 8.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-.8.8c-.8-.4-1.5-1.1-1.9-1.9l.8-.8-1-2z"/>',
     out: '<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10"/>',
   };
@@ -35,13 +35,9 @@
     return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
 
-  const SKEUO = document.documentElement.getAttribute("data-visual") === "skeuo";
-  function themeInner(dark) {
-    return SKEUO ? icon(dark ? "sun" : "moon") : icon(dark ? "sun" : "moon") + (dark ? "Tema claro" : "Tema escuro");
-  }
   function themeButtonHtml() {
     const dark = currentTheme() === "dark";
-    return '<button type="button" class="nav-item" id="shellTheme">' + themeInner(dark) + "</button>";
+    return '<button type="button" class="nav-item" id="shellTheme">' + icon(dark ? "sun" : "moon") + (dark ? "Tema claro" : "Tema escuro") + "</button>";
   }
 
   function initials(name) {
@@ -155,41 +151,7 @@
     return has ? '<a href="#" id="shellManagePlan">Gerenciar assinatura</a>' : "";
   }
 
-  // Visual skeuomórfico: barra escura no topo (marca, pessoa, plano, botões) + dock de abas embaixo.
-  function skeuoHtml({ active, name, role, hasManager, hasSubscription }) {
-    const isGestor = role === "gestor";
-    const isIndividual = !isGestor && !hasManager;
-    const dark = currentTheme() === "dark";
-    const dock = (id, href, ic, label) => '<a data-nav="' + id + '" href="' + href + '"' + (active === id ? ' aria-current="page"' : "") + ">" + icon(ic) + "<span>" + label + "</span></a>";
-    const planName = isGestor ? "Plano Profissional" : isIndividual ? "Plano Individual" : "Time";
-    const roleName = isGestor ? "Gestor" : isIndividual ? "Individual" : "Funcionário";
-    const links = (isGestor || isIndividual)
-      ? '<a href="' + WHATSAPP_URL + '" target="_blank" rel="noopener">' + (isGestor ? "Falar com Vendas" : "Plano de equipe") + "</a>" + manageHtml(hasSubscription)
-      : "";
-    return (
-      '<header class="sk-top">' +
-        '<a class="sk-brand" href="app.html">AuraX</a>' +
-        '<div class="sk-right">' +
-          '<div class="sk-user"><div class="avatar">' + initials(name) + '</div><div class="sk-who"><strong>' + esc(name) + "</strong><span>" + roleName + " · " + planName + "</span></div>" +
-            (links ? '<div class="sk-links">' + links + "</div>" : "") + "</div>" +
-          '<button type="button" class="sk-knob" id="shellSupport" title="Suporte" aria-label="Suporte">' + icon("support") + "</button>" +
-          '<button type="button" class="sk-knob" id="shellTheme" title="' + (dark ? "Tema claro" : "Tema escuro") + '" aria-label="Trocar tema">' + themeInner(dark) + "</button>" +
-          '<button type="button" class="sk-knob" id="shellLogout" title="Sair" aria-label="Sair">' + icon("out") + "</button>" +
-        "</div>" +
-      "</header>" +
-      '<nav class="sk-dock" aria-label="Principal">' +
-        dock("gravar", "app.html", "record", "Gravar sessão") +
-        dock("sessoes", "sessoes.html", "list", "Minhas sessões") +
-        dock("insights", "insights.html", "chart", "Meus Insights") +
-        (isGestor ? dock("painel", "painel-gestor.html", "grid", "Painel do Gestor") : "") +
-        dock("ajuda", "app.html?onboarding=1", "help", "Como funciona") +
-      "</nav>"
-    );
-  }
-
-  function sidebarHtml(opts) {
-    if (SKEUO) return skeuoHtml(opts);
-    const { active, name, role, hasManager, hasSubscription } = opts;
+  function sidebarHtml({ active, name, role, hasManager, hasSubscription }) {
     const isGestor = role === "gestor";
     const isIndividual = !isGestor && !hasManager; // conta sem gestor = plano Individual
     return (
@@ -261,8 +223,7 @@
       const next = currentTheme() === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", next);
       try { localStorage.setItem("aurax_theme", next); } catch (e) { /* sem armazenamento: vale só nesta página */ }
-      themeBtn.innerHTML = themeInner(next === "dark");
-      if (SKEUO) themeBtn.title = next === "dark" ? "Tema claro" : "Tema escuro";
+      themeBtn.innerHTML = icon(next === "dark" ? "sun" : "moon") + (next === "dark" ? "Tema claro" : "Tema escuro");
     });
 
     document.getElementById("shellSupport").addEventListener("click", () => {
