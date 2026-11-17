@@ -217,13 +217,13 @@
       <article class="ind" id="pausas">
         <header><h3>4.2 Pausas</h3><span class="tag t-n">peso 1</span></header>
         <div class="rows">
-          <div>Definição</div><div>Silêncios longos do microfone.</div>
-          <div>Fonte</div><div>Silêncio contínuo (volume abaixo de 0,02) <b>maior que 90 s</b> conta <b>1 pausa longa</b>, uma vez por silêncio.</div>
-          <div>Cálculo</div><div><span class="mono">100 × (1 − máx(0, pausas − 2) ÷ 10)</span>: até 2 pausas não descontam, cada uma a mais tira 10 pontos, 12 pausas = 0.</div>
-          <div>Positivo</div><div>Poucas pausas longas. Silêncio acima de <b>60 s</b> gera a dica positiva "bom espaço de escuta".</div>
-          <div>Negativo</div><div>5 ou mais pausas longas geram a dica "pode passar hesitação".</div>
-          <div>Limitações</div><div>Com fone, o microfone capta só a pessoa; o silêncio pode ser o cliente falando. O indicador mistura hesitação e escuta.</div>
-        </div>
+          <div>Definição</div><div><b>Pausas no meio da frase</b> (hesitação): a pessoa para no meio de uma frase que ainda não terminou.</div>
+          <div>Fonte</div><div>Silêncio do microfone de <b>2,5 a 8 s</b> que acontece <b>logo depois de uma palavra que deixa a frase incompleta</b> ("de", "que", "e", "para", "com", "um"…, ou um "éé"). Cada silêncio assim conta 1.</div>
+          <div>Cálculo</div><div>Por 100 palavras faladas: <span class="mono">100 × (1 − máx(0, taxa − 1) ÷ 4)</span>. Até 1 a cada 100 palavras não desconta; 5 ou mais a cada 100 palavras zera.</div>
+          <div>Positivo</div><div>Quase nenhuma pausa no meio da frase (até 0,5 a cada 100 palavras, com 300+ palavras) gera a dica "fala fluida".</div>
+          <div>Negativo</div><div>3 ou mais pausas e mais de 2 a cada 100 palavras geram a dica "pausas no meio da frase".</div>
+          <div>Contexto</div><div>Silêncios longos <b>não contam</b>: com fone, o microfone só capta a pessoa, e um silêncio longo quase sempre é o cliente falando. Em sessão de escuta, o indicador é excluído da nota.</div>
+          <div>Limitações</div><div>Depende do reconhecimento de voz do navegador para saber a última palavra dita antes do silêncio. Sessões gravadas antes de 17/11/2026 usam a medida antiga (silêncios de mais de 90 s).</div>
       </article>
 
       <article class="ind" id="linguagem">
@@ -272,7 +272,7 @@
       <p class="lead">Aparecem nos relatórios, mas não entram na nota.</p>
       <div class="grid2">
         <div class="card"><h3 style="margin-top:0">Expressão estável</h3><p>Estimativa de quanto a expressão e a cabeça ficaram estáveis (modelo de rosto do navegador, janela de ~60 leituras).</p><div class="formula">0,35 × estabilidade + 0,65 × neutralidade média</div><p style="font-size:14px;color:var(--ink-dim)">Rotulada como beta. Luz, ângulo, óculos e tipo de rosto alteram o resultado.</p></div>
-        <div class="card"><h3 style="margin-top:0">Dinâmica da conversa</h3><p>Quanto do tempo a pessoa falou × ouviu ou ficou em silêncio.</p><p><span class="tag t-bad">≥ 75% falando</span> pede mais espaço ao cliente.<br/><span class="tag t-good">≥ 35% ouvindo</span> vira a dica "boa escuta".</p><p style="font-size:14px;color:var(--ink-dim)">Não separa "cliente falando" de "silêncio".</p></div>
+        <div class="card"><h3 style="margin-top:0">Dinâmica da conversa</h3><p>Quanto do tempo a pessoa falou × ouviu ou ficou em silêncio.</p><p>A faixa ideal depende do <b>tipo de reunião</b> escolhido ao iniciar: Venda 25–65% (alerta a partir de 75%), Descoberta 25–45% (55%), Apresentação 45–70% (80%; abaixo de 35% "conduza mais"), Negociação 35–55% (65%), Follow-up 30–55% (65%). Reunião interna não gera dica de tempo de fala.</p><p style="font-size:14px;color:var(--ink-dim)">Não separa "cliente falando" de "silêncio".</p></div>
         <div class="card"><h3 style="margin-top:0">Palavras-chave de negociação</h3><p class="terms"><span class="tag t-n">preço</span><span class="tag t-n">desconto</span><span class="tag t-n">prazo</span><span class="tag t-n">concorrente</span><span class="tag t-n">cancelar</span><span class="tag t-n">orçamento</span><span class="tag t-n">contrato</span><span class="tag t-n">proposta</span><span class="tag t-n">fechar</span><span class="tag t-n">sinal</span><span class="tag t-n">pagamento</span><span class="tag t-n">parcelar</span><span class="tag t-n">urgente</span></p><p style="font-size:14px;color:var(--ink-dim)">Detectadas quando o texto da fala contém o termo. Geram alerta e marcam a linha da transcrição.</p></div>
         <div class="card"><h3 style="margin-top:0">Objeções</h3><p>24 frases-gatilho ("tá caro", "vou pensar", "já uso outro fornecedor", "não é o momento"…). Ao detectar, observa a reação por <b>20 s</b>.</p><p><span class="tag t-bad">Resposta tensa</span> &gt; 40% de expressão negativa<br/><span class="tag t-good">Resposta segura</span> expressão estável<br/><span class="tag t-n">Resposta neutra</span> demais casos</p><p style="font-size:14px;color:var(--ink-dim)">O gatilho é por frase; a classificação depende do rosto (menos confiável).</p></div>
       </div>
@@ -296,10 +296,9 @@
       <div class="tw"><table>
         <tr><th>Dica</th><th>Quando</th><th>Tipo</th></tr>
         <tr><td>Ritmo acelerado</td><td>mais de 170 palavras/min</td><td><span class="tag t-warn">melhorar</span></td></tr>
-        <tr><td>Muitas pausas longas</td><td>5 ou mais</td><td><span class="tag t-warn">melhorar</span></td></tr>
-        <tr><td>Escuta ativa</td><td>silêncio acima de 60 s</td><td><span class="tag t-good">positiva</span></td></tr>
-        <tr><td>Dominou a conversa</td><td>falou 75% ou mais</td><td><span class="tag t-warn">melhorar</span></td></tr>
-        <tr><td>Boa escuta</td><td>ouvindo 35% ou mais</td><td><span class="tag t-good">positiva</span></td></tr>
+        <tr><td>Pausas no meio da frase / Fala fluida</td><td>3+ pausas e mais de 2 a cada 100 palavras / até 0,5 a cada 100 palavras</td><td><span class="tag t-warn">melhorar</span> <span class="tag t-good">positiva</span></td></tr>
+        <tr><td>Dominou a conversa</td><td>acima do limite do tipo de reunião (Venda: 75%)</td><td><span class="tag t-warn">melhorar</span></td></tr>
+        <tr><td>Tempo de fala no ideal / Conduziu pouco</td><td>dentro da faixa do tipo de reunião / apresentação com menos de 35%</td><td><span class="tag t-good">positiva</span> <span class="tag t-warn">melhorar</span></td></tr>
         <tr><td>Gírias e fala informal que pesaram</td><td>termo acima da tolerância</td><td><span class="tag t-warn">melhorar</span></td></tr>
         <tr><td>Muita informalidade somada</td><td>soma geral com 1 unidade ou mais</td><td><span class="tag t-warn">melhorar</span></td></tr>
         <tr><td>Muitos vícios / Poucos vícios</td><td>vício acima da tolerância e 6+ vícios / nenhum acima</td><td><span class="tag t-warn">melhorar</span> <span class="tag t-good">positiva</span></td></tr>
