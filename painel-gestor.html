@@ -384,7 +384,7 @@
           <div class="person-top">
             <span class="avatar">${initials(person.name)}</span>
             <div>
-              <div class="person-name">${person.name || "(sem nome)"}</div>
+              <div class="person-name">${esc(person.name || "(sem nome)")}</div>
               <div class="person-email">${person.cargo ? person.cargo + " · " : ""}${person.email || ""}</div>
             </div>
           </div>
@@ -638,7 +638,7 @@
         teamMembers.map((m) => ({ id: m.id, label: m.name }))
       );
       tabsEl.innerHTML = tabs
-        .map((t) => `<button type="button" data-filter="${t.id}" class="${t.id === selectedFilter ? "active" : ""}">${t.label}</button>`)
+        .map((t) => `<button type="button" data-filter="${t.id}" class="${t.id === selectedFilter ? "active" : ""}">${esc(t.label)}</button>`)
         .join("");
       tabsEl.querySelectorAll("button").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -654,7 +654,7 @@
       const tipsHtml = tips
         .map(
           (t) =>
-            `<div class="tip-line ${t.type === "positivo" ? "positive" : ""}">${t.type === "positivo" ? "✓" : "→"} ${t.text}</div>`
+            `<div class="tip-line ${t.type === "positivo" ? "positive" : ""}">${t.type === "positivo" ? "✓" : "→"} ${esc(t.text)}</div>`
         )
         .join("");
       const rank = row.oratoria_score != null ? oratoriaScoreRank(row.oratoria_score) : null;
@@ -670,7 +670,7 @@
             <div class="session-title-row">
               ${rankBadgeHtml}
               <div>
-                <div class="session-title">${personName}${row.client_name ? " — Cliente: " + row.client_name : ""}</div>
+                <div class="session-title">${esc(personName)}${row.client_name ? " — Cliente: " + esc(row.client_name) : ""}</div>
                 <div class="session-meta">${formatDateBR(row.date)} · ${formatDurationShort(row.duration)}</div>
               </div>
             </div>
@@ -818,11 +818,8 @@
 
     async function removeFromTeam(personId) {
       if (!confirm("Remover esta pessoa do seu time? Ela deixa de aparecer no seu painel.")) return;
-      const { error } = await supabaseClient
-        .from("profiles")
-        .update({ manager_id: null })
-        .eq("id", personId);
-      if (error) {
+      const { data: removed, error } = await supabaseClient.rpc("remove_team_member", { p_member: personId });
+      if (error || !removed) {
         alert("Não foi possível remover agora.");
         return;
       }
