@@ -17,7 +17,14 @@
 
   const CRITERIA = {
     ritmo: (h) => `Você falou <b>${esc(h.wpm)}</b> palavras por minuto. De 110 a 160 vale 100. Abaixo de 110 a nota cai na mesma proporção; acima de 160 ela cai aos poucos.`,
-    pausas: (h) => `<b>${esc(h.pauses || 0)}</b> ${h.pauses === 1 ? "pausa longa" : "pausas longas"} (silêncio de mais de 1min30). Até 2 não descontam; cada pausa a mais tira 10 pontos.`,
+    pausas: (h) => {
+      const sub = (h.oratoria_subscores || []).find((x) => x && x.key === "pausas");
+      if (sub && sub.kind === "hesitacao") {
+        const n = h.pauses || 0;
+        return `<b>${esc(n)}</b> ${n === 1 ? "pausa" : "pausas"} no meio da frase: silêncio de 2,5 a 8 s logo depois de uma palavra que deixa a frase incompleta ("de", "que", "e", "para"...). Até 1 a cada 100 palavras não desconta; 5 ou mais a cada 100 palavras zeram este critério. Silêncios longos não contam: com fone, quase sempre são o cliente falando.`;
+      }
+      return `<b>${esc(h.pauses || 0)}</b> ${h.pauses === 1 ? "pausa longa" : "pausas longas"} (silêncio de mais de 1min30). Até 2 não descontam; cada pausa a mais tira 10 pontos.`;
+    },
     vicios: (h) => {
       const heavy = heavyTerms(h).sort((a, b) => b.penalty - a.penalty).slice(0, 4);
       return "Vícios e gírias descontam o que passa da tolerância por 100 palavras (de 0,5 a 1,5, conforme o peso da expressão); um uso isolado não pesa. Além disso, a soma de tudo o que é informal também conta: acima de 2 pontos ponderados por 100 palavras (as gírias pesam bem mais que os vícios, como “né”), o excesso desconta, mesmo que cada termo, sozinho, esteja dentro da tolerância. "

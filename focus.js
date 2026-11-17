@@ -32,6 +32,8 @@
     falou_por_cima: "Conte até dois depois que o cliente terminar antes de responder — o silêncio curto mostra que você realmente ouviu.",
     monologo_longo: "Depois de uns 60 segundos falando, faça uma pergunta ao cliente. Falas mais curtas mantêm a conversa equilibrada.",
     dominou_conversa: "Troque uma afirmação por uma pergunta aberta a cada poucos minutos e espere a resposta completa antes de continuar.",
+    hesitacao: "Ensaie em voz alta as frases de preço, prazo e próximo passo; se precisar pensar, termine a frase e pause depois dela, não no meio.",
+    pouca_conducao: "Numa apresentação, é você quem conduz: prepare a ordem da demonstração e faça perguntas de checagem a cada bloco.",
     muitas_girias: "Grave um trecho seu e ouça de fora: a maioria das gírias é hábito automático que só percebemos ouvindo depois.",
   };
 
@@ -161,6 +163,15 @@
       };
     },
     pausas(h) {
+      const sub = (h.oratoria_subscores || []).find((x) => x && x.key === "pausas");
+      if (sub && sub.kind === "hesitacao") {
+        return {
+          title: "Pausas no meio da frase",
+          why: `${h.pauses || 0} pausas no meio da frase nesta sessão (logo depois de "de", "que", "e"...) — passam hesitação, principalmente no preço e no fechamento.`,
+          example: null,
+          goal: "Meta: ensaiar em voz alta as frases de preço, prazo e próximo passo; se precisar pensar, termine a frase e pause depois dela.",
+        };
+      }
       return {
         title: "Pausas longas",
         why: `${h.pauses || 0} pausas longas nesta sessão — podem passar hesitação na condução.`,
@@ -327,7 +338,10 @@
     if (subs.length) L.push("• Critérios: " + subs.map((x) => `${SHORT[x.key] || x.label} ${Math.round(x.score)}`).join(" · "));
     const facts = [];
     if (h.wpm) facts.push(`${h.wpm} palavras/min`);
-    if (h.pauses) facts.push(`${h.pauses} ${h.pauses === 1 ? "pausa longa" : "pausas longas"}`);
+    const pSub = (h.oratoria_subscores || []).find((x) => x && x.key === "pausas");
+    if (h.pauses) facts.push(pSub && pSub.kind === "hesitacao"
+      ? `${h.pauses} ${h.pauses === 1 ? "pausa" : "pausas"} no meio da frase`
+      : `${h.pauses} ${h.pauses === 1 ? "pausa longa" : "pausas longas"}`);
     if (facts.length) L.push("• Ritmo: " + facts.join(" · "));
     if (h.objections && h.objections.length) {
       L.push("• Objeções: " + h.objections.map((o) => `${clock(o.t)} "${o.phrase}" → ${o.result}`).join("; "));

@@ -812,6 +812,12 @@
   .prep-btn.primary { background: var(--accent); color: #fff; }
   .prep-btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
   #micToggleBtn.on { background: var(--good-soft); color: var(--good); border: 1px solid color-mix(in srgb, var(--good) 45%, var(--line)); box-shadow: none; }
+  .prep-type { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -4px 0 2px 38px; }
+  .prep-type-lbl { font-size: 11.5px; font-weight: 600; color: var(--ink-faint); margin-right: 2px; }
+  .prep-type button { border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-dim); border-radius: 999px; padding: 5px 11px; font: 600 12px var(--font); cursor: pointer; }
+  .prep-type button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); }
+  .prep-type button:disabled { cursor: default; opacity: .6; }
+  .prep-type button.on:disabled { opacity: 1; }
   .prep-hint { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-faint); line-height: 1.4; }
   .prep-hint.ready { color: var(--good); }
   #session-prep #sessionTimer { margin-top: 0; text-align: center; }
@@ -958,6 +964,7 @@
           <span class="prep-n">1</span>
           <input type="text" id="clientNameInput" class="prep-input" placeholder="Nome do cliente (obrigatório)" maxlength="80" autocomplete="off" />
         </div>
+        <div class="prep-type" id="prepType" role="radiogroup" aria-label="Tipo de reunião"><span class="prep-type-lbl">Tipo de reunião</span></div>
         <div class="prep-row" id="prepStepMic">
           <span class="prep-n">2</span>
           <button type="button" id="micToggleBtn" class="prep-btn">Ativar microfone</button>
@@ -1041,9 +1048,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="shell.js?v=1f7eee8b"></script>
-  <script src="focus.js?v=10a76512"></script>
+  <script src="focus.js?v=873648a5"></script>
   <script src="lang.js?v=a2f514ee"></script>
-  <script src="explain.js?v=9c771e18"></script>
+  <script src="meeting.js?v=4dd2e23d"></script>
+  <script src="explain.js?v=65105f16"></script>
   <script>
     const EMOTION_LABELS_PT = {
       neutral: "Neutro",
@@ -1410,6 +1418,7 @@
     function toDbPatch(patch) {
       const out = { ...patch };
       if ("client" in out) { out.client_name = out.client; delete out.client; }
+      if ("meetingType" in out) { out.meeting_type = out.meetingType; delete out.meetingType; }
       if ("keywordCounts" in out) { out.keyword_counts = out.keywordCounts; delete out.keywordCounts; }
       if ("slangCounts" in out) { out.slang_counts = out.slangCounts; delete out.slangCounts; }
       if ("fillerCounts" in out) { out.filler_counts = out.fillerCounts; delete out.fillerCounts; }
@@ -1426,7 +1435,7 @@
     // tudo se perde por causa de UM campo novo). Se o erro for exatamente
     // "coluna não encontrada", tenta de novo sem essas colunas em vez de
     // perder a sessão toda.
-    const OPTIONAL_NEW_COLUMNS = ["oratoria_subscores"];
+    const OPTIONAL_NEW_COLUMNS = ["oratoria_subscores", "meeting_type"];
 
     function isMissingColumnError(error) {
       return !!error && error.code === "PGRST204";
@@ -1524,8 +1533,10 @@
     let sessionData = [];
     let sessionTranscript = [];
     let sessionWordCount = 0;
-    let sessionPauseCount = 0;
-    let sessionActiveListeningCount = 0;
+    let sessionPauseCount = 0;   // pausas no meio da frase (hesitação) — ver meeting.js
+    let sessionActiveListeningCount = 0;   // não usado desde as pausas no meio da frase (mantido p/ compatibilidade)
+    let sessionMeetingType = "geral";
+    let lastHeardWord = "";
     let sessionKeywordCounts = {};
     let sessionObjections = [];
     let sessionSlangCounts = {};
@@ -1627,7 +1638,10 @@
       sessionConfidences = [];
       sessionVolumes = [];
       currentClientName = clientNameInputEl.value.trim();
+      sessionMeetingType = selectedMeetingType;
+      lastHeardWord = "";
       clientNameInputEl.disabled = true;
+      renderMeetingTypeChips();
       startSessionBtn.style.display = "none";
       endSessionBtn.style.display = "block";
       updateStartGate();
@@ -1700,6 +1714,7 @@
       startSessionBtn.style.display = "block";
       endSessionBtn.style.display = "none";
       clientNameInputEl.disabled = false;
+      renderMeetingTypeChips();
       sessionTimerEl.textContent = "";
       updateSessionStatusDisplay();
       openSavedModal();
@@ -1769,8 +1784,9 @@
         subScores.push({ key: "ritmo", label: "Ritmo de fala", score: paceScore });
       }
 
-      const pauseScore = clamp01(1 - Math.max(0, pauseCount - 2) / 10) * 100;
-      subScores.push({ key: "pausas", label: "Pausas", score: pauseScore });
+      // Pausas no meio da frase por 100 palavras (ver meeting.js). kind marca a nova medida nas sessões salvas.
+      const pauseScore = AuraMeeting.hesitationScore(pauseCount, wordCount);
+      subScores.push({ key: "pausas", label: "Pausas no meio da frase", score: pauseScore, kind: "hesitacao", count: pauseCount });
 
       // Vícios pela taxa por 100 palavras; gírias só pelo que pesa (peso x frequência acima da tolerância).
       const language = AuraLang.languageScore(fillerCounts, slangCounts, wordCount);
@@ -1850,7 +1866,7 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
               ? `Ritmo acelerado (${wpm} palavras/min) — desacelere um pouco pra passar mais clareza.`
               : `Ritmo bem devagar (${wpm} palavras/min) — um pouco mais de energia ajuda a prender atenção.`);
           } else if (s.key === "pausas") {
-            lines.push(`Muitas pausas longas (${pauseCount}) — pode passar hesitação na condução.`);
+            lines.push(`${pauseCount} pausas no meio da frase — sinal de hesitação. Prepare as frases de preço, prazo e próximo passo.`);
           } else if (s.key === "vicios") {
             lines.push("Vícios de linguagem frequentes — veja os cards abaixo pra saber quais e por que trocar.");
           } else if (s.key === "clareza") {
@@ -1944,7 +1960,7 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
     // Dicas de autoavaliação ao final da sessão — regras simples sobre os
     // dados que já coletamos (nada de IA generativa aqui, é tudo heurística
     // direta a partir do que foi medido nesta mesma sessão).
-    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections }) {
+    function generateCoachingTips({ dynamics, wpm, pauseCount, activeListeningCount, slangCounts, fillerCounts, objections, meetingType, wordCount }) {
       const tips = [];
 
       const spoke = !dynamics || dynamics.pctYou >= LISTENING_SHARE; // sessão de escuta: ritmo e pausas não refletem a sua fala
@@ -1956,29 +1972,18 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         tips.push({ key: "ritmo_tranquilo", type: "positivo", text: `Ritmo de fala tranquilo (${wpm} palavras/min) — bom controle de pausas.` });
       }
 
-      if (spoke && pauseCount >= 5) {
-        tips.push({ key: "muitas_pausas", type: "melhorar", text: `Muitas pausas longas (${pauseCount}) — pode passar hesitação.` });
+      // Pausas no meio da frase (hesitação): conta só as que acontecem dentro da sua própria fala.
+      const hesRate = wordCount ? (pauseCount / wordCount) * 100 : 0;
+      if (spoke && pauseCount >= 3 && hesRate > 2) {
+        tips.push({ key: "hesitacao", type: "melhorar", text: `${pauseCount} pausas no meio da frase (logo depois de palavras como "de", "que", "e") — sinal de hesitação. Ensaie antes as frases de preço, prazo e próximo passo.` });
+      } else if (spoke && wordCount >= 300 && hesRate <= 0.5) {
+        tips.push({ key: "fala_fluida", type: "positivo", text: "Fala fluida: quase nenhuma pausa no meio da frase." });
       }
 
-      if (activeListeningCount > 0) {
-        tips.push({
-          key: "escuta_ativa_pausas",
-          type: "positivo",
-          text: `${activeListeningCount} pausa${activeListeningCount > 1 ? "s" : ""} bem longa${activeListeningCount > 1 ? "s" : ""} (mais de 1min) — pode ter sido espaço para o cliente falar ou uma pausa sua; o AuraX não consegue distinguir.`,
-        });
-      }
-
+      // Tempo de fala comparado com a faixa ideal do tipo de reunião (meeting.js).
       if (dynamics) {
-        if (dynamics.pctYou >= 75) {
-          tips.push({ key: "dominou_conversa", type: "melhorar", text: `Você falou ${dynamics.pctYou}% do tempo da sessão — abra mais espaço para o cliente falar.` });
-        } else if (dynamics.pctOther >= 35) {
-          tips.push({ key: "boa_escuta", type: "positivo", text: `Você falou ${dynamics.pctYou}% do tempo; o resto foi escuta ou silêncio — um bom espaço para o cliente falar.` });
-        }
-        // De fone, o silêncio do SEU mic é o cliente falando (escuta), não
-        // hesitação — o aviso só faz sentido quando a divisão é por palavras.
-        if (dynamics.basis !== "tempo" && dynamics.silencePct >= 15) {
-          tips.push({ key: "silencio_alto", type: "melhorar", text: `Silêncio acima do ideal (${dynamics.silencePct}%) — pode indicar hesitação na condução.` });
-        }
+        const talk = AuraMeeting.talkTip(dynamics.pctYou, meetingType);
+        if (talk) tips.push(talk);
       }
 
       // Gíria só vira dica quando pesa na nota (frequência acima da tolerância do peso dela).
@@ -2086,8 +2091,8 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
       const keywordTagsHtml = renderKeywordTags(sessionKeywordCounts);
       summaryNegotiationEl.innerHTML = `
         <div class="insight-line">Ritmo médio de fala: ${wpmSession} palavras/min</div>
-        <div class="insight-line">Pausas longas (mais de 1min30): ${sessionPauseCount}</div>
-        ${sessionActiveListeningCount > 0 ? `<div class="insight-line tip-positive">Silêncios longos (mais de 1min): ${sessionActiveListeningCount}</div>` : ""}
+        <div class="insight-line">Pausas no meio da frase: ${sessionPauseCount}</div>
+        <div class="insight-line">Tipo de reunião: ${AuraMeeting.get(sessionMeetingType).long}</div>
         <div style="margin-top:8px">${keywordTagsHtml || '<span class="insight-line">Nenhuma palavra-chave de negociação identificada.</span>'}</div>
       `;
 
@@ -2128,6 +2133,7 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
             <div class="talk-split-other" style="width:${dynamics.pctOther}%"></div>
           </div>
           <div class="talk-split-labels"><span>Você falou ${dynamics.pctYou}% do tempo</span><span>Ouvindo ou em silêncio ${dynamics.pctOther}%</span></div>
+          ${AuraMeeting.idealLabel(sessionMeetingType) ? `<div class="insight-line" style="margin-top:6px">${AuraMeeting.idealLabel(sessionMeetingType)[0].toUpperCase() + AuraMeeting.idealLabel(sessionMeetingType).slice(1)}.</div>` : ""}
         `;
       } else {
         summaryDynamicsEl.innerHTML = '<div class="insight-line">Sem falas suficientes pra medir a dinâmica da conversa.</div>';
@@ -2152,6 +2158,8 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         objections: sessionObjections,
+        meetingType: sessionMeetingType,
+        wordCount: sessionWordCount,
       });
       summaryTipsEl.innerHTML = renderCoachingTips([...tips].sort((a, b) => (a.type === "positivo") - (b.type === "positivo")));   // sempre aberta: as dicas são o coração do produto
 
@@ -2197,8 +2205,9 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         pauses: sessionPauseCount,
         keywordCounts: sessionKeywordCounts,
         client: currentClientName,
+        meetingType: sessionMeetingType,
         objections: sessionObjections,
-        dynamics,
+        dynamics: dynamics ? { ...dynamics, meetingType: sessionMeetingType } : dynamics,
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         oratoriaScore: oratoriaResult.overall,
@@ -2284,7 +2293,8 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
       const duration = sessionData.length ? sessionData[sessionData.length - 1].t : 0;
       const wpmSession = duration > 0 ? Math.round(sessionWordCount / (duration / 60)) : 0;
       lines.push(["ritmo_medio_palavras_por_min", wpmSession].join(","));
-      lines.push(["pausas_longas", sessionPauseCount].join(","));
+      lines.push(["pausas_no_meio_da_frase", sessionPauseCount].join(","));
+      lines.push(["tipo_de_reuniao", AuraMeeting.get(sessionMeetingType).long].join(","));
       lines.push("");
       lines.push(["palavra_chave", "ocorrencias"].join(","));
       Object.entries(sessionKeywordCounts)
@@ -2332,6 +2342,8 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         slangCounts: sessionSlangCounts,
         fillerCounts: sessionFillerCounts,
         objections: sessionObjections,
+        meetingType: sessionMeetingType,
+        wordCount: sessionWordCount,
       });
       lines.push("");
       lines.push("Dicas de melhoria");
@@ -2548,29 +2560,20 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         if (nowTs - lastVoiceAt < SPEECH_HANGOVER_MS) sessionSpeechSamples++;
       }
 
+      // Pausa no meio da frase: quando a voz volta, olha o silêncio que acabou. Se durou de 2,5 a 8 s
+      // e a última palavra ouvida deixava a frase incompleta ("de", "que", "e"...), foi hesitação.
+      // Silêncios longos não contam mais: com fone, quase sempre são o cliente falando.
       if (volume < SILENCE_RMS_THRESHOLD) {
-        if (silenceStartTime === null) {
-          silenceStartTime = Date.now();
-        } else {
+        if (silenceStartTime === null) silenceStartTime = Date.now();
+      } else {
+        if (silenceStartTime !== null && sessionActive) {
           const silenceDuration = Date.now() - silenceStartTime;
-          if (!pauseAlreadyFlagged && silenceDuration > PAUSE_MIN_MS) {
-            pauseAlreadyFlagged = true;
-            if (sessionActive) sessionPauseCount++;
-            pushLiveAlert("Pausa longa detectada");
-          }
-          // Um silêncio que segue crescendo além disso deixa de parecer
-          // hesitação — muito mais provável que seja você dando espaço pro
-          // cliente falar. Vira um segundo aviso, positivo, na mesma pausa.
-          if (!activeListeningAlreadyFlagged && silenceDuration > ACTIVE_LISTENING_MIN_MS) {
-            activeListeningAlreadyFlagged = true;
-            if (sessionActive) sessionActiveListeningCount++;
-            pushLiveAlert("Silêncio de mais de 1 min — se foi o cliente falando, bom espaço de escuta.");
+          if (silenceDuration >= AuraMeeting.HESITATION_MIN_MS && silenceDuration <= AuraMeeting.HESITATION_MAX_MS
+              && AuraMeeting.endsMidPhrase(lastHeardWord)) {
+            sessionPauseCount++;
           }
         }
-      } else {
         silenceStartTime = null;
-        pauseAlreadyFlagged = false;
-        activeListeningAlreadyFlagged = false;
       }
 
       const now = Date.now();
@@ -2623,7 +2626,7 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         }
       }
 
-      voiceMetaEl.textContent = `${recentWpm} palavras/min · ${sessionPauseCount} pausas longas${volumeLabel}`;
+      voiceMetaEl.textContent = `${recentWpm} palavras/min · ${sessionPauseCount} ${sessionPauseCount === 1 ? "pausa" : "pausas"} no meio da frase${volumeLabel}`;
     }
 
     function formatClock(totalSeconds) {
@@ -2740,6 +2743,8 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         let interim = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
+          const heard = result[0].transcript.trim().split(/\s+/).filter(Boolean);
+          if (heard.length) lastHeardWord = heard[heard.length - 1];
           if (result.isFinal) {
             appendTranscriptLine(result[0].transcript.trim(), result[0].confidence);
           } else {
@@ -2861,6 +2866,32 @@ if (listening) subScores.forEach((s) => { if (WHEN_LISTENING.includes(s.key)) s.
         : "Falta ativar o microfone.";
     }
     clientNameInputEl.addEventListener("input", () => { clientNameInputEl.classList.remove("need"); updateStartGate(); });
+
+    // Tipo de reunião (opcional): ajusta a faixa ideal de tempo de fala e as dicas. Lembra a última escolha.
+    let selectedMeetingType = "geral";
+    try { selectedMeetingType = AuraMeeting.get(localStorage.getItem("aurax_meeting_type")).id; } catch (e) { /* padrão */ }
+    function renderMeetingTypeChips() {
+      const box = document.getElementById("prepType");
+      if (!box) return;
+      box.querySelectorAll("button").forEach((b) => b.remove());
+      AuraMeeting.TYPES.forEach((t) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = t.label;
+        b.title = t.ideal ? `${t.long}: ideal falar de ${t.ideal[0]}% a ${t.ideal[1]}% do tempo` : `${t.long}: sem meta de tempo de fala`;
+        b.setAttribute("role", "radio");
+        b.setAttribute("aria-checked", String(t.id === selectedMeetingType));
+        b.className = t.id === selectedMeetingType ? "on" : "";
+        b.disabled = sessionActive;
+        b.addEventListener("click", () => {
+          selectedMeetingType = t.id;
+          try { localStorage.setItem("aurax_meeting_type", t.id); } catch (e) { /* ok */ }
+          renderMeetingTypeChips();
+        });
+        box.appendChild(b);
+      });
+    }
+    renderMeetingTypeChips();
     updateStartGate();
 
     async function startCamera(facingMode = "user") {
